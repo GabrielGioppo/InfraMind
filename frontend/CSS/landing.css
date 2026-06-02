@@ -479,7 +479,7 @@ footer {
 }
 .field input::placeholder, .field textarea::placeholder { color: #484f58; }
 .field textarea { resize: vertical; min-height: 80px; }
-.field select { -webkit-appearance: none; }
+.field select { -webkit-appearance: none; appearance: none;}
 .pw-wrap { position: relative; }
 .pw-wrap input { padding-right: 40px; }
 .pw-eye { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; color: var(--muted); cursor: pointer; display: flex; border: none; }
@@ -575,12 +575,12 @@ footer {
   font-weight: 600;
   color: var(--blue);
   cursor: pointer;
-  list-style: none;           /* remove arrow in Firefox */
+  list-style: none;          
   user-select: none;
   background: var(--surface-2);
   transition: background .15s;
 }
-.occ-extras-toggle::-webkit-details-marker { display: none; } /* Chrome/Safari */
+.occ-extras-toggle::-webkit-details-marker { display: none; } 
 .occ-extras-toggle:hover { background: var(--surface-3); }
 
 .occ-extras-icon {
@@ -589,7 +589,6 @@ footer {
   flex-shrink: 0;
   transition: opacity .15s;
 }
-/* Hide the + icon when open, show – visually via rotate on chevron */
 .occ-extras[open] .occ-extras-icon { opacity: 0; width: 0; margin: 0; }
 
 .occ-extras-chevron {
@@ -615,7 +614,7 @@ footer {
 
 /* ═══════ LOCATION WIDGET (3 tabs: GPS / Map / Text) ═══════ */
 
-/* Label row sits above tabs, handled by .field label */
+
 .loc-field { margin-bottom: 16px; }
 
 /* Tab strip */

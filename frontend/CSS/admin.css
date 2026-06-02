@@ -1,3 +1,7 @@
+/* ═══════════════════════════════════════════
+    ADMIN DASHBOARD — InfraMind
+    DESIGN TOKENS
+═══════════════════════════════════════════ */
 :root {
     --bg: #0d0f14;
     --bg2: #13161e;
@@ -241,7 +245,6 @@ tr:hover td { background:rgba(255,255,255,.02); }
 
 /* USER DETAIL */
 .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-.detail-field { }
 .detail-field label { font-size:11px; color:var(--text3); display:block; margin-bottom:4px; }
 .detail-field span { font-size:13px; color:var(--text); }
 
