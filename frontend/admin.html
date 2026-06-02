@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InfraMind — Painel Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<aside id="sidebar">
+    <div class="sidebar-logo">
+        <div class="logo-mark"><span>IM</span></div>
+        <span class="logo-text">InfraMind</span>
+        <span class="logo-badge">ADMIN</span>
+    </div>
+    <nav class="nav">
+        <div class="nav-section">Visão geral</div>
+        <div class="nav-item active" onclick="showPage('dashboard')">
+            <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+            Dashboard
+        </div>
+        <div class="nav-section">Gestão</div>
+        <div class="nav-item" onclick="showPage('occurrences')">
+            <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+            Ocorrências
+        </div>
+        <div class="nav-item" onclick="showPage('map')">
+            <svg viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
+            Mapa
+        </div>
+        <div class="nav-item" onclick="showPage('users')">
+            <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+            Usuários
+        </div>
+        <div class="nav-item" onclick="showPage('feedbacks')">
+            <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
+            Feedbacks
+            <span class="badge" id="feedback-count-badge">—</span>
+        </div>
+        <div class="nav-item" onclick="showPage('logs')">
+            <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8l8 5 8-5v10zm-8-7L4 6h16l-8 5z"/></svg>
+            Logs
+        </div>
+        <div class="nav-section">Configuração</div>
+        <div class="nav-item" onclick="showPage('categories')">
+            <svg viewBox="0 0 24 24"><path d="M12 2l-5.5 9h11L12 2zm0 3.84L13.93 9h-3.87L12 5.84zM17.5 13c-2.49 0-4.5 2.01-4.5 4.5S15.01 22 17.5 22s4.5-2.01 4.5-4.5S19.99 13 17.5 13zm0 7c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5zM3 21.5h8v-8H3v8zm2-6h4v4H5v-4z"/></svg>
+            Categorias
+        </div>
+    </nav>
+    <div class="sidebar-footer">
+        <div class="avatar" id="admin-avatar">AD</div>
+        <div class="avatar-info">
+            <div class="avatar-name" id="admin-name">Administrador</div>
+            <div class="avatar-role">Superusuário</div>
+        </div>
+        <button class="logout-btn" onclick="logout()" title="Sair">
+            <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+        </button>
+    </div>
+</aside>
+
+<main id="main">
+    <div class="topbar">
+        <span class="topbar-title" id="page-title">Dashboard</span>
+        <div class="topbar-right">
+            <div class="topbar-search">
+                <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                <input type="text" placeholder="Buscar..." id="global-search" oninput="onGlobalSearch(this.value)">
+            </div>
+            <button class="notif-btn" title="Notificações">
+                <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+                <span class="notif-dot"></span>
+            </button>
+        </div>
+    </div>
+
+    <div id="page-dashboard" class="page active">
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card blue">
+                <div class="stat-label"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>Usuários</div>
+                <div class="stat-value" id="s-users">—</div>
+                <div class="stat-delta">Total cadastrado</div>
+            </div>
+            <div class="stat-card yellow">
+                <div class="stat-label"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>Ocorrências</div>
+                <div class="stat-value" id="s-occ">—</div>
+                <div class="stat-delta">Total registrado</div>
+            </div>
+            <div class="stat-card green">
+                <div class="stat-label"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>Resolvidas</div>
+                <div class="stat-value" id="s-resolved">—</div>
+                <div class="stat-delta">Status resolvida/fechada</div>
+            </div>
+            <div class="stat-card red">
+                <div class="stat-label"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>Abertas</div>
+                <div class="stat-value" id="s-open">—</div>
+                <div class="stat-delta">Aguardando ação</div>
+            </div>
+        </div>
+
+        <div class="two-col">
+            <div>
+                <div class="section-header"><span class="section-title">Ocorrências por status</span></div>
+                <div class="table-wrap" style="padding:20px">
+                    <div class="mini-chart" id="status-chart"></div>
+                </div>
+            </div>
+            <div>
+                <div class="section-header"><span class="section-title">Categorias</span></div>
+                <div class="table-wrap" style="padding:20px">
+                    <div id="cat-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-header"><span class="section-title">Últimas ocorrências</span>
+            <button class="btn btn-ghost btn-sm" onclick="showPage('occurrences')">Ver todas</button>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Título</th><th>Status</th><th>Prioridade</th><th>Importância</th><th>Data</th></tr></thead>
+                <tbody id="recent-occ-tbody"><tr><td colspan="5" class="loading">Carregando...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="page-occurrences" class="page">
+        <div class="section-header">
+            <span class="section-title">Gerenciar Ocorrências</span>
+        </div>
+        <div class="table-wrap">
+            <div class="table-toolbar">
+                <input class="filter-input" placeholder="Filtrar por título..." id="occ-search" oninput="filterOcc()" style="width:200px">
+                <select class="filter-select" id="occ-status-filter" onchange="filterOcc()">
+                    <option value="">Todos os status</option>
+                    <option value="open">Aberta</option>
+                    <option value="in_progress">Em Andamento</option>
+                    <option value="resolved">Resolvida</option>
+                    <option value="closed">Fechada</option>
+                </select>
+                <select class="filter-select" id="occ-color-filter" onchange="filterOcc()">
+                    <option value="">Toda importância</option>
+                    <option value="green">Verde (Normal)</option>
+                    <option value="yellow">Amarelo (Médio)</option>
+                    <option value="red">Vermelho (Importante)</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" onclick="loadOccurrences()" style="margin-left:auto">
+                    <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                    Atualizar
+                </button>
+            </div>
+            <table>
+                <thead><tr><th>ID</th><th>Título</th><th>Status</th><th>Importância</th><th>Validações</th><th>Data</th><th>Ações</th></tr></thead>
+                <tbody id="occ-tbody"><tr><td colspan="7" class="loading">Carregando...</td></tr></tbody>
+            </table>
+            <div class="pagination" id="occ-pagination"></div>
+        </div>
+    </div>
+
+    <div id="page-users" class="page">
+        <div class="section-header">
+            <span class="section-title">Gerenciar Usuários</span>
+        </div>
+        <div class="table-wrap">
+            <div class="table-toolbar">
+                <input class="filter-input" placeholder="Filtrar por nome ou email..." id="user-search" oninput="filterUsers()" style="width:220px">
+                <select class="filter-select" id="user-type-filter" onchange="filterUsers()">
+                    <option value="">Todos os tipos</option>
+                    <option value="citizen">Cidadão</option>
+                    <option value="admin">Administrador</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" onclick="loadUsers()" style="margin-left:auto">
+                    <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                    Atualizar
+                </button>
+            </div>
+            <table>
+                <thead><tr><th>ID</th><th>Usuário</th><th>E-mail</th><th>Tipo</th><th>Status</th><th>Cadastro</th><th>Ações</th></tr></thead>
+                <tbody id="users-tbody"><tr><td colspan="7" class="loading">Carregando...</td></tr></tbody>
+            </table>
+            <div class="pagination" id="users-pagination"></div>
+        </div>
+    </div>
+
+    <div id="page-feedbacks" class="page">
+        <div class="section-header">
+            <span class="section-title">Feedbacks dos Cidadãos</span>
+            <button class="btn btn-ghost btn-sm" onclick="loadFeedbacks()">
+                <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                Atualizar
+            </button>
+        </div>
+        <div id="feedback-list" class="feedback-grid"><div style="grid-column:1/-1" class="loading">Carregando...</div></div>
+    </div>
+
+    <div id="page-logs" class="page">
+        <div class="section-header">
+            <span class="section-title">Logs de Auditoria</span>
+            <button class="btn btn-ghost btn-sm" onclick="loadLogs()">
+                <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                Atualizar
+            </button>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>ID</th><th>Usuário</th><th>Ação</th><th>Modelo</th><th>Objeto</th><th>IP</th><th>Data</th></tr></thead>
+                <tbody id="logs-tbody"><tr><td colspan="7" class="loading">Carregando...</td></tr></tbody>
+            </table>
+            <div class="pagination" id="logs-pagination"></div>
+        </div>
+    </div>
+
+    <div id="page-categories" class="page">
+        <div class="section-header">
+            <span class="section-title">Categorias</span>
+            <button class="btn btn-primary btn-sm" onclick="openCatModal()">
+                <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                Nova Categoria
+            </button>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>ID</th><th>Nome</th><th>Descrição</th><th>Status</th><th>Criada em</th><th>Ações</th></tr></thead>
+                <tbody id="cats-tbody"><tr><td colspan="6" class="loading">Carregando...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div id="page-map" class="page">
+
+        <!-- Filtros -->
+        <div class="table-wrap" style="margin-bottom:16px;padding:16px 20px;">
+            <div class="table-toolbar" style="flex-wrap:wrap;gap:10px;">
+
+                <select class="filter-select" id="map-cat-filter" onchange="applyMapFilters()" style="min-width:200px">
+                    <option value="">Todas as categorias</option>
+                </select>
+
+                <select class="filter-select" id="map-status-filter" onchange="applyMapFilters()">
+                    <option value="">Todos os status</option>
+                    <option value="open">Aberta</option>
+                    <option value="in_progress">Em Andamento</option>
+                    <option value="resolved">Resolvida</option>
+                    <option value="closed">Fechada</option>
+                </select>
+
+                <select class="filter-select" id="map-importance-filter" onchange="applyMapFilters()">
+                    <option value="">Toda importância</option>
+                    <option value="green">🟢 Normal</option>
+                    <option value="yellow">🟡 Médio</option>
+                    <option value="red">🔴 Importante</option>
+                </select>
+
+                <button class="btn btn-ghost btn-sm" onclick="resetMapFilters()" style="margin-left:auto">
+                    Limpar filtros
+                </button>
+
+                <span id="map-count-label" style="font-size:12px;color:var(--text3);align-self:center;font-family:var(--mono)"></span>
+            </div>
+
+            <!-- Legenda de cores por categoria (gerada dinamicamente) -->
+            <div id="map-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;"></div>
+        </div>
+
+        <!-- Container do mapa -->
+        <div class="table-wrap" style="padding:0;overflow:hidden;border-radius:var(--radius-lg);">
+            <div id="map-container" style="width:100%;height:560px;"></div>
+        </div>
+
+        <!-- Popup de detalhes do ponto (oculto por padrão) -->
+        <div id="map-popup" style="
+            display:none;position:fixed;z-index:9999;
+            background:var(--bg2);border:1px solid var(--border2);
+            border-radius:var(--radius);padding:16px 18px;
+            min-width:240px;max-width:300px;
+            box-shadow:0 8px 32px rgba(0,0,0,.5);
+            font-size:13px;color:var(--text);
+        ">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <strong id="popup-title" style="font-size:14px;"></strong>
+                <button onclick="document.getElementById('map-popup').style.display='none'"
+                    style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;line-height:1">×</button>
+            </div>
+            <div id="popup-body" style="display:flex;flex-direction:column;gap:6px;color:var(--text2);"></div>
+        </div>
+    </div>
+</main>
+
+<div class="modal-backdrop" id="occ-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">Editar Ocorrência</span>
+            <button class="modal-close" onclick="closeModal('occ-modal')">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="edit-occ-id">
+            <div class="modal-field"><label>Status</label>
+                <select id="edit-occ-status">
+                    <option value="open">Aberta</option>
+                    <option value="in_progress">Em Andamento</option>
+                    <option value="resolved">Resolvida</option>
+                    <option value="closed">Fechada</option>
+                </select>
+            </div>
+            <div class="modal-field"><label>Nível de Importância</label>
+                <select id="edit-occ-importance">
+                    <option value="">Não definido</option>
+                    <option value="green">🟢 Verde — Normal</option>
+                    <option value="yellow">🟡 Amarelo — Médio</option>
+                    <option value="red">🔴 Vermelho — Importante</option>
+                </select>
+            </div>
+            <div class="modal-field"><label>Tempo estimado (horas)</label>
+                <input type="number" id="edit-occ-time" placeholder="Ex: 48">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('occ-modal')">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveOcc()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="user-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title" id="user-modal-title">Usuário</span>
+            <button class="modal-close" onclick="closeModal('user-modal')">×</button>
+        </div>
+        <div class="modal-body" id="user-modal-body"></div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('user-modal')">Fechar</button>
+            <button class="btn btn-danger btn-sm" id="user-delete-btn">Excluir Usuário</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="cat-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title" id="cat-modal-title">Nova Categoria</span>
+            <button class="modal-close" onclick="closeModal('cat-modal')">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="cat-id">
+            <div class="modal-field"><label>Nome *</label><input type="text" id="cat-name" placeholder="Ex: Iluminação Pública"></div>
+            <div class="modal-field"><label>Descrição</label><input type="text" id="cat-desc" placeholder="Descrição opcional"></div>
+            <div class="modal-field"><label>Status</label>
+                <select id="cat-active">
+                    <option value="true">Ativa</option>
+                    <option value="false">Inativa</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('cat-modal')">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveCat()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script src="admin.js"></script>
+</body>
+</html>

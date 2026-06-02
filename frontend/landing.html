@@ -1,0 +1,1280 @@
+  <!DOCTYPE html>
+  <html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InfraMind — Gestão Urbana Inteligente</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="landing.css">
+  </head>
+  <body>
+
+  <!-- ═══════════════════════════════════════
+      NAVBAR
+  ═══════════════════════════════════════ -->
+  <nav class="navbar" id="navbar">
+    <div class="navbar-logo">
+      <div class="logo-mark">IM</div>
+      InfraMind
+    </div>
+    <ul class="navbar-links">
+      <li><a href="#como-funciona">Como funciona</a></li>
+      <li><a href="#funcionalidades">Funcionalidades</a></li>
+      <li><a href="#objetivo">Objetivo</a></li>
+    </ul>
+    <div class="navbar-actions">
+      <button class="btn btn-ghost" onclick="openAuthModal('login')">Fazer Login</button>
+      <button class="btn btn-success" onclick="openOccModal()">
+        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        Registrar Ocorrência
+      </button>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════════════════
+      HERO
+  ═══════════════════════════════════════ -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="hero-badge-dot"></span>
+        Alinhado à ODS 9 — Inovação e Infraestrutura
+      </div>
+      <h1>
+        Infraestrutura urbana<br>
+        <span class="accent">inteligente e colaborativa</span>
+      </h1>
+      <p class="hero-sub">
+        Registre problemas urbanos como buracos, falhas na iluminação e
+        acúmulo de resíduos. Administradores acompanham, priorizam e
+        resolvem em tempo real — com análise por Inteligência Artificial.
+      </p>
+      <div class="hero-actions">
+        <button class="btn btn-success btn-xl" onclick="openOccModal()">
+          <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          Registrar uma Ocorrência
+        </button>
+        <button class="btn btn-ghost btn-xl" onclick="openAuthModal('login')">
+          Fazer Login
+        </button>
+      </div>
+      <p class="hero-note">
+        <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+        Sem login para registrar ocorrências — comece agora mesmo
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+      STATS STRIP
+  ═══════════════════════════════════════ -->
+  <div class="stats-strip">
+    <div class="stat-item">
+      <div class="stat-num"><span class="accent-blue" id="stat-ocorrencias">—</span></div>
+      <div class="stat-label-sm">Ocorrências registradas</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num"><span class="accent-green" id="stat-usuarios">—</span></div>
+      <div class="stat-label-sm">Cidadãos cadastrados</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num"><span class="accent-purple" id="stat-cats">—</span></div>
+      <div class="stat-label-sm">Categorias de problema</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num"><span class="accent-blue">IA</span></div>
+      <div class="stat-label-sm">Análise automática por Gemini</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+      COMO FUNCIONA
+  ═══════════════════════════════════════ -->
+  <section class="section how-bg" id="como-funciona">
+    <div class="section-inner">
+      <div class="section-tag">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+        Como funciona
+      </div>
+      <h2 class="section-title">Simples para o cidadão,<br>poderoso para o gestor</h2>
+      <p class="section-sub">
+        Em quatro passos, um problema urbano vai do seu relato à resolução
+        documentada — sem burocracia.
+      </p>
+      <div class="steps-grid">
+        <div class="step-card">
+          <span class="step-num">01</span>
+          <div class="step-icon blue">
+            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          </div>
+          <div class="step-title">Registre o problema</div>
+          <p class="step-desc">
+            Descreva o problema, aponte o local no mapa e envie fotos.
+            Não é preciso criar conta — qualquer pessoa pode registrar.
+          </p>
+          <span class="step-anon-badge">
+            <svg viewBox="0 0 24 24" style="width:10px;height:10px;fill:currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            Sem login necessário
+          </span>
+        </div>
+        <div class="step-card">
+          <span class="step-num">02</span>
+          <div class="step-icon purple">
+            <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+          </div>
+          <div class="step-title">IA analisa e classifica</div>
+          <p class="step-desc">
+            O Google Gemini analisa a urgência automaticamente (baixa, média, alta
+            ou crítica) e detecta se é duplicata de outra ocorrência próxima.
+          </p>
+        </div>
+        <div class="step-card">
+          <span class="step-num">03</span>
+          <div class="step-icon green">
+            <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          </div>
+          <div class="step-title">Comunidade valida</div>
+          <p class="step-desc">
+            Outros moradores podem confirmar o problema, aumentando sua
+            prioridade. Mais validações = resolução mais rápida.
+            <em style="font-size:.78rem;color:var(--muted);display:block;margin-top:6px">Requer conta para validar</em>
+          </p>
+        </div>
+        <div class="step-card">
+          <span class="step-num">04</span>
+          <div class="step-icon yellow">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+          </div>
+          <div class="step-title">Gestor resolve e atualiza</div>
+          <p class="step-desc">
+            O administrador acompanha pelo painel, define prioridades, atualiza
+            o status e registra o histórico completo com rastreabilidade total.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+      FUNCIONALIDADES
+  ═══════════════════════════════════════ -->
+  <section class="section" id="funcionalidades">
+    <div class="section-inner">
+      <div class="section-tag">
+        <svg viewBox="0 0 24 24"><path d="M12 2l-5.5 9h11L12 2zm0 3.84L13.93 9h-3.87L12 5.84zM17.5 13c-2.49 0-4.5 2.01-4.5 4.5S15.01 22 17.5 22s4.5-2.01 4.5-4.5S19.99 13 17.5 13zm0 7c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        Funcionalidades
+      </div>
+      <h2 class="section-title">Tudo que a gestão urbana<br>precisa em um sistema</h2>
+      <p class="section-sub">
+        Do registro anônimo ao painel analítico do administrador, cada detalhe
+        foi pensado para agilidade e transparência.
+      </p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon green">
+            <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          </div>
+          <div class="feature-title">Registro sem cadastro</div>
+          <p class="feature-desc">Qualquer cidadão registra uma ocorrência sem precisar criar conta. Se criar conta depois, as ocorrências anônimas são vinculadas automaticamente.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon purple">
+            <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+          </div>
+          <div class="feature-title">Análise de IA com Gemini</div>
+          <p class="feature-desc">O Google Gemini classifica urgência de 0 a 100, sugere descrições técnicas, detecta duplicatas e lista palavras-chave de risco automaticamente.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon blue">
+            <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 14H4v-4h11v4zm0-5H4V9h11v4zm5 5h-4V9h4v9z"/></svg>
+          </div>
+          <div class="feature-title">Painel administrativo</div>
+          <p class="feature-desc">Dashboard completo com estatísticas, gráficos, filtros avançados, mapa geográfico dos problemas e gestão de usuários em um só lugar.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon yellow">
+            <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+          </div>
+          <div class="feature-title">Segurança e auditoria</div>
+          <p class="feature-desc">Autenticação JWT, controle de acesso por perfil (cidadão/admin), logs completos com IP e dispositivo, e histórico imutável de todas as ações.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon red">
+            <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          </div>
+          <div class="feature-title">Validação comunitária</div>
+          <p class="feature-desc">Moradores confirmam ocorrências de terceiros, elevando a prioridade dinamicamente. Cada validação pesa no cálculo de urgência do sistema.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon green">
+            <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
+          </div>
+          <div class="feature-title">Feedback pós-resolução</div>
+          <p class="feature-desc">Após resolução, cidadãos avaliam com nota de 1–5 estrelas. Administradores postam atualizações oficiais sem nota, mantendo o canal de comunicação.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+      OBJETIVO / ODS
+  ═══════════════════════════════════════ -->
+  <section class="section ods-section" id="objetivo">
+    <div class="ods-inner" style="padding: 80px 40px;">
+      <div>
+        <div class="ods-badge">
+          <div class="ods-badge-num">09</div>
+          <div class="ods-badge-text">
+            <strong>ODS 9 — ONU</strong>
+            Indústria, Inovação e Infraestrutura
+          </div>
+        </div>
+        <h2 class="section-title">Tecnologia a serviço<br>da cidade real</h2>
+        <p style="font-size:.95rem;color:#8b949e;line-height:1.8;max-width:480px;margin-bottom:28px;">
+          O InfraMind foi desenvolvido para modernizar a gestão de infraestrutura
+          urbana com dados confiáveis e transparentes, promovendo decisões públicas
+          mais rápidas e baseadas em evidências reais da comunidade.
+        </p>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;align-items:center;gap:10px;font-size:.875rem;color:#8b949e;">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:var(--green);flex-shrink:0"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            Canais diretos entre cidadão e gestão
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:.875rem;color:#8b949e;">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:var(--green);flex-shrink:0"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            Priorização inteligente por criticidade
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:.875rem;color:#8b949e;">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:var(--green);flex-shrink:0"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            Rastreabilidade total de cada problema
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:.875rem;color:#8b949e;">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:var(--green);flex-shrink:0"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            Inteligência artificial integrada nativamente
+          </div>
+        </div>
+      </div>
+      <div class="ods-visual">
+        <div class="ods-pillars">
+          <div class="ods-pillar">
+            <div class="ods-pillar-icon">🏗️</div>
+            <div class="ods-pillar-label">Infraestrutura resiliente</div>
+          </div>
+          <div class="ods-pillar">
+            <div class="ods-pillar-icon">💡</div>
+            <div class="ods-pillar-label">Inovação inclusiva</div>
+          </div>
+          <div class="ods-pillar">
+            <div class="ods-pillar-icon">🤝</div>
+            <div class="ods-pillar-label">Participação cidadã</div>
+          </div>
+          <div class="ods-pillar">
+            <div class="ods-pillar-icon">📊</div>
+            <div class="ods-pillar-label">Decisão por dados</div>
+          </div>
+        </div>
+        <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border);">
+          <p style="font-size:.78rem;color:var(--muted);text-align:center;font-family:var(--mono);">
+            Projeto Interdisciplinar III — SI · FHO 2026
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+      CTA FINAL
+  ═══════════════════════════════════════ -->
+  <section class="cta-section">
+    <div class="cta-bg"></div>
+    <div class="cta-box">
+      <h2>Viu um problema<br>na sua cidade?</h2>
+      <p>
+        Registre agora — sem precisar criar conta. Se quiser acompanhar e interagir
+        com outras ocorrências, crie seu perfil em segundos.
+      </p>
+      <div class="cta-actions">
+        <button class="btn btn-success btn-lg" onclick="openOccModal()">
+          <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          Registrar Ocorrência
+        </button>
+        <button class="btn btn-ghost btn-lg" onclick="openAuthModal('register')">
+          Criar conta grátis
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+      FOOTER
+  ═══════════════════════════════════════ -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="navbar-logo" style="margin-bottom:0">
+          <div class="logo-mark">IM</div>
+          InfraMind
+        </div>
+        <p>Plataforma inteligente para monitoramento e otimização de infraestruturas sustentáveis. Desenvolvida por estudantes de Sistemas de Informação — FHO 2026.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Sistema</h4>
+        <ul>
+          <li><a href="#como-funciona">Como funciona</a></li>
+          <li><a href="#funcionalidades">Funcionalidades</a></li>
+          <li><a href="#objetivo">Objetivos</a></li>
+          <li><a href="index.html">Acessar plataforma</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Projeto</h4>
+        <ul>
+          <li><a href="https://github.com/GabrielGioppo/InfraMind" target="_blank">GitHub</a></li>
+          <li><a href="https://github.com/users/GabrielGioppo/projects/1" target="_blank">Cronograma</a></li>
+          <li><a href="#" onclick="openAuthModal('login');return false;">Login Admin</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span class="footer-copy">© 2026 InfraMind — Projeto acadêmico FHO · Sistemas de Informação</span>
+      <div class="footer-ods">
+        Alinhado à <span class="ods-chip">ODS 9</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ═══════════════════════════════════════
+      MODAL — AUTH (Login / Cadastro)
+  ═══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-auth">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-logo">
+          <div class="logo-mark" style="width:26px;height:26px;font-size:11px">IM</div>
+          InfraMind
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-auth')">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-tabs" id="auth-tabs">
+          <button class="modal-tab active" id="tab-login" onclick="switchAuthTab('login')">Entrar</button>
+          <button class="modal-tab" id="tab-register" onclick="switchAuthTab('register')">Criar conta</button>
+        </div>
+
+        <!-- LOGIN -->
+        <div class="modal-pane active" id="pane-login">
+          <div id="login-msg"></div>
+          <div class="field">
+            <label>Usuário ou E-mail</label>
+            <input type="text" id="auth-username" placeholder="seu_usuario" autocomplete="username">
+          </div>
+          <div class="field">
+            <label>Senha</label>
+            <div class="pw-wrap">
+              <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password">
+              <button class="pw-eye" type="button" onclick="togglePw('auth-password',this)">
+                <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+              </button>
+            </div>
+          </div>
+          <button class="btn btn-primary" style="width:100%;margin-top:4px;" onclick="doLogin()">
+            Entrar no sistema
+          </button>
+          <p class="modal-footer-text">
+            Sem conta? <a href="#" onclick="switchAuthTab('register')">Criar cadastro grátis</a>
+          </p>
+        </div>
+
+        <!-- REGISTER -->
+        <div class="modal-pane" id="pane-register">
+          <div id="anon-merge-banner" class="anon-banner" style="display:none">
+            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            <p>
+              <strong>Suas ocorrências serão salvas!</strong><br>
+              Você registrou ocorrências sem conta. Ao criar sua conta agora, elas serão
+              vinculadas automaticamente ao seu perfil.
+            </p>
+          </div>
+          <div id="register-msg"></div>
+          <div class="field">
+            <label>Nome completo</label>
+            <input type="text" id="reg-fullname" placeholder="Usuário">
+          </div>
+          <div class="field">
+            <label>E-mail</label>
+            <input type="email" id="reg-email" placeholder="usuario@email.com" autocomplete="email">
+          </div>
+          <div class="field">
+            <label>Senha</label>
+            <div class="pw-wrap">
+              <input type="password" id="reg-password" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
+              <button class="pw-eye" type="button" onclick="togglePw('reg-password',this)">
+                <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+              </button>
+            </div>
+            <p class="field-hint">Use pelo menos 8 caracteres com letras e números</p>
+          </div>
+          <button class="btn btn-success" style="width:100%;margin-top:4px;" onclick="doRegister()">
+            Criar conta e entrar
+          </button>
+          <p class="modal-footer-text">
+            Já tem conta? <a href="#" onclick="switchAuthTab('login')">Fazer login</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+      MODAL — REGISTRAR OCORRÊNCIA (anon ou logado)
+  ═══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-occ">
+    <div class="modal" style="max-width:560px;">
+      <div class="modal-header">
+        <div class="modal-logo">
+          <div class="logo-mark" style="width:26px;height:26px;font-size:11px">IM</div>
+          Registrar Ocorrência
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-occ')">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div id="occ-anon-info" class="anon-banner">
+          <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          <p>
+            <strong>Registro anônimo ativado.</strong><br>
+            Você não precisa de conta para registrar. Se quiser criar uma conta depois,
+            esta ocorrência será vinculada automaticamente ao seu perfil.
+          </p>
+        </div>
+        <div id="occ-msg"></div>
+        <div class="field">
+          <label>Categoria</label>
+          <select id="occ-cat">
+            <option value="">Carregando categorias...</option>
+          </select>
+        </div>
+        <!-- ── Localização (3 abas) ── -->
+        <div class="field loc-field">
+          <label>Localização</label>
+          <div class="loc-tabs" role="tablist">
+            <button class="loc-tab active" role="tab" onclick="switchLocTab('gps',this)"
+              aria-selected="true">
+              <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>
+              GPS
+            </button>
+            <button class="loc-tab" role="tab" onclick="switchLocTab('map',this)"
+              aria-selected="false">
+              <svg viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
+              Mapa
+            </button>
+            <button class="loc-tab" role="tab" onclick="switchLocTab('text',this)"
+              aria-selected="false">
+              <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+              Texto
+            </button>
+          </div>
+
+          <!-- ABA GPS -->
+          <div class="loc-pane active" id="loc-pane-gps">
+            <button class="loc-gps-btn" id="gps-btn" type="button" onclick="requestGPS()">
+              <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06z"/></svg>
+              <span id="gps-btn-label">Usar minha localização atual</span>
+            </button>
+            <div id="gps-result" class="loc-gps-result" style="display:none"></div>
+          </div>
+
+          <!-- ABA MAPA -->
+          <div class="loc-pane" id="loc-pane-map">
+            <div class="loc-map-hint">Clique no mapa para marcar o local do problema.</div>
+            <div id="occ-map" class="loc-map-canvas"></div>
+            <div id="map-result" class="loc-gps-result" style="display:none"></div>
+          </div>
+
+          <!-- ABA TEXTO -->
+          <div class="loc-pane" id="loc-pane-text">
+            <input type="text" id="occ-addr" placeholder="Ex: Rua das Flores, 123 — Bairro Centro">
+            <div class="field-hint">Endereço, bairro ou ponto de referência.</div>
+          </div>
+        </div>
+        <!-- Estado interno — coordenadas capturadas por GPS ou mapa -->
+        <input type="hidden" id="occ-lat">
+        <input type="hidden" id="occ-lng">
+
+        <!-- ── Informações extras (expansível) ── -->
+        <details class="occ-extras" id="occ-extras">
+          <summary class="occ-extras-toggle">
+            <svg class="occ-extras-icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            <span>Adicionar informações extras</span>
+            <svg class="occ-extras-chevron" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+          </summary>
+          <div class="occ-extras-body">
+            <div class="field">
+              <label>Título personalizado</label>
+              <input type="text" id="occ-title" placeholder="Ex: Buraco na Av. Principal, esquina com Rua 7">
+              <div class="field-hint">Se deixar em branco, um título será gerado automaticamente.</div>
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label>Descrição detalhada</label>
+              <textarea id="occ-desc" rows="3" placeholder="Descreva o problema: tamanho, risco, quanto tempo está assim..."></textarea>
+            </div>
+            <div class="field" style="margin-bottom:0;margin-top:12px;">
+              <label>Foto do problema</label>
+              <div class="occ-photo-drop" id="occ-photo-drop" onclick="document.getElementById('occ-photo-input').click()">
+                <input type="file" id="occ-photo-input" accept="image/*" style="display:none" onchange="handlePhotoSelect(this)">
+                <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                <span id="occ-photo-label">Clique para anexar uma foto</span>
+              </div>
+              <div id="occ-photo-preview" class="occ-photo-preview" style="display:none">
+                <img id="occ-photo-thumb" src="" alt="Preview">
+                <button type="button" class="occ-photo-remove" onclick="removePhoto()" title="Remover foto">
+                  <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+                <span id="occ-photo-name" class="occ-photo-name"></span>
+              </div>
+              <div class="field-hint">Opcional. JPG, PNG ou WebP até 10 MB.</div>
+            </div>
+          </div>
+        </details>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+          <button class="btn btn-ghost" onclick="closeModal('modal-occ')">Cancelar</button>
+          <button class="btn btn-success" onclick="submitOcc()">
+            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            Registrar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+      MODAL — LOGIN PROMPT (para validar/feedback)
+  ═══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-login-prompt">
+    <div class="modal" style="max-width:400px">
+      <div class="modal-header">
+        <div class="modal-logo">
+          <div class="logo-mark" style="width:26px;height:26px;font-size:11px">IM</div>
+          Acesso necessário
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-login-prompt')">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="login-prompt">
+          <div class="login-prompt-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+          </div>
+          <h3 id="login-prompt-title">Faça login para continuar</h3>
+          <p id="login-prompt-text">
+            Para validar ocorrências e enviar feedbacks, você precisa ter uma conta no InfraMind.
+            É rápido e gratuito!
+          </p>
+          <div class="login-prompt-actions">
+            <button class="btn btn-primary btn-lg" onclick="closeModal('modal-login-prompt');openAuthModal('login')">
+              Fazer Login
+            </button>
+            <button class="btn btn-ghost btn-lg" onclick="closeModal('modal-login-prompt');openAuthModal('register')">
+              Criar conta
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast-root"></div>
+
+  <!-- ═══════════════════════════════════════
+      JAVASCRIPT
+  ═══════════════════════════════════════ -->
+  <script>
+  // ══════════════════════════════════════════
+  // CONFIG
+  // ══════════════════════════════════════════
+  const API = 'http://127.0.0.1:9000';
+  const ANON_KEY = 'im_anon_id';
+  const ANON_OCCS_KEY = 'im_anon_occs';
+
+  // ══════════════════════════════════════════
+  // TOKEN & SESSION
+  // ══════════════════════════════════════════
+  const tk = {
+    get:    () => localStorage.getItem('im_access'),
+    getRef: () => localStorage.getItem('im_refresh'),
+    set:    (a, r) => { localStorage.setItem('im_access', a); if (r) localStorage.setItem('im_refresh', r); },
+    clear:  () => ['im_access','im_refresh','im_user'].forEach(k => localStorage.removeItem(k)),
+    user:   () => { try { return JSON.parse(localStorage.getItem('im_user')); } catch { return null; } },
+    setUser:(u) => localStorage.setItem('im_user', JSON.stringify(u)),
+  };
+
+  // Anon ID — uuid gerado uma vez, persiste no localStorage
+  function getAnonId() {
+    let id = localStorage.getItem(ANON_KEY);
+    if (!id) {
+      id = 'anon-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
+      localStorage.setItem(ANON_KEY, id);
+    }
+    return id;
+  }
+
+  // Ocorrências anônimas guardadas localmente
+  function getAnonOccs() {
+    try { return JSON.parse(localStorage.getItem(ANON_OCCS_KEY) || '[]'); } catch { return []; }
+  }
+  function saveAnonOcc(occ) {
+    const list = getAnonOccs();
+    list.push({ ...occ, _saved_at: Date.now() });
+    localStorage.setItem(ANON_OCCS_KEY, JSON.stringify(list));
+  }
+  function clearAnonOccs() {
+    localStorage.removeItem(ANON_OCCS_KEY);
+  }
+
+  /**
+   * Reivindica, para o usuário autenticado, todas as ocorrências anônimas
+   * que foram enviadas à API com o anon_id do browser.
+   *
+   * O endpoint /anonymous/claim/ transfere a propriedade no banco e retorna
+   * quantas foram vinculadas. Depois, limpa o cache local.
+   */
+  async function claimAnonOccurrences() {
+    const anonOccs = getAnonOccs();
+    if (anonOccs.length === 0) return;
+
+    const anonId = getAnonId();
+    try {
+      const r = await apiFetch('/api/v1/occurrences/anonymous/claim/', {
+        method: 'POST',
+        body: JSON.stringify({ anon_id: anonId }),
+      });
+      if (r.ok) {
+        const d = await r.json();
+        clearAnonOccs();
+        if (d.claimed > 0) {
+          toast(
+            `✓ ${d.claimed} ocorrência${d.claimed > 1 ? 's' : ''} vinculada${d.claimed > 1 ? 's' : ''} à sua conta!`,
+            'success'
+          );
+        }
+      }
+    } catch {
+      // Silencia falhas de rede no merge — ocorrências já estão no banco
+    }
+  }
+
+  // ══════════════════════════════════════════
+  // API FETCH WRAPPER
+  // ══════════════════════════════════════════
+  async function apiFetch(path, opts = {}) {
+    const hdrs = { ...opts.headers };
+    if (tk.get()) hdrs['Authorization'] = `Bearer ${tk.get()}`;
+    if (!(opts.body instanceof FormData)) hdrs['Content-Type'] = 'application/json';
+    let res = await fetch(`${API}${path}`, { ...opts, headers: hdrs });
+    if (res.status === 401 && tk.getRef()) {
+      const ok = await refreshToken();
+      if (ok) {
+        hdrs['Authorization'] = `Bearer ${tk.get()}`;
+        res = await fetch(`${API}${path}`, { ...opts, headers: hdrs });
+      }
+    }
+    return res;
+  }
+
+  async function refreshToken() {
+    try {
+      const r = await fetch(`${API}/authentication/token/refresh/`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh: tk.getRef() })
+      });
+      if (!r.ok) return false;
+      const d = await r.json();
+      tk.set(d.access);
+      return true;
+    } catch { return false; }
+  }
+
+  // ══════════════════════════════════════════
+  // STATS
+  // ══════════════════════════════════════════
+  async function loadStats() {
+    try {
+      const r = await apiFetch('/api/v1/statistics/');
+      if (!r.ok) return;
+      const d = await r.json();
+      animateCount('stat-ocorrencias', d.total_ocorrencias ?? 0);
+      animateCount('stat-usuarios', d.total_usuarios ?? 0);
+      animateCount('stat-cats', d.total_categorias ?? 0);
+    } catch {}
+  }
+
+  function animateCount(id, target) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    let cur = 0;
+    const step = Math.ceil(target / 40);
+    const t = setInterval(() => {
+      cur = Math.min(cur + step, target);
+      el.textContent = cur.toLocaleString('pt-BR');
+      if (cur >= target) clearInterval(t);
+    }, 30);
+  }
+
+  // ══════════════════════════════════════════
+  // MODAL UTILS
+  // ══════════════════════════════════════════
+  function openModal(id) {
+    document.getElementById(id).classList.add('open');
+  }
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+  document.querySelectorAll('.modal-overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+  });
+
+  // ══════════════════════════════════════════
+  // AUTH MODAL
+  // ══════════════════════════════════════════
+  function openAuthModal(tab) {
+    switchAuthTab(tab);
+    openModal('modal-auth');
+  }
+
+  function switchAuthTab(tab) {
+    document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+    document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+    document.getElementById('pane-login').classList.toggle('active', tab === 'login');
+    document.getElementById('pane-register').classList.toggle('active', tab === 'register');
+
+    // Mostrar banner de merge se tem ocorrências anônimas
+    const anonBanner = document.getElementById('anon-merge-banner');
+    if (tab === 'register' && getAnonOccs().length > 0) {
+      anonBanner.style.display = 'flex';
+    } else {
+      anonBanner.style.display = 'none';
+    }
+  }
+
+  function togglePw(id, btn) {
+    const inp = document.getElementById(id);
+    const isText = inp.type === 'text';
+    inp.type = isText ? 'password' : 'text';
+    const path = btn.querySelector('svg path');
+    if (path) {
+      path.setAttribute('d', isText
+        ? 'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z'
+        : 'M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.82l2.92 2.92c1.51-1.26 2.7-2.89 3.44-4.74-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27z'
+      );
+    }
+  }
+
+  // ══════════════════════════════════════════
+  // LOGIN
+  // ══════════════════════════════════════════
+  async function doLogin() {
+    const username = document.getElementById('auth-username').value.trim();
+    const password = document.getElementById('auth-password').value;
+    const msgEl = document.getElementById('login-msg');
+    msgEl.innerHTML = '';
+
+    if (!username || !password) {
+      msgEl.innerHTML = '<div class="msg msg-error">Preencha usuário e senha.</div>';
+      return;
+    }
+
+    try {
+      const r = await fetch(`${API}/authentication/token/`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const d = await r.json();
+      if (!r.ok) {
+        msgEl.innerHTML = '<div class="msg msg-error">Credenciais inválidas. Verifique e tente novamente.</div>';
+        return;
+      }
+      tk.set(d.access, d.refresh);
+      await loadAndStoreUser();
+
+      // ── MERGE: reivindica ocorrências anônimas enviadas antes do login ──
+      await claimAnonOccurrences();
+
+      closeModal('modal-auth');
+      toast('Bem-vindo de volta!', 'success');
+
+      // Redireciona para a plataforma
+      setTimeout(() => { window.location.href = 'index.html'; }, 800);
+    } catch {
+      msgEl.innerHTML = '<div class="msg msg-error">Erro de conexão com o servidor.</div>';
+    }
+  }
+
+  // ══════════════════════════════════════════
+  // REGISTER + MERGE ANON OCCURRENCES
+  // ══════════════════════════════════════════
+  async function doRegister() {
+    const fullName = document.getElementById('reg-fullname').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    const msgEl = document.getElementById('register-msg');
+    msgEl.innerHTML = '';
+
+    if (!fullName || !email || !password) {
+      msgEl.innerHTML = '<div class="msg msg-error">Preencha todos os campos obrigatórios.</div>';
+      return;
+    }
+    if (password.length < 8) {
+      msgEl.innerHTML = '<div class="msg msg-error">A senha precisa ter pelo menos 8 caracteres.</div>';
+      return;
+    }
+
+    const parts = fullName.split(' ');
+    const username = fullName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+    const payload = {
+      username: username,
+      first_name: parts[0],
+      last_name: parts.slice(1).join(' '),
+      email, password,
+    };
+
+    try {
+      msgEl.innerHTML = '<div class="msg msg-info">Criando sua conta...</div>';
+      const r = await fetch(`${API}/api/v1/users/register/`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const d = await r.json();
+      if (!r.ok) {
+        const detail = d.username ? 'Nome de usuário já existe, tente outro e-mail.' : JSON.stringify(d);
+        msgEl.innerHTML = `<div class="msg msg-error">Erro no cadastro: ${detail}</div>`;
+        return;
+      }
+
+      // Login automático
+      const lr = await fetch(`${API}/authentication/token/`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: payload.username, password })
+      });
+      const ld = await lr.json();
+      if (!lr.ok) { msgEl.innerHTML = '<div class="msg msg-error">Conta criada, mas erro ao logar. Tente fazer login manualmente.</div>'; return; }
+
+      tk.set(ld.access, ld.refresh);
+      await loadAndStoreUser();
+
+      // ── MERGE: reivindica ocorrências anônimas já enviadas à API ──
+      await claimAnonOccurrences();
+
+      closeModal('modal-auth');
+      toast('Conta criada com sucesso! Bem-vindo ao InfraMind.', 'success');
+      setTimeout(() => { window.location.href = 'index.html'; }, 1000);
+    } catch {
+      msgEl.innerHTML = '<div class="msg msg-error">Erro de conexão com o servidor.</div>';
+    }
+  }
+
+  async function loadAndStoreUser() {
+    try {
+      const payload = JSON.parse(atob(tk.get().split('.')[1]));
+      const r = await apiFetch('/api/v1/users/');
+      const d = await r.json();
+      const users = Array.isArray(d) ? d : (d.results || []);
+      const me = users.find(u => u.id === payload.user_id);
+      if (me) tk.setUser(me);
+    } catch {}
+  }
+
+  // ══════════════════════════════════════════
+  // OCCURRENCE MODAL
+  // ══════════════════════════════════════════
+  async function openOccModal() {
+    // Update banner based on auth state
+    const banner = document.getElementById('occ-anon-info');
+    if (tk.get()) {
+      banner.style.display = 'none';
+    } else {
+      banner.style.display = 'flex';
+    }
+    document.getElementById('occ-msg').innerHTML = '';
+    document.getElementById('occ-title').value = '';
+    document.getElementById('occ-desc').value = '';
+    removePhoto();
+    // Fecha o painel de extras ao reabrir o modal
+    const extras = document.getElementById('occ-extras');
+    if (extras) extras.removeAttribute('open');
+    // Reseta o widget de localização para a aba GPS
+    resetLocWidget();
+    openModal('modal-occ');
+    await loadCategoriesForOcc();
+  }
+
+  async function loadCategoriesForOcc() {
+    const sel = document.getElementById('occ-cat');
+    try {
+      const r = await apiFetch('/api/v1/categories/');
+      const d = await r.json();
+      const cats = Array.isArray(d) ? d : (d.results || []);
+      sel.innerHTML = '<option value="">Selecione uma categoria</option>';
+      cats.forEach(c => {
+        const o = document.createElement('option');
+        o.value = c.id; o.textContent = c.name;
+        sel.appendChild(o);
+      });
+    } catch {
+      sel.innerHTML = '<option value="">Erro ao carregar categorias</option>';
+    }
+  }
+
+  // ── UPLOAD DE FOTO ────────────────────────────────────────
+  function handlePhotoSelect(input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert('A foto deve ter no máximo 10 MB.');
+      input.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      document.getElementById('occ-photo-thumb').src = e.target.result;
+      document.getElementById('occ-photo-name').textContent = file.name;
+      document.getElementById('occ-photo-drop').style.display = 'none';
+      document.getElementById('occ-photo-preview').style.display = 'flex';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removePhoto() {
+    const input = document.getElementById('occ-photo-input');
+    if (input) input.value = '';
+    const thumb = document.getElementById('occ-photo-thumb');
+    if (thumb) thumb.src = '';
+    const drop = document.getElementById('occ-photo-drop');
+    if (drop) drop.style.display = 'flex';
+    const preview = document.getElementById('occ-photo-preview');
+    if (preview) preview.style.display = 'none';
+  }
+
+  async function uploadOccPhoto(occId) {
+    const input = document.getElementById('occ-photo-input');
+    if (!input || !input.files[0]) return;
+    const formData = new FormData();
+    formData.append('occurrence', occId);
+    formData.append('image_file', input.files[0]);
+    try {
+      if (tk.get()) {
+        await apiFetch('/api/v1/images/', { method: 'POST', body: formData, headers: {} });
+      } else {
+        await fetch(`${API}/api/v1/images/anonymous/`, { method: 'POST', body: formData });
+      }
+    } catch (err) {
+      console.warn('Foto não enviada:', err);
+    }
+  }
+
+  async function submitOcc() {
+    const cat    = document.getElementById('occ-cat').value;
+    const msgEl  = document.getElementById('occ-msg');
+    msgEl.innerHTML = '';
+
+    // Coleta localização do painel ativo
+    const locTab = document.querySelector('.loc-tab.active')?.dataset.tab || 'text';
+    const addr   = (locTab === 'text')
+                     ? (document.getElementById('occ-addr')?.value.trim() || '')
+                     : (document.getElementById(`loc-${locTab}-display`)?.textContent.trim() || '');
+    const lat    = document.getElementById('occ-lat').value || null;
+    const lng    = document.getElementById('occ-lng').value || null;
+
+    if (!cat && !addr && !lat) {
+      msgEl.innerHTML = '<div class="msg msg-error">Informe ao menos a categoria ou a localização do problema.</div>';
+      return;
+    }
+
+    // Título e descrição são opcionais — gera fallback quando não preenchidos
+    const titleRaw = document.getElementById('occ-title').value.trim();
+    const desc     = document.getElementById('occ-desc').value.trim();
+    const catLabel = document.getElementById('occ-cat').selectedOptions[0]?.text || '';
+    const title    = titleRaw ||
+                     (catLabel && catLabel !== 'Carregando categorias...' && catLabel !== 'Selecione uma categoria'
+                       ? `${catLabel}${addr ? ' — ' + addr : ''}`
+                       : addr || 'Ocorrência registrada pela landing page');
+
+    const occPayload = {
+      title,
+      description: desc || '',
+      status: 'open',
+      category: cat || null,
+      address: addr || null,
+      latitude:  lat  ? parseFloat(parseFloat(lat).toFixed(5))  : null,
+      longitude: lng  ? parseFloat(parseFloat(lng).toFixed(5))  : null,
+    };
+
+    // CASO LOGADO: envia direto para a API
+    if (tk.get()) {
+      msgEl.innerHTML = '<div class="msg msg-info">Registrando...</div>';
+      try {
+        const r = await apiFetch('/api/v1/occurrences/', {
+          method: 'POST', body: JSON.stringify(occPayload)
+        });
+        const d = await r.json();
+        if (!r.ok) {
+          msgEl.innerHTML = `<div class="msg msg-error">Erro: ${JSON.stringify(d)}</div>`;
+          return;
+        }
+        await uploadOccPhoto(d.id);
+        closeModal('modal-occ');
+        toast('Ocorrência registrada com sucesso!', 'success');
+        setTimeout(() => { window.location.href = 'index.html'; }, 1000);
+      } catch {
+        msgEl.innerHTML = '<div class="msg msg-error">Erro de conexão.</div>';
+      }
+      return;
+    }
+
+    // CASO ANÔNIMO: envia direto para a API usando endpoint público
+    msgEl.innerHTML = '<div class="msg msg-info">Registrando...</div>';
+    try {
+      const anonPayload = { ...occPayload, anon_id: getAnonId() };
+      const r = await fetch(`${API}/api/v1/occurrences/anonymous/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(anonPayload),
+      });
+      const d = await r.json();
+      if (!r.ok) {
+        msgEl.innerHTML = `<div class="msg msg-error">Erro ao registrar: ${d.error || JSON.stringify(d)}</div>`;
+        return;
+      }
+      // Guarda só o anon_id e o id da ocorrência — sem dados sensíveis
+      saveAnonOcc({ id: d.id, anon_id: d.anon_id, title: occPayload.title });
+      await uploadOccPhoto(d.id);
+      closeModal('modal-occ');
+      toast('Ocorrência registrada com sucesso!', 'success');
+
+      // Oferece criar conta para poder acompanhar
+      setTimeout(() => {
+        if (!tk.get()) {
+          const wantRegister = confirm(
+            '✅ Ocorrência enviada e salva no sistema!\n\nCrie uma conta para acompanhar a resolução e receber notificações.'
+          );
+          if (wantRegister) openAuthModal('register');
+        }
+      }, 600);
+    } catch {
+      msgEl.innerHTML = '<div class="msg msg-error">Erro de conexão com o servidor.</div>';
+    }
+  }
+
+  // ══════════════════════════════════════════
+  // LOGIN PROMPT (para validação e feedback)
+  // ══════════════════════════════════════════
+  function openLoginPrompt(action) {
+    const titles = {
+      validar: 'Faça login para validar',
+      feedback: 'Faça login para enviar feedback',
+    };
+    const texts = {
+      validar: 'Para confirmar que este problema existe na sua região, você precisa ter uma conta no InfraMind. É gratuito e leva menos de 1 minuto!',
+      feedback: 'Para avaliar a resolução desta ocorrência, você precisa estar logado. Crie sua conta gratuitamente.',
+    };
+    document.getElementById('login-prompt-title').textContent = titles[action] || 'Faça login para continuar';
+    document.getElementById('login-prompt-text').textContent  = texts[action]  || 'Você precisa de uma conta para realizar esta ação.';
+    openModal('modal-login-prompt');
+  }
+
+  // ══════════════════════════════════════════
+  // TOAST
+  // ══════════════════════════════════════════
+  function toast(msg, type = 'success') {
+    const icons = {
+      success: '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>',
+      error:   '<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>',
+      info:    '<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>',
+    };
+    const el = document.createElement('div');
+    el.className = `toast toast-${type}`;
+    el.innerHTML = (icons[type] || '') + `<span>${msg}</span>`;
+    document.getElementById('toast-root').appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+  }
+
+  // ══════════════════════════════════════════
+  // NAVBAR SCROLL EFFECT
+  // ══════════════════════════════════════════
+  window.addEventListener('scroll', () => {
+    const nb = document.getElementById('navbar');
+    nb.style.background = window.scrollY > 40
+      ? 'rgba(13,17,23,.95)'
+      : 'rgba(13,17,23,.85)';
+  });
+
+  // ══════════════════════════════════════════
+  // INIT
+  // ══════════════════════════════════════════
+  (function init() {
+    // Atualiza botão se já logado
+    const user = tk.user();
+    if (user && tk.get()) {
+      const actions = document.querySelector('.navbar-actions');
+      if (actions) {
+        const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username;
+        actions.innerHTML = `
+          <span style="font-size:.82rem;color:#8b949e">Olá, <strong style="color:#e6edf3">${name}</strong></span>
+          <a href="index.html" class="btn btn-primary">Ir para o sistema</a>`;
+      }
+    }
+
+    // Carrega stats
+    loadStats();
+
+    // Abre tab correta do auth se vier de link direto
+    const hash = window.location.hash;
+    if (hash === '#login')    openAuthModal('login');
+    if (hash === '#register') openAuthModal('register');
+  })();
+
+  // ══════════════════════════════════════════
+  // LOCATION WIDGET — GPS / MAP / TEXT
+  // ══════════════════════════════════════════
+
+  let _leafletMap = null;
+  let _leafletMarker = null;
+
+  function switchLocTab(tab, btn) {
+    document.querySelectorAll('.loc-tab').forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected', 'false');
+    });
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+    btn.dataset.tab = tab;
+    document.querySelectorAll('.loc-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById('loc-pane-' + tab).classList.add('active');
+    if (tab === 'map') initLeafletMap();
+  }
+
+  function resetLocWidget() {
+    const tabs = document.querySelectorAll('.loc-tab');
+    const tabNames = ['gps', 'map', 'text'];
+    tabs.forEach((b, i) => {
+      b.classList.toggle('active', i === 0);
+      b.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
+      b.dataset.tab = tabNames[i];
+    });
+    document.querySelectorAll('.loc-pane').forEach((p, i) =>
+      p.classList.toggle('active', i === 0));
+    const gpsRes = document.getElementById('gps-result');
+    if (gpsRes) { gpsRes.style.display = 'none'; gpsRes.innerHTML = ''; }
+    const gpsBtn = document.getElementById('gps-btn');
+    if (gpsBtn) { gpsBtn.disabled = false; gpsBtn.classList.remove('loading', 'success'); }
+    const lbl = document.getElementById('gps-btn-label');
+    if (lbl) lbl.textContent = 'Usar minha localização atual';
+    const addrEl = document.getElementById('occ-addr');
+    if (addrEl) addrEl.value = '';
+    const mapRes = document.getElementById('map-result');
+    if (mapRes) { mapRes.style.display = 'none'; mapRes.innerHTML = ''; }
+    if (_leafletMarker) { _leafletMarker.remove(); _leafletMarker = null; }
+    document.getElementById('occ-lat').value = '';
+    document.getElementById('occ-lng').value = '';
+  }
+
+  // GPS
+  function requestGPS() {
+    const btn   = document.getElementById('gps-btn');
+    const label = document.getElementById('gps-btn-label');
+    const res   = document.getElementById('gps-result');
+    if (!navigator.geolocation) {
+      res.innerHTML = '<span class="loc-err">Geolocalização não suportada neste navegador.</span>';
+      res.style.display = 'flex'; return;
+    }
+    btn.disabled = true; btn.classList.add('loading');
+    label.textContent = 'Obtendo localização…';
+    res.style.display = 'none';
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude.toFixed(5);
+        const lng = pos.coords.longitude.toFixed(5);
+        document.getElementById('occ-lat').value = lat;
+        document.getElementById('occ-lng').value = lng;
+        btn.classList.remove('loading'); btn.classList.add('success');
+        label.textContent = 'Localização capturada ✓';
+        let addrText = lat + ', ' + lng;
+        try {
+          const r = await fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lng + '&format=json',
+            { headers: { 'Accept-Language': 'pt-BR' } });
+          const d = await r.json();
+          if (d.display_name) addrText = d.display_name;
+        } catch {}
+        res.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg><span id="loc-gps-display">' + addrText + '</span>';
+        res.style.display = 'flex'; btn.disabled = false;
+      },
+      (err) => {
+        btn.disabled = false; btn.classList.remove('loading');
+        label.textContent = 'Usar minha localização atual';
+        const msgs = { 1: 'Permissão negada. Permita o acesso à localização no navegador.', 2: 'Localização indisponível. Tente novamente.', 3: 'Tempo esgotado. Tente novamente.' };
+        res.innerHTML = '<span class="loc-err">' + (msgs[err.code] || 'Erro ao obter localização.') + '</span>';
+        res.style.display = 'flex';
+      },
+      { timeout: 10000, maximumAge: 60000 }
+    );
+  }
+
+  // MAP (Leaflet lazy-loaded)
+  function initLeafletMap() {
+    if (_leafletMap) { setTimeout(() => _leafletMap.invalidateSize(), 50); return; }
+    if (!document.getElementById('leaflet-css')) {
+      const link = document.createElement('link');
+      link.id = 'leaflet-css'; link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+    }
+    if (!window.L) {
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      s.onload = () => _buildMap();
+      document.head.appendChild(s);
+    } else { _buildMap(); }
+  }
+
+  function _buildMap() {
+    const el = document.getElementById('occ-map');
+    if (!el || _leafletMap) return;
+    _leafletMap = L.map('occ-map', { zoomControl: true }).setView([-22.4101, -47.5601], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+      maxZoom: 19,
+    }).addTo(_leafletMap);
+    _leafletMap.on('click', async (e) => {
+      const { lat, lng } = e.latlng;
+      document.getElementById('occ-lat').value = lat.toFixed(5);
+      document.getElementById('occ-lng').value = lng.toFixed(5);
+      if (_leafletMarker) { _leafletMarker.setLatLng(e.latlng); }
+      else {
+        _leafletMarker = L.marker(e.latlng, {
+          icon: L.divIcon({ className: 'loc-map-marker', html: '<div class="loc-map-pin"></div>', iconSize: [28, 28], iconAnchor: [14, 28] }),
+        }).addTo(_leafletMap);
+      }
+      const mapRes = document.getElementById('map-result');
+      mapRes.innerHTML = '<span style="color:var(--muted);font-size:.8rem">Obtendo endereço…</span>';
+      mapRes.style.display = 'flex';
+      let addrText = lat.toFixed(5) + ', ' + lng.toFixed(5);
+      try {
+        const r = await fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lng + '&format=json',
+          { headers: { 'Accept-Language': 'pt-BR' } });
+        const d = await r.json();
+        if (d.display_name) addrText = d.display_name;
+      } catch {}
+      mapRes.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg><span id="loc-map-display">' + addrText + '</span>';
+    });
+    setTimeout(() => _leafletMap.invalidateSize(), 100);
+  }
+
+  </script>
+  </body>
+  </html>
