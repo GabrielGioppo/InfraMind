@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/x-icon" href="Images/favicon.jpeg">
 <title>InfraMind — Gestão Urbana Inteligente</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -602,7 +603,14 @@ tr:hover td { background: rgba(255,255,255,.02); }
 /* ═══ LIGHTBOX ═══ */
 #lightbox { position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:2100;display:flex;align-items:center;justify-content:center;cursor:pointer; }
 #lightbox img { max-width:90vw;max-height:90vh;border-radius:var(--radius); }
-
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+    -webkit-text-fill-color: var(--text-main, #e6edf3) !important;
+    -webkit-box-shadow: 0 0 0px 1000px var(--bg-app, #0d1117) inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
 </style>
 </head>
 <body>
@@ -614,7 +622,9 @@ tr:hover td { background: rgba(255,255,255,.02); }
   <div class="auth-box">
     <div class="auth-logo">
       <div class="auth-logo-mark">IM</div>
+      <a href="landing.html" style="text-decoration:none;cursor:pointer;">
       <span>InfraMind</span>
+      </a>
     </div>
     <p class="auth-tagline">Gestão Inteligente de Infraestrutura Urbana</p>
     <form id="login-form">
@@ -643,7 +653,9 @@ tr:hover td { background: rgba(255,255,255,.02); }
   <div class="auth-box">
     <div class="auth-logo">
       <div class="auth-logo-mark">IM</div>
+      <a href="landing.html" style="text-decoration:none;cursor:pointer;">
       <span>InfraMind</span>
+      </a>
     </div>
     <p class="auth-tagline">Crie seu acesso ao sistema</p>
     <form id="register-form">
@@ -901,18 +913,18 @@ tr:hover td { background: rgba(255,255,255,.02); }
               <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
               Ou digitar o endereço manualmente
             </summary>
-            <div class="loc-manual-body">
+            <div class="field">
               <div style="display:flex;gap:8px;">
-                <input type="text" id="c-addr" placeholder="Ex: Rua das Flores, 123 — Bairro Centro" style="flex:1;">
+                <input type="text" id="location" placeholder="Ex: Rua das Flores, 123 — Bairro Centro" style="flex:1;">
                 <button type="button" class="btn btn-ghost btn-sm" onclick="geocodeAddress()">
-                  <svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                  <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
                   Buscar
                 </button>
               </div>
             </div>
           </details>
           <!-- RF07: Múltiplas imagens -->
-          <p class="form-section-title" style="margin-top:8px;">Fotos da Ocorrência (RF07)</p>
+          <p class="form-section-title" style="margin-top:8px;">Fotos da Ocorrência</p>
           <div class="file-drop" id="file-drop-create" onclick="document.getElementById('c-imgs').click()" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')">
             <input type="file" id="c-imgs" accept="image/*" multiple onchange="previewFiles(this,'file-preview-create')" style="display:none">
             <svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:currentColor;margin-bottom:8px"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
@@ -1058,7 +1070,7 @@ tr:hover td { background: rgba(255,255,255,.02); }
 
     <div class="admin-tabs" style="margin-bottom:16px;">
       <button class="admin-tab active" id="admin-tab-list" onclick="switchAdminTab('list')">Lista</button>
-      <button class="admin-tab" id="admin-tab-map" onclick="switchAdminTab('map')">Mapa (RF26)</button>
+      <button class="admin-tab" id="admin-tab-map" onclick="switchAdminTab('map')">Mapa</button>
     </div>
     
     <div id="admin-map-view" class="hidden">
@@ -1507,45 +1519,64 @@ async function loadDashboard() {
 // ════════════════════════════════════
 async function loadOccurrences() {
   document.getElementById('occ-grid-view').innerHTML = `<div class="loading-center" style="grid-column:1/-1"><div class="spinner"></div></div>`;
-
-  // Carrega categorias PRIMEIRO para que o select já esteja populado antes de qualquer filtro
+  
   if (!STATE.categories.length) await loadCategories();
+  
   const catSel = document.getElementById('filter-cat');
   if (catSel && catSel.options.length <= 1) {
     STATE.categories.forEach(c => {
       const o = document.createElement('option');
-      o.value = c.id; o.textContent = c.name;
+      o.value = c.id;
+      o.textContent = c.name;
       catSel.appendChild(o);
     });
   }
 
-  const params = new URLSearchParams();
-  const status = document.getElementById('filter-status').value;
-  const cat    = document.getElementById('filter-cat').value;
-  const from   = document.getElementById('filter-from').value;
-  const to     = document.getElementById('filter-to').value;
-  if (status) params.set('status', status);
-  if (cat)    params.set('category', cat);
-  if (from)   params.set('date_from', from);
-  if (to)     params.set('date_to', to);
-
   try {
-    const r = await api(`/api/v1/occurrences/?${params}`);
+    const r = await api(`/api/v1/occurrences/`);
     const d = await r.json();
-    STATE.allOccurrences = Array.isArray(d) ? d : (d.results || []); window._STATE_OCC = STATE.allOccurrences;
-    STATE.occurrences = [...STATE.allOccurrences];
-    applyFilters(true);
-  } catch(e) { console.error(e); }
+    STATE.allOccurrences = Array.isArray(d) ? d : (d.results || []);
+    window._STATE_OCC = STATE.allOccurrences;
+    applyFilters();
+  } catch(e) {
+    console.error("Erro ao buscar ocorrências no Django:", e);
+  }
 }
 
-function applyFilters(skipFetch=false) {
-  const search = document.getElementById('filter-search').value.toLowerCase();
+function applyFilters() {
+  const searchText = document.getElementById('filter-search').value.toLowerCase().trim();
+  const filterStatus = document.getElementById('filter-status').value;
+  const filterCat = document.getElementById('filter-cat').value;
+  const filterFrom = document.getElementById('filter-from').value; 
+  const filterTo = document.getElementById('filter-to').value;     
   let filtered = STATE.allOccurrences.filter(o => {
-    if (search && !o.title.toLowerCase().includes(search) && !(o.address||'').toLowerCase().includes(search)) return false;
+    if (searchText) {
+      const titleMatch = o.title && o.title.toLowerCase().includes(searchText);
+      const addressMatch = o.address && o.address.toLowerCase().includes(searchText);
+      if (!titleMatch && !addressMatch) return false;
+    }
+    if (filterStatus && o.status !== filterStatus) {
+      return false;
+    }
+    if (filterCat) {
+      const itemCatId = o.category_details?.id || o.category;
+      if (String(itemCatId) !== String(filterCat)) return false;
+    }
+    if (filterFrom) {
+      const occDate = o.created_at.substring(0, 10);
+      if (occDate < filterFrom) return false;
+    }
+    if (filterTo) {
+      const occDate = o.created_at.substring(0, 10);
+      if (occDate > filterTo) return false;
+    }
     return true;
   });
   STATE.occurrences = filtered;
-  document.getElementById('occ-count-label').textContent = `${filtered.length} ocorrência${filtered.length!==1?'s':''} encontrada${filtered.length!==1?'s':''}`;
+  const countLabel = document.getElementById('occ-count-label');
+  if (countLabel) {
+    countLabel.textContent = `${filtered.length} ocorrência${filtered.length !== 1 ? 's' : ''} encontrada${filtered.length !== 1 ? 's' : ''}`;
+  }
   renderOccurrences(filtered);
 }
 
@@ -2454,9 +2485,22 @@ function getGPS() {
 }
 
 async function geocodeAddress() {
-  const addr = document.getElementById('c-addr')?.value?.trim();
-  if (!addr) { toast('Preencha o campo Localização / Endereço primeiro','error'); return; }
-  toast('Buscando endereço...','info');
+
+  const inputBusca = document.getElementById('c-addr');
+  const inputFormulario = document.getElementById('location');
+
+  let addr = inputBusca?.value?.trim() || inputFormulario?.value?.trim();
+
+  if (!addr) { 
+    toast('Preencha o campo de endereço ou localização primeiro', 'error'); 
+    return; 
+  }
+
+  if (inputBusca) inputBusca.value = addr;
+  if (inputFormulario) inputFormulario.value = addr;
+
+  toast('Buscando endereço...', 'info');
+  
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&limit=3&addressdetails=1`;
     const resp = await fetch(url, {
@@ -2465,26 +2509,28 @@ async function geocodeAddress() {
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const results = await resp.json();
     if (!results || !results.length) {
-      toast('Endereço não encontrado. Tente apenas cidade e estado, ex: "Curitiba, PR"','error');
+      toast('Endereço não encontrado. Tente apenas cidade e estado, ex: "Curitiba, PR"', 'error');
       return;
     }
+    
     const { lat, lon, display_name } = results[0];
     document.getElementById('c-lat').value = parseFloat(lat).toFixed(6);
     document.getElementById('c-lng').value = parseFloat(lon).toFixed(6);
+    
     const label = document.getElementById('c-coords-label');
     if (label) { label.textContent = '📍 ' + display_name; label.style.display = 'block'; }
+    
     updateCreateMap(parseFloat(lat), parseFloat(lon), addr);
     toast('Encontrado! Clique no mapa para ajustar o ponto exato.');
   } catch(e) {
     console.error('Geocode error:', e);
-    toast('Erro ao buscar endereço. Verifique sua conexão e tente novamente.','error');
+    toast('Erro ao buscar endereço. Verifique sua conexão e tente novamente.', 'error');
   }
 }
 
 function updateCreateMap(lat, lng, popupText) {
   if (isNaN(lat) || isNaN(lng)) { toast('Coordenadas inválidas','error'); return; }
   if (!_maps.create) {
-    // Map not yet initialized — init with this location
     initCreateMapDefault();
     setTimeout(() => _placeCreateMarker(lat, lng, popupText), 300);
     return;

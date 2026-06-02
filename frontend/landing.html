@@ -3,9 +3,11 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="Images/favicon.jpeg">
     <title>InfraMind — Gestão Urbana Inteligente</title>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="landing.css">
+    
   </head>
   <body>
 
@@ -18,9 +20,10 @@
       InfraMind
     </div>
     <ul class="navbar-links">
-      <li><a href="#como-funciona">Como funciona</a></li>
+      <li><a href="#como-funciona">Como Funciona</a></li>
       <li><a href="#funcionalidades">Funcionalidades</a></li>
       <li><a href="#objetivo">Objetivo</a></li>
+      <li><a href="como-funciona.html">Como Registrar</a></li>
     </ul>
     <div class="navbar-actions">
       <button class="btn btn-ghost" onclick="openAuthModal('login')">Fazer Login</button>
@@ -56,7 +59,7 @@
           <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
           Registrar uma Ocorrência
         </button>
-        <button class="btn btn-ghost btn-xl" onclick="openAuthModal('login')">
+        <button class="btn btn-ghost btn-xl" id="hero-login-btn" onclick="openAuthModal('login')">
           Fazer Login
         </button>
       </div>
@@ -1118,26 +1121,33 @@
   // INIT
   // ══════════════════════════════════════════
   (function init() {
-    // Atualiza botão se já logado
-    const user = tk.user();
-    if (user && tk.get()) {
-      const actions = document.querySelector('.navbar-actions');
-      if (actions) {
-        const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username;
-        actions.innerHTML = `
-          <span style="font-size:.82rem;color:#8b949e">Olá, <strong style="color:#e6edf3">${name}</strong></span>
-          <a href="index.html" class="btn btn-primary">Ir para o sistema</a>`;
-      }
+  const user = tk.user();
+  
+  if (user && tk.get()) {
+    const actions = document.querySelector('.navbar-actions');
+    if (actions) {
+      const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username;
+      actions.innerHTML = `
+        <span style="font-size:.82rem;color:#8b949e;white-space:nowrap">
+          Olá, <strong style="color:#e6edf3">${name}</strong>
+        </span>
+        <a href="index.html" class="btn btn-primary">
+          Ir para o sistema
+        </a>`;
     }
 
-    // Carrega stats
-    loadStats();
+    const heroLoginBtn = document.getElementById('hero-login-btn');
+    if (heroLoginBtn) {
+      heroLoginBtn.style.display = 'none';
+    }
+  }
 
-    // Abre tab correta do auth se vier de link direto
-    const hash = window.location.hash;
-    if (hash === '#login')    openAuthModal('login');
-    if (hash === '#register') openAuthModal('register');
-  })();
+  loadStats();
+
+  const hash = window.location.hash;
+  if (hash === '#login')    openAuthModal('login');
+  if (hash === '#register') openAuthModal('register');
+})();
 
   // ══════════════════════════════════════════
   // LOCATION WIDGET — GPS / MAP / TEXT

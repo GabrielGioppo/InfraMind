@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Como Funciona — InfraMind</title>
+  <link rel="icon" type="image/x-icon" href="Images/favicon.jpeg">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="como-funciona.css">
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     NAVBAR
+══════════════════════════════════════════ -->
+<nav class="navbar" id="top-navbar">
+  <div style="display:flex;align-items:center;gap:20px;">
+    <a href="landing.html" class="navbar-logo" style="text-decoration:none">
+      <div class="logo-mark">IM</div>
+      InfraMind
+    </a>
+    <a href="landing.html" class="navbar-back" style="display:flex;align-items:center;gap:5px;font-size:.78rem;color:var(--muted);">
+      <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      <span>Voltar</span>
+    </a>
+  </div>
+  <ul class="navbar-links">
+      <li><a href="#visao-geral">Visão geral</a></li>
+      <li><a href="#ciclo-status">Ciclo de status</a></li>
+      <li><a href="#passo-a-passo">Passo a passo</a></li>
+      <li><a href="#resolucao">Resolução</a></li>
+    </ul>
+  <div id="navbar-actions" style="display:flex;align-items:center;gap:8px;">
+    <button class="btn btn-ghost" onclick="openAuthModal('login')">Fazer Login</button>
+    <button class="btn btn-success" onclick="window.location.href='landing.html'">
+      <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      Registrar Ocorrência
+    </button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     HERO
+══════════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-content">
+    <div class="hero-breadcrumb">
+      InfraMind <span>/</span> Como funciona
+    </div>
+    <h1>Entenda o processo<br><em>do registro à resolução</em></h1>
+    <p class="hero-sub">
+      Veja como uma ocorrência urbana percorre o sistema —
+      desde o relato do cidadão até a confirmação de resolução,
+      com análise por Inteligência Artificial em cada etapa.
+    </p>
+    <div class="hero-actions">
+      <button class="btn btn-success btn-lg" onclick="window.location.href='landing.html'">
+        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        Registrar agora
+      </button>
+      <a href="#passo-a-passo" class="btn btn-ghost btn-lg">
+        Ver passo a passo
+        <svg viewBox="0 0 24 24"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg>
+      </a>
+    </div>
+    <p class="hero-note">
+      <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+      Sem login para registrar ocorrências — comece agora mesmo
+    </p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     CORPO DA PÁGINA
+══════════════════════════════════════════ -->
+<div class="page-body">
+
+  <!-- ── VISÃO GERAL ── -->
+  <section class="phase-overview" id="visao-geral" data-section="visao-geral">
+    <div class="sec-label">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+      Visão geral do processo
+    </div>
+    <h2 class="sec-title">Como o InfraMind funciona</h2>
+    <p class="sec-sub">
+      O sistema conecta cidadãos e gestores públicos em um fluxo contínuo —
+      qualquer pessoa pode reportar, a comunidade valida e o administrador resolve.
+    </p>
+
+    <!-- Fase 1 -->
+    <div class="phase-row">
+      <div class="phase-connector">
+        <div class="phase-dot blue">01</div>
+        <div class="phase-line"></div>
+      </div>
+      <div class="phase-card">
+        <div class="phase-header">
+          <span class="phase-num">FASE 01</span>
+          <h3 class="phase-title">Cidadão registra o problema</h3>
+        </div>
+        <p class="phase-desc">
+          Qualquer pessoa encontra um problema de infraestrutura — um buraco, poste caído,
+          lixo acumulado — e registra pelo InfraMind com título, descrição, endereço e fotos.
+          <strong style="color:#e6edf3">Não é necessário ter uma conta.</strong>
+        </p>
+        <div class="phase-tags">
+          <span class="phase-tag tag-anon">✓ Sem login necessário</span>
+          <span class="phase-tag tag-login">Conta opcional</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fase 2 -->
+    <div class="phase-row">
+      <div class="phase-connector">
+        <div class="phase-dot purple">02</div>
+        <div class="phase-line"></div>
+      </div>
+      <div class="phase-card">
+        <div class="phase-header">
+          <span class="phase-num">FASE 02</span>
+          <h3 class="phase-title">IA analisa e classifica automaticamente</h3>
+        </div>
+        <p class="phase-desc">
+          O Google Gemini analisa o título e descrição em segundos: calcula um score de urgência
+          de 0 a 100, classifica o nível (baixa, média, alta, crítica) e verifica se é uma
+          duplicata de outra ocorrência próxima registrada antes.
+        </p>
+        <div class="phase-tags">
+          <span class="phase-tag tag-ai">🤖 Google Gemini 2.5 Flash</span>
+          <span class="phase-tag tag-ai">Score 0–100</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fase 3 -->
+    <div class="phase-row">
+      <div class="phase-connector">
+        <div class="phase-dot green">03</div>
+        <div class="phase-line"></div>
+      </div>
+      <div class="phase-card">
+        <div class="phase-header">
+          <span class="phase-num">FASE 03</span>
+          <h3 class="phase-title">Comunidade confirma e valida</h3>
+        </div>
+        <p class="phase-desc">
+          Outros moradores que viram o mesmo problema podem confirmar a ocorrência. Cada
+          validação aumenta a prioridade dinâmica do problema — quanto mais gente confirma,
+          mais rápido o administrador é acionado.
+        </p>
+        <div class="phase-tags">
+          <span class="phase-tag tag-login">Requer conta para validar</span>
+          <span class="phase-tag tag-login">1 validação por usuário</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fase 4 -->
+    <div class="phase-row">
+      <div class="phase-connector">
+        <div class="phase-dot yellow">04</div>
+        <div class="phase-line"></div>
+      </div>
+      <div class="phase-card">
+        <div class="phase-header">
+          <span class="phase-num">FASE 04</span>
+          <h3 class="phase-title">Administrador prioriza e age</h3>
+        </div>
+        <p class="phase-desc">
+          O gestor acessa o painel administrativo, vê todas as ocorrências ordenadas por
+          prioridade (IA + validações + tempo aberta), define o nível de importância
+          (🟢 Normal · 🟡 Atenção · 🔴 Urgente) e atualiza o status conforme avança a resolução.
+        </p>
+        <div class="phase-tags">
+          <span class="phase-tag tag-admin">Apenas administradores</span>
+          <span class="phase-tag tag-admin">Painel analítico</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fase 5 -->
+    <div class="phase-row">
+      <div class="phase-connector">
+        <div class="phase-dot red">05</div>
+        <!-- sem linha final -->
+      </div>
+      <div class="phase-card">
+        <div class="phase-header">
+          <span class="phase-num">FASE 05</span>
+          <h3 class="phase-title">Cidadão avalia a resolução</h3>
+        </div>
+        <p class="phase-desc">
+          Após o status ser marcado como <strong style="color:var(--green)">Resolvida</strong>,
+          cidadãos com conta podem enviar um feedback com nota de 1 a 5 estrelas e comentário.
+          O administrador também pode publicar atualizações oficiais sobre o andamento.
+        </p>
+        <div class="phase-tags">
+          <span class="phase-tag tag-login">Requer conta para avaliar</span>
+          <span class="phase-tag tag-admin">Admin pode publicar atualizações</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CICLO DE STATUS ── -->
+  <section class="status-cycle" id="ciclo-status" data-section="ciclo-status">
+    <div class="sec-label">
+      <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+      Ciclo de status
+    </div>
+    <h2 class="sec-title">Evolução de uma ocorrência</h2>
+    <p class="sec-sub">
+      Cada ocorrência percorre estes quatro estados. O administrador atualiza
+      manualmente conforme a situação evolui no campo.
+    </p>
+    <div class="status-flow">
+      <div class="status-item">
+        <div class="status-badge st-open">
+          <span class="status-badge-dot"></span> Aberta
+        </div>
+        <p class="status-label">Problema registrado,<br>aguardando triagem</p>
+      </div>
+      <div class="status-item">
+        <div class="status-badge st-prog">
+          <span class="status-badge-dot"></span> Em Andamento
+        </div>
+        <p class="status-label">Equipe acionada,<br>serviço em execução</p>
+      </div>
+      <div class="status-item">
+        <div class="status-badge st-res">
+          <span class="status-badge-dot"></span> Resolvida
+        </div>
+        <p class="status-label">Problema solucionado,<br>feedback habilitado</p>
+      </div>
+      <div class="status-item">
+        <div class="status-badge st-closed">
+          <span class="status-badge-dot"></span> Fechada
+        </div>
+        <p class="status-label">Ciclo encerrado,<br>registro arquivado</p>
+      </div>
+    </div>
+    <p style="font-size:.78rem;color:var(--muted);margin-top:14px;text-align:center">
+      Cada mudança de status é registrada no histórico com data, hora e responsável.
+    </p>
+  </section>
+
+  <!-- ── PASSO A PASSO ── -->
+  <section class="steps-section" id="passo-a-passo" data-section="passo-a-passo">
+    <div class="sec-label">
+      <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z"/></svg>
+      Passo a passo
+    </div>
+    <h2 class="sec-title">Como registrar uma ocorrência</h2>
+    <p class="sec-sub">
+      Siga estes passos para registrar um problema urbano no InfraMind.
+      O processo leva menos de 2 minutos.
+    </p>
+
+    <!-- PASSO 1 -->
+    <div class="step-block" id="passo-1">
+      <div class="step-info">
+        <span class="step-access anon">
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          Sem login necessário
+        </span>
+        <div class="step-counter">
+          <div class="step-num-circle blue">01</div>
+          <div class="step-num-line"></div>
+        </div>
+        <h3 class="step-title">Acesse a plataforma<br>e clique em "Registrar"</h3>
+        <p class="step-desc">
+          Na página inicial do InfraMind, clique no botão verde
+          <strong style="color:var(--green)">"Registrar Ocorrência"</strong>.
+          Ele aparece tanto no topo da página quanto no centro da tela.
+          Você não precisa ter uma conta para continuar.
+        </p>
+        <div class="step-tips">
+          <div class="step-tip ok">
+            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            Funciona em celular e computador
+          </div>
+          <div class="step-tip ok">
+            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            Nenhum cadastro exigido para registrar
+          </div>
+        </div>
+      </div>
+      <div class="screenshot-wrap">
+        <div class="screenshot-inner">
+          <img src="Images/registrarimage.jpeg">
+          <div class="screenshot-placeholder">
+            <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+            <p>Captura de tela da landing page</p>
+            <strong>landing.html — hero com botão "Registrar"</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASSO 2 -->
+    <div class="step-block reverse" id="passo-2">
+      <div class="step-info">
+        <span class="step-access anon">
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          Sem login necessário
+        </span>
+        <div class="step-counter">
+          <div class="step-num-circle green">02</div>
+          <div class="step-num-line"></div>
+        </div>
+        <h3 class="step-title">Preencha o formulário<br>com os detalhes</h3>
+        <p class="step-desc">
+          Um painel desliza na tela. Preencha o
+          <strong style="color:#e6edf3">título</strong> (Opcional),
+          selecione a <strong style="color:#e6edf3">categoria</strong>,
+          informe o <strong style="color:#e6edf3">endereço</strong>
+          e escreva uma <strong style="color:#e6edf3">descrição</strong> (Opcional, mas recomendado) detalhada do problema.
+        </p>
+        <div class="step-tips">
+          <div class="step-tip ok">
+            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            Quanto mais detalhes, melhor a priorização pela IA
+          </div>
+          <div class="step-tip note">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            Apenas localização e categoria obrigatórias
+          </div>
+          <div class="step-tip info">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+            Categorias: buraco, iluminação, lixo, poste, esgoto...
+          </div>
+        </div>
+      </div>
+      <div class="screenshot-wrap">
+        <div class="screenshot-inner">
+          <img src="Images/dadosimage.jpeg">
+          <div class="screenshot-placeholder">
+            <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+            <p>Modal de registro de ocorrência</p>
+            <strong>landing.html — modal com formulário aberto</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASSO 3 -->
+    <div class="step-block" id="passo-3">
+      <div class="step-info">
+        <span class="step-access anon">
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          Sem login necessário
+        </span>
+        <div class="step-counter">
+          <div class="step-num-circle blue">03</div>
+          <div class="step-num-line"></div>
+        </div>
+        <h3 class="step-title">Marque a localização<br>no mapa</h3>
+        <p class="step-desc">
+          Na plataforma completa, você pode usar o GPS do seu dispositivo,
+          digitar o endereço no campo e clicar em
+          <strong style="color:#e6edf3">"Buscar no mapa"</strong>,
+          ou simplesmente clicar no mapa para marcar o ponto exato do problema.
+        </p>
+        <div class="step-tips">
+          <div class="step-tip ok">
+            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            Botão "Usar GPS" captura sua localização atual
+          </div>
+          <div class="step-tip ok">
+            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            Clique no mapa para ajustar o ponto exato
+          </div>
+          <div class="step-tip note">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            A localização ajuda a detectar duplicatas próximas
+          </div>
+        </div>
+      </div>
+      <div class="screenshot-wrap">
+        <div class="screenshot-inner">
+          <img src="Images/mapaimage.jpeg">
+          <div class="screenshot-placeholder">
+            <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+            <p>Mapa Leaflet com marcador de localização</p>
+            <strong>index.html — seção do mapa no formulário de criação</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASSO 4 -->
+    <div class="step-block reverse" id="passo-4">
+      <div class="step-info">
+        <span class="step-access anon">
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          Sem login necessário
+        </span>
+        <div class="step-counter">
+          <div class="step-num-circle yellow">04</div>
+          <div class="step-num-line"></div>
+        </div>
+        <h3 class="step-title">Envie fotos<br>como evidência</h3>
+        <p class="step-desc">
+          Adicione uma ou mais fotos do problema. Basta clicar na área de upload
+          ou arrastar as imagens. Fotos aumentam a credibilidade da ocorrência
+          e auxiliam o administrador na avaliação.
+        </p>
+        <div class="step-tips">
+          <div class="step-tip ok">
+            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            Múltiplas fotos aceitas (arraste ou clique)
+          </div>
+          <div class="step-tip ok">
+            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            Formatos: JPG, PNG, HEIC (celular)
+          </div>
+          <div class="step-tip info">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+            Fotos são opcionais, mas recomendadas
+          </div>
+        </div>
+      </div>
+      <div class="screenshot-wrap">
+        <div class="screenshot-inner">
+          <img src="Images/fotoimage.jpeg">
+          <div class="screenshot-placeholder">
+            <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+            <p>Área de upload de imagens com pré-visualização</p>
+            <strong>index.html — drag & drop de fotos</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASSO 5 -->
+    <div class="step-block" id="passo-5">
+      <div class="step-info">
+        <span class="step-access anon">
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          Sem login necessário
+        </span>
+        <div class="step-counter">
+          <div class="step-num-circle green">05</div>
+          <div class="step-num-line"></div>
+        </div>
+        <h3 class="step-title">Confirme e acompanhe<br>a ocorrência</h3>
+        <p class="step-desc">
+          Clique em <strong style="color:var(--green)">"Registrar Ocorrência"</strong>.
+          O sistema salva tudo e redireciona para a página de detalhes.
+          Lá você vê o status atual, as validações da comunidade e o
+          histórico completo de atualizações.
+        </p>
+        <div class="step-tips">
+          <div class="step-tip ok">
+            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            A IA analisa e classifica automaticamente
+          </div>
+          <div class="step-tip info">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+            Crie uma conta para receber atualizações
+          </div>
+          <div class="step-tip note">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            Ocorrências anônimas podem ser vinculadas ao criar conta
+          </div>
+        </div>
+      </div>
+      <div class="screenshot-wrap">
+        <div class="screenshot-inner">
+          <img src="Images/confirmarimage.jpeg">
+          <div class="screenshot-placeholder">
+            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            <p>Tela de detalhes da ocorrência registrada</p>
+            <strong>index.html — página de detalhe com status e histórico</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASSO 6 — validação comunitária -->
+    <div class="step-block reverse" id="passo-6">
+      <div class="step-info">
+        <span class="step-access login">
+          <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+          Login necessário
+        </span>
+        <div class="step-counter">
+          <div class="step-num-circle purple">06</div>
+          <div class="step-num-line"></div>
+        </div>
+        <h3 class="step-title">Confirme problemas<br>de outros moradores</h3>
+        <p class="step-desc">
+          Se você viu o mesmo problema que outro cidadão já reportou,
+          clique em <strong style="color:#e6edf3">"Confirmar Problema"</strong>
+          na página de detalhes. Isso aumenta a prioridade da ocorrência
+          e acelera a resposta do administrador.
+        </p>
+        <div class="step-tips">
+          <div class="step-tip ok">
+            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            Cada validação pesa no cálculo de prioridade
+          </div>
+          <div class="step-tip note">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            1 validação por usuário por ocorrência
+          </div>
+          <div class="step-tip note">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            Não é possível validar sua própria ocorrência
+          </div>
+        </div>
+      </div>
+      <div class="screenshot-wrap">
+        <div class="screenshot-inner">
+          <img src="Images/validacaoimage.jpeg">
+          <div class="screenshot-placeholder">
+            <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+            <p>Card de validação comunitária na página de detalhes</p>
+            <strong>index.html — botão "Confirmar Problema" + contador</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ── O QUE ACONTECE NA RESOLUÇÃO ── -->
+  <section class="resolution-section" id="resolucao" data-section="resolucao">
+    <div class="sec-label">
+      <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+      Resolução
+    </div>
+    <h2 class="sec-title">O que acontece quando<br>o problema é resolvido?</h2>
+    <p class="sec-sub">
+      Quando o administrador marca a ocorrência como
+      <strong style="color:var(--green)">Resolvida</strong>,
+      o ciclo completo fica registrado para consulta e avaliação.
+    </p>
+    <div class="resolution-grid">
+      <div class="res-card">
+        <div class="res-card-icon green">
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+        </div>
+        <div class="res-card-title">Status atualizado</div>
+        <p class="res-card-desc">O status muda para <strong style="color:var(--green)">Resolvida</strong>. O data e hora de resolução são registrados automaticamente.</p>
+      </div>
+      <div class="res-card">
+        <div class="res-card-icon blue">
+          <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+        </div>
+        <div class="res-card-title">Feedback liberado</div>
+        <p class="res-card-desc">Cidadãos com conta podem avaliar a resolução com nota de 1 a 5 estrelas e comentário sobre o serviço prestado.</p>
+      </div>
+      <div class="res-card">
+        <div class="res-card-icon purple">
+          <svg viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9z"/></svg>
+        </div>
+        <div class="res-card-title">Histórico preservado</div>
+        <p class="res-card-desc">Cada mudança de status fica no histórico com data, hora e usuário responsável. Total rastreabilidade de ponta a ponta.</p>
+      </div>
+      <div class="res-card">
+        <div class="res-card-icon yellow">
+          <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 16L12 15.45 7.77 18l1.12-4.81-3.73-3.23 4.92-.42L12 5l1.92 4.53 4.92.42-3.73 3.23L16.23 18z"/></svg>
+        </div>
+        <div class="res-card-title">Métricas de desempenho</div>
+        <p class="res-card-desc">O tempo real de resolução é calculado automaticamente e alimenta os indicadores do painel administrativo para análise contínua.</p>
+      </div>
+    </div>
+
+    <!-- Screenshot da tela de detalhes resolvida -->
+    <div style="margin-top:32px;">
+      <div class="screenshot-wrap" style="aspect-ratio:16/7;">
+        <div class="screenshot-inner">
+          <img src="Images/feedbackimage.jpeg">
+          <div class="screenshot-placeholder">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            <p>Tela de detalhes com status "Resolvida" + card de feedback + histórico completo</p>
+            <strong>index.html — detalhe após resolução pelo admin</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CTA ── -->
+  <div class="cta-block">
+    <h2>Pronto para começar?</h2>
+    <p>
+      Registre um problema na sua cidade agora mesmo — sem precisar criar conta.
+      Se quiser acompanhar, validar e dar feedback, crie seu perfil em segundos.
+    </p>
+    <div class="cta-actions">
+      <button class="btn btn-success btn-lg" onclick="window.location.href='landing.html'">
+        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        Registrar Ocorrência
+      </button>
+      <button class="btn btn-ghost btn-lg" onclick="openAuthModal('register')">
+        Criar conta grátis
+      </button>
+    </div>
+  </div>
+
+</div><!-- /page-body -->
+
+<!-- ══════════════════════════════════════════
+     MODAL AUTH
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-auth">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-logo">
+        <div class="logo-mark" style="width:24px;height:24px;font-size:10px">IM</div>
+        InfraMind
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-auth')">
+        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-tabs">
+        <button class="modal-tab active" id="tab-login"    onclick="switchTab('login')">Entrar</button>
+        <button class="modal-tab"        id="tab-register" onclick="switchTab('register')">Criar conta</button>
+      </div>
+
+      <!-- Login -->
+      <div class="modal-pane active" id="pane-login">
+        <div id="login-msg"></div>
+        <div class="field">
+          <label>Usuário</label>
+          <input type="text" id="login-username" placeholder="seu_usuario" autocomplete="username">
+        </div>
+        <div class="field">
+          <label>Senha</label>
+          <div class="pw-wrap">
+            <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+            <button class="pw-eye" type="button" onclick="togglePw('login-password',this)">
+              <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+            </button>
+          </div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:4px;" onclick="doLogin()">
+          Entrar no sistema
+        </button>
+        <p class="modal-footer-text">
+          Sem conta? <a href="#" onclick="switchTab('register')">Criar cadastro grátis</a>
+        </p>
+      </div>
+
+      <!-- Register -->
+      <div class="modal-pane" id="pane-register">
+        <div id="register-msg"></div>
+        <div class="field">
+          <label>Nome completo</label>
+          <input type="text" id="reg-fullname" placeholder="João da Silva">
+        </div>
+        <div class="field">
+          <label>E-mail</label>
+          <input type="email" id="reg-email" placeholder="joao@email.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label>Senha</label>
+          <div class="pw-wrap">
+            <input type="password" id="reg-password" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
+            <button class="pw-eye" type="button" onclick="togglePw('reg-password',this)">
+              <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+            </button>
+          </div>
+        </div>
+        <button class="btn btn-success" style="width:100%;margin-top:6px;" onclick="doRegister()">
+          Criar conta e entrar
+        </button>
+        <p class="modal-footer-text">
+          Já tem conta? <a href="#" onclick="switchTab('login')">Fazer login</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+      FOOTER
+  ═══════════════════════════════════════ -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="navbar-logo" style="margin-bottom:0">
+          <div class="logo-mark">IM</div>
+          InfraMind
+        </div>
+        <p>Plataforma inteligente para monitoramento e otimização de infraestruturas sustentáveis. Desenvolvida por estudantes de Sistemas de Informação — FHO 2026.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Sistema</h4>
+        <ul>
+          <li><a href="#visao-geral">Visão geral</a></li>
+          <li><a href="#ciclo-status">Ciclo de status</a></li>
+          <li><a href="#passo-a-passo">Passo a passo</a></li>
+          <li><a href="#resolucao">Resolução</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Projeto</h4>
+        <ul>
+          <li><a href="https://github.com/GabrielGioppo/InfraMind" target="_blank">GitHub</a></li>
+          <li><a href="https://github.com/users/GabrielGioppo/projects/1" target="_blank">Cronograma</a></li>
+          <li><a href="#" onclick="openAuthModal('login');return false;">Login Admin</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span class="footer-copy">© 2026 InfraMind — Projeto acadêmico FHO · Sistemas de Informação</span>
+      <div class="footer-ods">
+        Alinhado à <span class="ods-chip">ODS 9</span>
+      </div>
+    </div>
+  </footer>
+
+<!-- Toast container -->
+<div id="toast-root"></div>
+
+<script src="como-funciona.js"></script>
+</body>
+</html>

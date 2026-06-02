@@ -76,7 +76,7 @@ button { font-family: var(--font); cursor: pointer; border: none; outline: none;
   transition: color .15s;
 }
 .navbar-links a:hover { color: #e6edf3; text-decoration: none; }
-.navbar-actions { display: flex; align-items: center; gap: 10px; }
+.navbar-actions { display: flex; align-items: center; gap: 8px; }
 
 /* ═══════ BUTTONS ═══════ */
 .btn {
@@ -85,7 +85,7 @@ button { font-family: var(--font); cursor: pointer; border: none; outline: none;
   font-size: .875rem; font-weight: 600; transition: all .15s;
   white-space: nowrap; cursor: pointer;
 }
-.btn svg { width: 15px; height: 15px; fill: currentColor; flex-shrink: 0; }
+.btn svg { width: 14px; height: 14px; fill: currentColor; flex-shrink: 0; }
 .btn-ghost {
   background: transparent; color: #8b949e;
   border: 1px solid var(--border);
@@ -781,3 +781,11 @@ footer {
 }
 .occ-photo-remove:hover { color: #f85149; background: var(--surface-3); }
 .occ-photo-remove svg { width: 16px; height: 16px; fill: currentColor; }
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+    -webkit-text-fill-color: var(--text-main, #e6edf3) !important;
+    -webkit-box-shadow: 0 0 0px 1000px var(--bg-app, #0d1117) inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
