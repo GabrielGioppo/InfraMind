@@ -1,10 +1,8 @@
 // ═══════════════════════════════════════════════
-// INDEX — InfraMind 
+// INDEX — InfraMind
 // ═══════════════════════════════════════════════
 const API = 'http://127.0.0.1:9000';
-// ════════════════════════════════════
-// CONFIG
-// ════════════════════════════════════
+
 let STATE = {
   user: null,
   occurrences: [],
@@ -12,7 +10,7 @@ let STATE = {
   categories: [],
   currentOccId: null,
   feedbackRating: 0,
-  viewMode: 'grid', // 'grid' | 'table'
+  viewMode: 'grid',
 };
 
 // ════════════════════════════════════
@@ -61,6 +59,27 @@ async function refreshToken() {
 }
 
 // ════════════════════════════════════
+// LOGIN POR USERNAME OU E-MAIL
+// ════════════════════════════════════
+async function resolveAndLogin(usernameOrEmail, password) {
+  // 1ª tentativa: username direto
+  const r1 = await fetch(`${API}/authentication/token/`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ username: usernameOrEmail, password })
+  });
+  if (r1.ok) return await r1.json();
+
+  // 2ª tentativa: e-mail via endpoint dedicado
+  const r2 = await fetch(`${API}/authentication/login/`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ email: usernameOrEmail, password })
+  });
+  if (r2.ok) return await r2.json();
+
+  return null;
+}
+
+// ════════════════════════════════════
 // AUTH
 // ════════════════════════════════════
 document.getElementById('login-form').onsubmit = async e => {
@@ -78,34 +97,48 @@ document.getElementById('register-form').onsubmit = async e => {
   e.preventDefault();
   const btn = e.target.querySelector('button[type=submit]');
   btn.disabled = true; btn.textContent = 'Criando...';
-  const fullName = document.getElementById('reg-name').value.trim();
-  const username = fullName.toLowerCase().replace(/\s+/g,'_');
-  const payload = {
-    username, email: document.getElementById('reg-email').value,
-    password: document.getElementById('reg-pass').value,
-    first_name: fullName.split(' ')[0],
-    last_name: fullName.split(' ').slice(1).join(' ')
-  };
+
+  const username = document.getElementById('reg-name').value.trim();
+  const email    = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-pass').value;
+
+  if (!username || !email || !password) {
+    toast('Preencha todos os campos.', 'error');
+    btn.disabled = false; btn.textContent = 'Criar Conta'; return;
+  }
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+    toast('O usuário só pode conter letras, números e _. Sem espaços.', 'error');
+    btn.disabled = false; btn.textContent = 'Criar Conta'; return;
+  }
+  if (password.length < 8) {
+    toast('A senha precisa ter pelo menos 8 caracteres.', 'error');
+    btn.disabled = false; btn.textContent = 'Criar Conta'; return;
+  }
+
+  const payload = { username, email, password };
+
   try {
     const r = await fetch(`${API}/api/v1/users/register/`, {
       method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
     });
     const d = await r.json();
-    if (!r.ok) { toast('Erro: '+JSON.stringify(d),'error'); }
-    else { toast('Conta criada com sucesso!'); await doLogin(username, payload.password); }
+    if (!r.ok) {
+      toast('Erro: ' + (d.email?.[0] || d.username?.[0] || JSON.stringify(d)), 'error');
+    } else {
+      toast('Conta criada com sucesso!');
+      // Auto-login após cadastro — mantém na página
+      await doLogin(username, password);
+    }
   } catch { toast('Erro de conexão','error'); }
+
   btn.disabled = false; btn.textContent = 'Criar Conta';
 };
 
-async function doLogin(username, password) {
+async function doLogin(usernameOrEmail, password) {
   try {
-    const r = await fetch(`${API}/authentication/token/`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({username, password})
-    });
-    const d = await r.json();
-    if (!r.ok) { toast('Credenciais inválidas','error'); return; }
-    tk.set(d.access, d.refresh);
+    const tokens = await resolveAndLogin(usernameOrEmail, password);
+    if (!tokens) { toast('Credenciais inválidas','error'); return; }
+    tk.set(tokens.access, tokens.refresh);
     await loadCurrentUser();
     hideAuthScreens();
     navigateTo('dashboard');
@@ -254,7 +287,7 @@ async function loadOccurrences() {
     window._STATE_OCC = STATE.allOccurrences;
     applyFilters();
   } catch(e) {
-    console.error("Erro ao buscar ocorrências no Django:", e);
+    console.error('Erro ao buscar ocorrências:', e);
   }
 }
 
@@ -262,17 +295,15 @@ function applyFilters() {
   const searchText = document.getElementById('filter-search').value.toLowerCase().trim();
   const filterStatus = document.getElementById('filter-status').value;
   const filterCat = document.getElementById('filter-cat').value;
-  const filterFrom = document.getElementById('filter-from').value; 
-  const filterTo = document.getElementById('filter-to').value;     
+  const filterFrom = document.getElementById('filter-from').value;
+  const filterTo = document.getElementById('filter-to').value;
   let filtered = STATE.allOccurrences.filter(o => {
     if (searchText) {
       const titleMatch = o.title && o.title.toLowerCase().includes(searchText);
       const addressMatch = o.address && o.address.toLowerCase().includes(searchText);
       if (!titleMatch && !addressMatch) return false;
     }
-    if (filterStatus && o.status !== filterStatus) {
-      return false;
-    }
+    if (filterStatus && o.status !== filterStatus) return false;
     if (filterCat) {
       const itemCatId = o.category_details?.id || o.category;
       if (String(itemCatId) !== String(filterCat)) return false;
@@ -611,9 +642,7 @@ async function loadDetail(id) {
       : `<p style="font-size:.8rem;color:var(--muted)">Nenhuma ação disponível</p>`;
 
     buildValidationCard(o);
-
     buildFeedbackCard(o);
-
     loadHistory(id);
 
   } catch(e) { console.error(e); toast('Erro ao carregar detalhes','error'); }
@@ -1092,8 +1121,6 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 // ════════════════════════════════════
 // RF03: Recuperação de senha
 // ════════════════════════════════════
-function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
-function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 async function submitForgot() {
   const user = document.getElementById('forgot-user').value.trim();
   const msgEl = document.getElementById('forgot-msg');
@@ -1130,13 +1157,6 @@ function removePreviewFile(index, inputId, previewId) {
   input.files = dt.files;
   previewFiles(input, previewId);
 }
-async function uploadImage(occId, file) {
-  const fd = new FormData();
-  fd.append('occurrence', occId);
-  fd.append('image', file);
-  try { await api('/api/v1/images/', { method:'POST', body: fd, headers:{} }); }
-  catch(e) { console.warn('Imagem não enviada:', e); }
-}
 function openLightbox(src) {
   const lb = document.getElementById('lightbox');
   if (lb) { document.getElementById('lightbox-img').src = src; lb.classList.remove('hidden'); }
@@ -1171,41 +1191,30 @@ function getGPS() {
 }
 
 async function geocodeAddress() {
-
   const inputBusca = document.getElementById('c-addr');
   const inputFormulario = document.getElementById('location');
-
   let addr = inputBusca?.value?.trim() || inputFormulario?.value?.trim();
-
-  if (!addr) { 
-    toast('Preencha o campo de endereço ou localização primeiro', 'error'); 
-    return; 
+  if (!addr) {
+    toast('Preencha o campo de endereço ou localização primeiro', 'error');
+    return;
   }
-
   if (inputBusca) inputBusca.value = addr;
   if (inputFormulario) inputFormulario.value = addr;
-
   toast('Buscando endereço...', 'info');
-  
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&limit=3&addressdetails=1`;
-    const resp = await fetch(url, {
-      headers: { 'Accept-Language': 'pt-BR,pt;q=0.9' }
-    });
+    const resp = await fetch(url, { headers: { 'Accept-Language': 'pt-BR,pt;q=0.9' } });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const results = await resp.json();
     if (!results || !results.length) {
       toast('Endereço não encontrado. Tente apenas cidade e estado, ex: "Curitiba, PR"', 'error');
       return;
     }
-    
     const { lat, lon, display_name } = results[0];
     document.getElementById('c-lat').value = parseFloat(lat).toFixed(6);
     document.getElementById('c-lng').value = parseFloat(lon).toFixed(6);
-    
     const label = document.getElementById('c-coords-label');
     if (label) { label.textContent = '📍 ' + display_name; label.style.display = 'block'; }
-    
     updateCreateMap(parseFloat(lat), parseFloat(lon), addr);
     toast('Encontrado! Clique no mapa para ajustar o ponto exato.');
   } catch(e) {
