@@ -1,4 +1,3 @@
-
 // ============================================================
 // Landing — InfraMind
 // ============================================================
@@ -343,31 +342,54 @@ async function doRegister() {
 }
 
 // ══════════════════════════════════════════
-// ATUALIZA NAVBAR APÓS LOGIN / CADASTRO
+// ATUALIZA NAVBAR E HERO APÓS LOGIN / CADASTRO
 // Recebe o objeto user diretamente para não
 // depender de leitura assíncrona do storage.
 // ══════════════════════════════════════════
 function updateNavbar(user) {
   const u = user || tk.user();
-  const actionsEl = document.querySelector('.navbar-actions');
-  if (!actionsEl) return;
 
-  if (u && tk.get()) {
-    const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username;
-    actionsEl.innerHTML = `
-      <span style="font-size:.82rem;color:#8b949e;white-space:nowrap">
-        Olá, <strong style="color:#e6edf3">${name}</strong>
-      </span>
-      <a href="index.html" class="btn btn-primary">
-        Ir para o sistema
-      </a>`;
-  } else {
-    actionsEl.innerHTML = `
-      <button class="btn btn-ghost" onclick="openAuthModal('login')">Fazer Login</button>
-      <button class="btn btn-success" onclick="openOccModal()">
-        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-        Registrar Ocorrência
-      </button>`;
+  // ── Navbar ──────────────────────────────
+  const actionsEl = document.querySelector('.navbar-actions');
+  if (actionsEl) {
+    if (u && tk.get()) {
+      const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username;
+      actionsEl.innerHTML = `
+        <span style="font-size:.82rem;color:#8b949e;white-space:nowrap">
+          Olá, <strong style="color:#e6edf3">${name}</strong>
+        </span>
+        <a href="index.html" class="btn btn-primary">
+          Ir para o sistema
+        </a>`;
+    } else {
+      actionsEl.innerHTML = `
+        <button class="btn btn-ghost" onclick="openAuthModal('login')">Fazer Login</button>
+        <button class="btn btn-success" onclick="openOccModal()">
+          <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          Registrar Ocorrência
+        </button>`;
+    }
+  }
+
+  // ── Hero ────────────────────────────────
+  const heroActions = document.querySelector('.hero-actions');
+  if (heroActions) {
+    if (u && tk.get()) {
+      heroActions.innerHTML = `
+        <button class="btn btn-success btn-xl" onclick="openOccModal()">
+          <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          Registrar uma Ocorrência
+        </button>`;
+    } else {
+      heroActions.innerHTML = `
+        <button class="btn btn-success btn-xl" onclick="openOccModal()">
+          <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          Registrar uma Ocorrência
+        </button>
+        <button class="btn btn-ghost btn-xl" id="hero-login-btn" onclick="openAuthModal('login')">
+          Fazer Login
+        </button>`;
+    }
   }
 }
 
@@ -553,8 +575,8 @@ window.addEventListener('scroll', () => {
 // ══════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════
-(function init() {
-  // Atualiza navbar com sessão já existente
+document.addEventListener('DOMContentLoaded', () => {
+  // Atualiza navbar e hero com sessão já existente
   updateNavbar();
 
   // Inicializa validação do campo username no cadastro
@@ -565,7 +587,7 @@ window.addEventListener('scroll', () => {
   const hash = window.location.hash;
   if (hash === '#login')    openAuthModal('login');
   if (hash === '#register') openAuthModal('register');
-})();
+});
 
 // ══════════════════════════════════════════
 // LOCATION WIDGET — GPS / MAP / TEXT
