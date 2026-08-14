@@ -21,9 +21,9 @@ O sistema está alinhado à **ODS 9 — Indústria, Inovação e Infraestrutura*
 | 116919 | Gabriel Gioppo de Farias |
 | 117032 | Vinicius Peres |
 | 113244 | Luciano dos Santos Lima da Silva |
-| 115534 | Nicolas Oliveira |
+| 116345 | Matheus Augusto Kilian |
 | 117255 | Davi do Amaral de Araujo |
-| 116720 | Diego Gomes da Silva Fernandes |
+| 117439 | Vinicius Antonio de Assis |
 
 ---
 
