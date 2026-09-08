@@ -429,6 +429,11 @@ O campo `importance_color` é definido **exclusivamente pelo administrador** ap�
 
 - **Repositório:** [github.com/GabrielGioppo/InfraMind](https://github.com/GabrielGioppo/InfraMind)
 - **Cronograma:** [github.com/users/GabrielGioppo/projects/1](https://github.com/users/GabrielGioppo/projects/1)
+## Documentação
+
+- [📄 TAP – InfraMind](./TAP_InfraMind_Final_.pdf)
+- [📄 EAP – InfraMind](./EAP_InfraMind.pdf)
+- [📄 Diagrama de Rede PDM – InfraMind](./Diagrama_de_Rede_PDM_InfraMind.pdf)
 
 ---
 
