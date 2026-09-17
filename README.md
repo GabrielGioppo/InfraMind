@@ -432,7 +432,7 @@ O campo `importance_color` é definido **exclusivamente pelo administrador** ap�
 ## Documentação
 
 - [📄 TAP – InfraMind](./TAP_InfraMind_Final_.pdf)
-- [📄 EAP – InfraMind](./EAP_InfraMind.pdf)
+- [📄 EAP – InfraMind](./EAP_InfraMind_.pdf)
 - [📄 Diagrama de Rede PDM – InfraMind](./Diagrama_de_Rede_PDM_InfraMind.pdf)
 
 ---
