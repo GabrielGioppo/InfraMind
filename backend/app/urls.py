@@ -24,6 +24,7 @@ urlpatterns = [
     path('api/v1/feedbacks/', include('feedbacks.urls')),
     path('api/v1/logs/', include('logs.urls')),
     path('api/v1/statistics/', include('statistics_api.urls')),
+    path('api/v1/geo/', include('geo.urls')),
 ]
 
 if settings.DEBUG:

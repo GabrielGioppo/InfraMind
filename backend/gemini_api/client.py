@@ -4,19 +4,57 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-api_key = os.getenv('GEMINI_API_KEY', '')
 
-client = None
-if api_key:
-    try:
-        from google import genai
-        client = genai.Client(api_key=api_key)
-    except Exception as e:
-        print(f'[Gemini] Aviso: não foi possível inicializar o cliente — {e}')
+class GeminiClient:
+    """
+    Singleton — ponto único de acesso ao cliente da API Google Gemini.
+
+    Evita reinstanciar a conexão/configuração da API a cada chamada de IA
+    (transcrição, análise de imagem, urgência, duplicidade etc.), reaproveitando
+    a mesma instância durante todo o ciclo de vida do processo Django.
+    """
+
+    _instance = None
+
+    def __init__(self):
+        if GeminiClient._instance is not None:
+            raise RuntimeError(
+                'GeminiClient já possui uma instância. Use GeminiClient.get_instance().'
+            )
+        self._api_key = os.getenv('GEMINI_API_KEY', '')
+        self._client = None
+        if self._api_key:
+            try:
+                from google import genai
+                self._client = genai.Client(api_key=self._api_key)
+            except Exception as e:
+                print(f'[Gemini] Aviso: não foi possível inicializar o cliente — {e}')
+
+    @classmethod
+    def get_instance(cls) -> 'GeminiClient':
+        """Retorna a instância única do cliente, criando-a na primeira chamada."""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
+    def is_available(self) -> bool:
+        """True se a API key foi configurada e o client foi inicializado com sucesso."""
+        return self._client is not None
+
+    def processar_prompt(self, prompt: str, model: str = 'gemini-2.5-flash') -> str:
+        """
+        Ponto único de acesso ao modelo Gemini. Todas as funções de IA deste
+        módulo passam por aqui em vez de falar direto com o SDK do Google.
+        """
+        if not self._client:
+            return ''
+        response = self._client.models.generate_content(model=model, contents=prompt)
+        return response.text.strip()
 
 
 def get_occurrence_ai_suggestion(title: str, category: str) -> str:
-    if not client:
+    gemini = GeminiClient.get_instance()
+    if not gemini.is_available():
         return ''
     prompt = (
         f'Você é um assistente de gestão urbana. '
@@ -26,20 +64,19 @@ def get_occurrence_ai_suggestion(title: str, category: str) -> str:
         f'Responda apenas com a descrição, sem introdução ou explicação.'
     )
     try:
-        response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
-        return response.text.strip()
+        return gemini.processar_prompt(prompt)
     except Exception as e:
         print(f'[Gemini] Erro ao gerar sugestão: {e}')
         return ''
 
 
 def get_category_ai_description(name: str) -> str:
-    if not client:
+    gemini = GeminiClient.get_instance()
+    if not gemini.is_available():
         return ''
     prompt = f'Me mostre uma descrição da categoria de problema urbano "{name}" em no máximo 250 caracteres.'
     try:
-        response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
-        return response.text.strip()
+        return gemini.processar_prompt(prompt)
     except Exception as e:
         print(f'[Gemini] Erro ao gerar descrição de categoria: {e}')
         return ''
@@ -135,7 +172,8 @@ def analyze_occurrence_urgency(title: str, description: str) -> dict:
     """
     local_result = _local_urgency_analysis(title, description)
 
-    if not client:
+    gemini = GeminiClient.get_instance()
+    if not gemini.is_available():
         return local_result
 
     prompt = f"""Você é um especialista em gestão de emergências urbanas.
@@ -160,8 +198,7 @@ Critérios:
 - low (0-29, green): problemas estéticos, calçada irregular, pintura apagada"""
 
     try:
-        response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
-        raw = response.text.strip()
+        raw = gemini.processar_prompt(prompt)
         if raw.startswith('```'):
             raw = raw.split('```')[1]
             if raw.startswith('json'):
@@ -193,7 +230,8 @@ def detect_duplicate_occurrences(new_title: str, new_description: str, existing_
 
     local_result = _local_duplicate_detection(new_title, new_description, existing_occurrences)
 
-    if not client:
+    gemini = GeminiClient.get_instance()
+    if not gemini.is_available():
         return local_result
 
     candidates_text = ''
@@ -222,8 +260,7 @@ Retorne SOMENTE um JSON válido, sem markdown:
 Considere duplicata se o problema é essencialmente o mesmo no mesmo local (score >= 70)."""
 
     try:
-        response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
-        raw = response.text.strip()
+        raw = gemini.processar_prompt(prompt)
         if raw.startswith('```'):
             raw = raw.split('```')[1]
             if raw.startswith('json'):

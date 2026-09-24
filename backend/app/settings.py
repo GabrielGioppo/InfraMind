@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'logs',
     'statistics_api',
     'history',
+    'geo',
 ]
 
 MIDDLEWARE = [
