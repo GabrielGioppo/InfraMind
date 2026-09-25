@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'statistics_api',
     'history',
     'geo',
+    'notifications',
 ]
 
 MIDDLEWARE = [
