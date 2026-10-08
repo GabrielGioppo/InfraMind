@@ -628,3 +628,29 @@ input:-webkit-autofill:active {
     -webkit-box-shadow: 0 0 0px 1000px var(--bg-app, #0d1117) inset !important;
     transition: background-color 5000s ease-in-out 0s;
 }
+/* ═══ NAVBAR MOBILE (corrige botão cortado) ═══ */
+.navbar { gap: 12px; }
+.navbar-actions, #navbar-actions { min-width: 0; flex-shrink: 1; }
+.lbl-short { display: none; }
+@media (max-width: 640px) {
+  .navbar { padding: 0 12px; gap: 8px; }
+  .navbar-logo { font-size: 1rem; gap: 8px; }
+  .navbar-actions, #navbar-actions { gap: 6px !important; }
+  .navbar .btn { padding: 8px 12px; font-size: .8rem; }
+  .navbar .btn svg { width: 12px; height: 12px; }
+  .navbar-actions > span, #navbar-actions > span { display: none; } /* esconde "Olá, nome" */
+}
+@media (max-width: 480px) {
+  .lbl-full { display: none; }
+  .lbl-short { display: inline; }
+  .navbar .btn { padding: 8px 10px; font-size: .78rem; }
+}
+@media (max-width: 360px) {
+  .navbar-logo { font-size: .92rem; }
+  .logo-mark { width: 28px; height: 28px; font-size: 12px; }
+  .navbar .btn { padding: 7px 8px; font-size: .74rem; }
+}
+
+@media (max-width: 640px) {
+  #top-navbar > div:first-child { gap: 10px !important; min-width: 0; }
+}

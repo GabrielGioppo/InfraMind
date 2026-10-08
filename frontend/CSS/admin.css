@@ -250,3 +250,50 @@ tr:hover td { background:rgba(255,255,255,.02); }
 
 /* RESPONSIVE */
 @media (max-width:1200px) { .stats-grid { grid-template-columns:repeat(2,1fr); } }
+
+/* ═══════════════════════════════════════════
+   MOBILE — o admin não tinha layout de celular
+   (sidebar fixa de 240px ocupava quase a tela toda)
+═══════════════════════════════════════════ */
+@media (max-width: 768px) {
+    body { flex-direction: column; height: 100vh; height: 100dvh; }
+
+    /* Sidebar vira cabeçalho: logo + menu rolável na horizontal */
+    #sidebar { position: relative; width: 100%; min-height: 0; flex: none;
+               border-right: none; border-bottom: 1px solid var(--border); }
+    .sidebar-logo { padding: 10px 14px; }
+    .logo-badge { margin-left: 0; }
+    .nav { display: flex; flex: none; gap: 4px; padding: 6px 8px; overflow-x: auto; }
+    .nav-section { display: none; }
+    .nav-item { flex-shrink: 0; white-space: nowrap; margin-bottom: 0; padding: 8px 12px; }
+    /* avatar/nome somem; botão de sair fica no canto do cabeçalho */
+    .sidebar-footer { position: absolute; top: 10px; right: 12px; padding: 0; border: none; }
+    .sidebar-footer .avatar,
+    .sidebar-footer .avatar-info { display: none; }
+
+    #main { margin-left: 0; height: auto; flex: 1; min-height: 0; }
+    .topbar { padding: 0 14px; }
+    .topbar-search input { width: 110px; }
+    .page { padding: 16px; }
+
+    /* grades de várias colunas → 1 coluna */
+    .two-col, .feedback-grid, .detail-grid { grid-template-columns: 1fr; }
+    .stat-card { padding: 14px; }
+    .stat-value { font-size: 22px; }
+
+    /* tabelas rolam na horizontal em vez de espremer o conteúdo */
+    .table-wrap { overflow-x: auto; }
+    table { min-width: 560px; }
+    th, td { padding: 10px 12px; }
+    .table-toolbar { flex-wrap: wrap; padding: 12px; }
+    .table-toolbar .filter-input { width: 100% !important; flex: 1 1 100%; }
+    .table-toolbar .filter-select { flex: 1 1 140px; min-width: 0 !important; }
+    .section-header { flex-wrap: wrap; gap: 8px; }
+
+    .modal { width: calc(100% - 24px); max-width: 480px; }
+    .toast-container { left: 12px; right: 12px; top: 12px; }
+    .toast { min-width: 0; }
+}
+@media (max-width: 480px) {
+    .topbar-search { display: none; } /* busca global some em telas bem pequenas */
+}
