@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/x-icon" href="Images/favicon.jpeg">
+  <title>InfraMind — Gestão Urbana Inteligente</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="CSS/index.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="JavaScript/index.js" defer></script>
+</head>
+<body>
+<!-- ══════════════════════════════════════
+     AUTH SCREENS
+══════════════════════════════════════ -->
+<div id="screen-login" class="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="auth-logo-mark">IM</div>
+      <a href="landing.html" style="text-decoration:none;cursor:pointer;">
+      <span>InfraMind</span>
+      </a>
+    </div>
+    <p class="auth-tagline">Gestão Inteligente de Infraestrutura Urbana</p>
+    <form id="login-form">
+      <div class="field">
+        <label>Usuário ou E-mail</label>
+        <input type="text" id="login-user" placeholder="seu_usuario" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label>Senha</label>
+        <div class="pw-wrap">
+          <input type="password" id="login-pass" placeholder="••••••••" required autocomplete="current-password">
+          <button type="button" class="pw-eye" onclick="togglePw('login-pass',this)">
+            <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+          </button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full" style="margin-top:8px;">Entrar</button>
+    </form>
+    <p style="text-align:center;margin-top:20px;font-size:.85rem;color:var(--muted)">
+      Sem conta? <a href="#" onclick="showScreen('screen-register')">Criar cadastro</a>
+    </p>
+  </div>
+</div>
+
+<div id="screen-register" class="auth-screen hidden">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="auth-logo-mark">IM</div>
+      <a href="landing.html" style="text-decoration:none;cursor:pointer;">
+      <span>InfraMind</span>
+      </a>
+    </div>
+    <p class="auth-tagline">Crie seu acesso ao sistema</p>
+    <form id="register-form">
+      <div class="field">
+        <label>Usuário</label>
+        <input type="text" id="reg-name" placeholder="seu_usuario" required>
+      </div>
+      <div class="field">
+        <label>E-mail</label>
+        <input type="email" id="reg-email" placeholder="joao@email.com" required>
+      </div>
+      <div class="field">
+        <label>Senha</label>
+        <div class="pw-wrap">
+          <input type="password" id="reg-pass" placeholder="Mínimo 8 caracteres" required autocomplete="new-password">
+          <button type="button" class="pw-eye" onclick="togglePw('reg-pass',this)">
+            <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+          </button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-success btn-full" style="margin-top:8px;">Criar Conta</button>
+    </form>
+    <p style="text-align:center;margin-top:20px;font-size:.85rem;color:var(--muted)">
+      Já tem conta? <a href="#" onclick="showScreen('screen-login')">Fazer login</a>
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     TOPBAR
+══════════════════════════════════════ -->
+<header id="topbar" class="hidden">
+  <div class="topbar-left">
+    <a class="topbar-logo" href="landing.html" style="text-decoration:none;cursor:pointer;">
+      <div class="logo-mark">IM</div>
+      <span>InfraMind</span>
+    </a>
+  </div>
+  <div class="topbar-right">
+    <div class="topbar-user">
+      <div class="avatar" id="user-avatar">?</div>
+      <span id="user-name" style="color:#e6edf3;font-weight:500"></span>
+      <span class="role-badge" id="user-role-badge"></span>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="doLogout()">
+      <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+      Sair
+    </button>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════
+     SIDEBAR
+══════════════════════════════════════ -->
+<nav id="sidebar" class="hidden">
+  <div class="nav-section">
+    <div class="nav-label">Menu</div>
+    <button class="nav-item" id="nav-dashboard" onclick="navigateTo('dashboard')">
+      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-item" id="nav-occurrences" onclick="navigateTo('occurrences')">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      Ocorrências
+    </button>
+    <button class="nav-item hidden" id="nav-admin" onclick="navigateTo('admin')">
+      <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+      Painel Admin
+    </button>
+  </div>
+  <div class="nav-spacer"></div>
+  <div class="nav-bottom">
+    <button class="nav-item" onclick="doLogout()" style="color:var(--red);">
+      <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+      Sair do Sistema
+    </button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════
+     MAIN APP AREA
+══════════════════════════════════════ -->
+<div id="app" class="hidden">
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page hidden">
+    <div class="page-header">
+      <div class="page-title">
+        <h1>Dashboard</h1>
+        <p>Visão geral do sistema InfraMind</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-success btn-sm" onclick="navigateTo('create')">
+          <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          Nova Ocorrência
+        </button>
+      </div>
+    </div>
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <div class="stat-icon blue"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg></div>
+        </div>
+        <div class="stat-value" id="stat-total">—</div>
+        <div class="stat-label">Total de Ocorrências</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <div class="stat-icon yellow"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg></div>
+        </div>
+        <div class="stat-value" id="stat-open">—</div>
+        <div class="stat-label">Em Aberto</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <div class="stat-icon green"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+        </div>
+        <div class="stat-value" id="stat-resolved">—</div>
+        <div class="stat-label">Resolvidas</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <div class="stat-icon purple"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div>
+        </div>
+        <div class="stat-value" id="stat-users">—</div>
+        <div class="stat-label">Usuários Cadastrados</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Últimas Ocorrências</span>
+        <button class="btn btn-ghost btn-sm" onclick="navigateTo('occurrences')">Ver todas →</button>
+      </div>
+      <div id="dashboard-recent"></div>
+    </div>
+  </div>
+
+  <!-- OCCURRENCES LIST -->
+  <div id="page-occurrences" class="page hidden">
+    <div class="page-header">
+      <div class="page-title">
+        <h1>Ocorrências</h1>
+        <p id="occ-count-label">Carregando...</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-ghost btn-sm" id="view-toggle-btn" onclick="toggleView()">
+          <svg viewBox="0 0 24 24"><path d="M4 14h4v-4H4v4zm0 5h4v-4H4v4zM4 9h4V5H4v4zm5 5h12v-4H9v4zm0 5h12v-4H9v4zM9 5v4h12V5H9z"/></svg>
+          Tabela
+        </button>
+        <button class="btn btn-success btn-sm" onclick="navigateTo('create')">
+          <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          Nova Ocorrência
+        </button>
+      </div>
+    </div>
+
+    <div class="filters-bar">
+      <input type="text" id="filter-search" placeholder="🔍  Buscar por título..." oninput="applyFilters()" style="flex:1;min-width:160px;">
+      <select id="filter-status" onchange="applyFilters()">
+        <option value="">Todos os status</option>
+        <option value="open">Aberta</option>
+        <option value="in_progress">Em Andamento</option>
+        <option value="resolved">Resolvida</option>
+        <option value="closed">Fechada</option>
+      </select>
+      <select id="filter-cat" onchange="applyFilters()">
+        <option value="">Todas as categorias</option>
+      </select>
+      <input type="date" id="filter-from" onchange="applyFilters()" title="Data inicial" style="width:140px;">
+      <input type="date" id="filter-to" onchange="applyFilters()" title="Data final" style="width:140px;">
+      <button class="btn btn-ghost btn-sm" onclick="clearFilters()">Limpar</button>
+    </div>
+
+    <div id="occ-grid-view" class="occ-grid"></div>
+    <div id="occ-table-view" class="card hidden">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Título</th><th>Categoria</th><th>Status</th>
+              <th>Urgência IA</th><th>Prioridade</th><th>Validações</th>
+              <th>Data</th><th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="occ-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CREATE OCCURRENCE -->
+  <div id="page-create" class="page hidden">
+    <div class="page-header">
+      <div class="page-title"><h1>Nova Ocorrência</h1><p>Registre um problema de infraestrutura urbana</p></div>
+      <button class="btn btn-ghost btn-sm" onclick="navigateTo('occurrences')">← Cancelar</button>
+    </div>
+    <div style="max-width:680px;">
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-body">
+          <p class="form-section-title">Dados da Ocorrência</p>
+          <div class="grid-2">
+            <div class="field">
+              <label>Categoria *</label>
+              <select id="c-cat"><option value="">Selecione...</option></select>
+            </div>
+            <div class="field">
+              <label>Localização / Endereço</label>
+              <input type="text" id="c-addr" placeholder="Rua, Bairro, Número">
+            </div>
+          </div>
+
+          <!-- Gaveta: título + descrição opcionais -->
+          <details class="extras-drawer" id="create-extras">
+            <summary class="extras-drawer-toggle">
+              <svg class="extras-drawer-icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+              <span>Adicionar informações extras</span>
+              <svg class="extras-drawer-chevron" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+            </summary>
+            <div class="extras-drawer-body">
+              <div class="field">
+                <label>Título do Chamado</label>
+                <input type="text" id="c-title" placeholder="Ex: Buraco na pista da Av. Principal">
+                <div class="field-hint">Se deixar em branco, um título será gerado automaticamente.</div>
+              </div>
+              <div class="field" style="margin-bottom:0">
+                <label>Descrição Técnica</label>
+                <textarea id="c-desc" rows="4" placeholder="Descreva o problema: tamanho, risco, quanto tempo está assim..."></textarea>
+              </div>
+            </div>
+          </details>
+
+        </div>
+      </div>
+
+      
+          <!-- RF08: GPS + Mapa Leaflet -->
+          <p class="form-section-title" style="margin-top:8px;">Localização</p>
+          <input type="hidden" id="c-lat">
+          <input type="hidden" id="c-lng">
+
+          <!-- Ação primária: GPS -->
+          <button type="button" class="loc-primary-btn" onclick="getGPS()">
+            <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0013 3.06V1h-2v2.06A8.994 8.994 0 003.06 11H1v2h2.06A8.994 8.994 0 0011 20.94V23h2v-2.06A8.994 8.994 0 0020.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+            Usar minha localização atual
+          </button>
+          <p class="gps-coords" id="c-coords-label" style="display:none"></p>
+
+          <!-- Mapa clicável -->
+          <div class="map-box" id="create-map-wrap" style="margin-bottom:4px;"><div id="create-map"></div></div>
+          <p style="font-size:.72rem;color:var(--muted);margin-bottom:10px;">Clique no mapa para marcar o local exato do problema.</p>
+
+          <!-- Opção secundária: endereço manual -->
+          <details class="loc-manual-drawer" id="loc-manual-drawer">
+            <summary class="loc-manual-toggle">
+              <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+              Ou digitar o endereço manualmente
+            </summary>
+            <div class="field">
+              <div style="display:flex;gap:8px;">
+                <input type="text" id="location" placeholder="Ex: Rua das Flores, 123 — Bairro Centro" style="flex:1;">
+                <button type="button" class="btn btn-ghost btn-sm" onclick="geocodeAddress()">
+                  <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                  Buscar
+                </button>
+              </div>
+            </div>
+          </details>
+          <!-- RF07: Múltiplas imagens -->
+          <p class="form-section-title" style="margin-top:8px;">Fotos da Ocorrência</p>
+          <div class="file-drop" id="file-drop-create" onclick="document.getElementById('c-imgs').click()" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')">
+            <input type="file" id="c-imgs" accept="image/*" multiple onchange="previewFiles(this,'file-preview-create')" style="display:none">
+            <svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:currentColor;margin-bottom:8px"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+            <p>Clique ou arraste <strong>uma ou mais imagens</strong></p>
+            <div class="img-thumbs" id="file-preview-create"></div>
+          </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+        <button class="btn btn-success" onclick="createOccurrence()">
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          Registrar Ocorrência
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETAIL VIEW -->
+  <div id="page-detail" class="page hidden">
+    <div class="page-header">
+      <div class="page-title">
+        <h1 id="det-title">Detalhes da Ocorrência</h1>
+        <p id="det-meta"></p>
+      </div>
+      <div class="page-actions" id="det-actions"></div>
+    </div>
+    <div class="detail-layout">
+      <div>
+        <div id="det-hero-wrap"></div>
+        <div class="card">
+          <div class="card-body">
+            <div class="info-row"><span class="info-label">Status</span><span id="det-status"></span></div>
+            <div class="info-row"><span class="info-label">Ocorrência feita por</span><span class="info-value" id="det-reporter">—</span></div>
+            <div class="info-row"><span class="info-label">Categoria</span><span class="info-value" id="det-cat">—</span></div>
+            <div class="info-row"><span class="info-label">Localização</span><span class="info-value" id="det-addr">—</span></div>
+            <div class="info-row"><span class="info-label">Data/Hora</span><span class="info-value" id="det-date">—</span></div>
+            <div class="info-row"><span class="info-label">Validações</span><span class="info-value" id="det-valid">—</span></div>
+            <!-- RF18: Data limite de validação -->
+            <div class="info-row" id="det-deadline-row" style="display:none"><span class="info-label">Limite Valid.</span><span class="info-value" id="det-deadline">—</span></div>
+            <div class="info-row" id="det-urgency-row" style="display:none"><span class="info-label">Urgência (IA)</span><span id="det-urgency"></span></div>
+            <div class="info-row" id="det-imp-row" style="display:none"><span class="info-label">Importância</span><span id="det-imp"></span></div>
+                        <!-- RF24: Tempo estimado e real -->
+            <div id="det-time-wrap"></div>
+            <hr class="divider">
+            <p class="form-section-title" style="margin-bottom:10px;">Descrição Técnica</p>
+            <div class="desc-box" id="det-desc"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-header">
+            <span class="card-title">Histórico de Alterações</span>
+          </div>
+          <div class="card-body">
+            <div id="det-history" class="timeline"><div class="loading-center"><div class="spinner"></div></div></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body">
+            <p class="sidebar-section-title">Ações</p>
+            <div id="det-sidebar-actions" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+        </div>
+        <div class="card" id="validation-card" style="margin-bottom:16px;">
+          <div class="card-header"><span class="card-title">Validação Comunitária</span></div>
+          <div class="card-body" id="validation-body"></div>
+        </div>
+        <div class="card" id="feedback-card">
+          <div class="card-header"><span class="card-title">Feedback</span></div>
+          <div class="card-body" id="feedback-body"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT OCCURRENCE -->
+  <div id="page-edit" class="page hidden">
+    <div class="page-header">
+      <div class="page-title"><h1>Editar Ocorrência</h1></div>
+      <button class="btn btn-ghost btn-sm" id="edit-cancel-btn">← Cancelar</button>
+    </div>
+    <div style="max-width:680px;">
+      <div class="card">
+        <div class="card-body">
+          <input type="hidden" id="e-id">
+          <div class="field">
+            <label>Título *</label>
+            <input type="text" id="e-title" required>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label>Categoria</label>
+              <select id="e-cat"></select>
+            </div>
+            <div class="field">
+              <label>Endereço</label>
+              <input type="text" id="e-addr">
+            </div>
+          </div>
+          <div class="field">
+            <label>Descrição</label>
+            <textarea id="e-desc" rows="5"></textarea>
+          </div>
+          <div id="e-status-field" class="field hidden">
+            <label>Status (Admin)</label>
+            <select id="e-status">
+              <option value="open">Aberta</option>
+              <option value="in_progress">Em Andamento</option>
+              <option value="resolved">Resolvida</option>
+              <option value="closed">Fechada</option>
+            </select>
+          </div>
+          <div id="e-imp-field" class="field hidden">
+            <label>Nível de Importância (Admin)</label>
+            <select id="e-imp">
+              <option value="">Não definido</option>
+              <option value="green">🟢 Normal</option>
+              <option value="yellow">🟡 Um pouco importante</option>
+              <option value="red">🔴 Importante</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Nova Foto (opcional)</label>
+            <div class="file-drop" onclick="document.getElementById('e-img').click()">
+              <input type="file" id="e-img" accept="image/*" onchange="previewFile(this,'file-preview-edit')">
+              <p style="font-size:.85rem;">Clique para substituir a imagem atual</p>
+              <div class="file-preview" id="file-preview-edit"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+        <button class="btn btn-primary" onclick="saveEdit()">Salvar Alterações</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN PANEL -->
+  <div id="page-admin" class="page hidden">
+    <div class="page-header">
+      <div class="page-title"><h1>Painel Administrativo</h1><p>Gestão avançada e análise de dados</p></div>
+    </div>
+    <div class="stats-grid" id="admin-stats-grid" style="margin-bottom:24px;"></div>
+
+    <div class="admin-tabs" style="margin-bottom:16px;">
+      <button class="admin-tab active" id="admin-tab-list" onclick="switchAdminTab('list')">Lista</button>
+      <button class="admin-tab" id="admin-tab-map" onclick="switchAdminTab('map')">Mapa</button>
+    </div>
+    
+    <div id="admin-map-view" class="hidden">
+
+      <!-- Filtros -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+        <select id="adm-map-cat" onchange="renderAdminMap()"
+          style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:#e6edf3;padding:7px 12px;font-size:.85rem;min-width:200px;">
+          <option value="">Todas as categorias</option>
+        </select>
+        <select id="adm-map-status" onchange="renderAdminMap()"
+          style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:#e6edf3;padding:7px 12px;font-size:.85rem;">
+          <option value="">Todos os status</option>
+          <option value="open">Aberta</option>
+          <option value="in_progress">Em Andamento</option>
+          <option value="resolved">Resolvida</option>
+          <option value="closed">Fechada</option>
+        </select>
+        <button onclick="renderAdminMap()"
+          style="background:transparent;border:1px solid var(--border);border-radius:var(--radius);color:#8b949e;padding:7px 14px;font-size:.85rem;cursor:pointer;">
+          Atualizar
+        </button>
+        <span id="adm-map-count" style="font-size:.78rem;color:var(--muted);font-family:var(--mono);margin-left:auto;"></span>
+      </div>
+
+      <!-- Legenda -->
+      <div id="adm-map-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;"></div>
+
+      <!-- Mapa -->
+      <div class="card" style="overflow:hidden;">
+        <div id="admin-map" style="height:480px;width:100%;"></div>
+      </div>
+
+    </div>
+
+    <div id="admin-list-view">
+    
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Todas as Ocorrências — Prioridade por IA</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="admin-status-filter" onchange="loadAdminOccurrences()" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);color:#e6edf3;padding:5px 10px;font-size:.8rem;">
+            <option value="open">Abertas</option>
+            <option value="in_progress">Em Andamento</option>
+            <option value="resolved">Resolvidas</option>
+            <option value="">Todas</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Título</th><th>Categoria</th><th>Cidadão</th>
+              <th>Status</th><th>Urgência IA</th><th>Importância</th>
+              <th>Validações</th><th>Data</th><th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="admin-table-body"></tbody>
+        </table>
+      </div>
+      <div id="admin-loading" class="loading-center hidden"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+</div><!-- end #app -->
+
+<!-- ══════════════════════════════════════
+     MODALS
+══════════════════════════════════════ -->
+
+<!-- Validate modal -->
+<div id="modal-validate" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Validar Ocorrência</span>
+      <button class="modal-close" onclick="closeModal('modal-validate')"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p style="color:#c9d1d9;font-size:.9rem;margin-bottom:16px;">Confirme que este problema ainda existe ou persiste na sua região. Isso ajuda a priorizar a resolução.</p>
+      <p style="font-size:.85rem;color:var(--muted);">Ao validar, você confirma: <em>"Eu também tenho / presenciei este problema."</em></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-validate')">Cancelar</button>
+      <button class="btn btn-success" onclick="submitValidation()">
+        <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+        Confirmar Validação
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Admin AI Analysis Modal -->
+<div id="modal-admin-ai" class="modal-overlay hidden">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <span class="modal-title">🤖 Verificar Ocorrência com IA</span>
+      <button class="modal-close" onclick="closeModal('modal-admin-ai')"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div id="admin-ai-loading" class="loading-center" style="display:none;padding:24px"><div class="spinner"></div><p style="margin-top:12px;font-size:.85rem;color:var(--muted)">Analisando com Gemini...</p></div>
+      <div id="admin-ai-content"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-admin-ai')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Feedback modal -->
+<div id="modal-feedback" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="feedback-modal-title">Enviar Feedback</span>
+      <button class="modal-close" onclick="closeModal('modal-feedback')"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field" id="fb-rating-field">
+        <label>Avaliação</label>
+        <div class="star-group" id="star-group">
+          <button type="button" class="star-btn" data-v="1" onclick="setRating(1)">★</button>
+          <button type="button" class="star-btn" data-v="2" onclick="setRating(2)">★</button>
+          <button type="button" class="star-btn" data-v="3" onclick="setRating(3)">★</button>
+          <button type="button" class="star-btn" data-v="4" onclick="setRating(4)">★</button>
+          <button type="button" class="star-btn" data-v="5" onclick="setRating(5)">★</button>
+        </div>
+      </div>
+      <div class="field" id="fb-resolved-field">
+        <label>O problema foi resolvido?</label>
+        <select id="fb-resolved">
+          <option value="true">Sim, foi resolvido</option>
+          <option value="false">Não, ainda persiste</option>
+        </select>
+      </div>
+      <div class="field">
+        <label id="fb-comment-label">Comentário</label>
+        <textarea id="fb-comment" rows="4" placeholder="Descreva sua experiência com a resolução..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-feedback')">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitFeedback()" id="fb-submit-btn">Enviar Feedback</button>
+    </div>
+  </div>
+</div>
+
+<!-- Status update modal (admin) -->
+<div id="modal-status" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Atualizar Status</span>
+      <button class="modal-close" onclick="closeModal('modal-status')"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Novo Status</label>
+        <select id="modal-new-status">
+          <option value="open">Aberta</option>
+          <option value="in_progress">Em Andamento</option>
+          <option value="resolved">Resolvida</option>
+          <option value="closed">Fechada</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Nível de Importância</label>
+        <select id="modal-importance">
+          <option value="">Não alterar</option>
+          <option value="green">🟢 Normal</option>
+          <option value="yellow">🟡 Um pouco importante</option>
+          <option value="red">🔴 Importante</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-status')">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitStatusUpdate()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+
+<!-- RF03: Recuperação de senha -->
+<div id="modal-forgot" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Recuperar Senha</span>
+      <button class="modal-close" onclick="closeModal('modal-forgot')"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p style="color:#c9d1d9;font-size:.9rem;margin-bottom:16px;">Digite seu nome de usuário. Um administrador do sistema irá redefinir sua senha e entrará em contato.</p>
+      <div class="field"><label>Nome de usuário</label><input type="text" id="forgot-user" placeholder="seu_usuario"></div>
+      <div id="forgot-msg" style="display:none;margin-top:8px;padding:10px 14px;border-radius:var(--radius);font-size:.85rem;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-forgot')">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitForgot()">Enviar Solicitação</button>
+    </div>
+  </div>
+</div>
+<!-- Lightbox -->
+<div id="lightbox" class="hidden" onclick="this.classList.add('hidden')">
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<div id="toast-container"></div>
+</body>
+</html>
