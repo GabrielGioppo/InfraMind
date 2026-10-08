@@ -509,6 +509,53 @@ async function init() {
         }
     } catch(e) {}
     loadDashboard();
+    loadNotifications();
+}
+
+// ============================================================
+// NOTIFICAÇÕES (UC-14)
+// ============================================================
+async function loadNotifications() {
+    try {
+        const r = await api('/api/v1/notifications/');
+        if (!r) return;
+        const data = await r.json();
+        const notifs = Array.isArray(data) ? data : (data.results || []);
+        window._notifCache = notifs;
+
+        const unreadCount = notifs.filter(n => !n.read).length;
+        const dot = document.getElementById('notif-dot');
+        if (dot) dot.classList.toggle('show', unreadCount > 0);
+
+        renderNotifPanel(notifs);
+    } catch(e) {}
+}
+
+function renderNotifPanel(notifs) {
+    const panel = document.getElementById('notif-panel');
+    if (!panel) return;
+    if (!notifs.length) {
+        panel.innerHTML = '<div class="notif-empty">Nenhuma notificação por enquanto.</div>';
+        return;
+    }
+    panel.innerHTML = notifs.slice(0, 20).map(n => `
+        <div class="notif-item ${n.read ? '' : 'unread'}" onclick="markNotifRead(${n.id})">
+            <div class="notif-item-title">${n.titulo}</div>
+            <div class="notif-item-msg">${n.mensagem}</div>
+        </div>
+    `).join('');
+}
+
+function toggleNotifPanel() {
+    const panel = document.getElementById('notif-panel');
+    if (panel) panel.classList.toggle('show');
+}
+
+async function markNotifRead(id) {
+    try {
+        await api(`/api/v1/notifications/${id}/read/`, { method: 'POST' });
+        loadNotifications();
+    } catch(e) {}
 }
 
 // ============================================================

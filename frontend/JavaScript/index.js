@@ -203,7 +203,60 @@ function hideAuthScreens() {
   document.getElementById('topbar').classList.remove('hidden');
   document.getElementById('sidebar').classList.remove('hidden');
   document.getElementById('app').classList.remove('hidden');
+  startNotifications();
 }
+
+// ════════════════════════════════════
+// NOTIFICAÇÕES (UC-14)
+// ════════════════════════════════════
+let _notifTimer = null;
+
+function startNotifications() {
+  loadNotifications();
+  if (!_notifTimer) _notifTimer = setInterval(loadNotifications, 60000);
+}
+
+async function loadNotifications() {
+  try {
+    const r = await api('/api/v1/notifications/');
+    if (!r || !r.ok) return;
+    const data = await r.json();
+    const notifs = Array.isArray(data) ? data : (data.results || []);
+    document.getElementById('notif-dot')?.classList.toggle('show', notifs.some(n => !n.read));
+    renderNotifPanel(notifs);
+  } catch {}
+}
+
+function renderNotifPanel(notifs) {
+  const panel = document.getElementById('notif-panel');
+  if (!panel) return;
+  if (!notifs.length) {
+    panel.innerHTML = '<div class="notif-empty">Nenhuma notificação por enquanto.</div>';
+    return;
+  }
+  panel.innerHTML = notifs.slice(0, 20).map(n => `
+    <div class="notif-item ${n.read ? '' : 'unread'}" onclick="markNotifRead(${Number(n.id)})">
+      <div class="notif-item-title">${esc(n.titulo)}</div>
+      <div class="notif-item-msg">${esc(n.mensagem)}</div>
+      <div class="notif-item-time">${esc(fmtDateFull(n.created_at))}</div>
+    </div>`).join('');
+}
+
+function toggleNotifPanel(e) {
+  e?.stopPropagation();
+  document.getElementById('notif-panel')?.classList.toggle('show');
+}
+
+async function markNotifRead(id) {
+  try {
+    await api(`/api/v1/notifications/${id}/read/`, { method: 'POST' });
+    loadNotifications();
+  } catch {}
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#notif-wrap')) document.getElementById('notif-panel')?.classList.remove('show');
+});
 
 const PAGES = ['dashboard','occurrences','create','detail','edit','admin'];
 

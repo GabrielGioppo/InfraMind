@@ -171,6 +171,42 @@ input, select, textarea { font-family: var(--font); outline: none; }
 .topbar-logo span { font-size: 1.05rem; font-weight: 700; color: #e6edf3; letter-spacing: -.3px; }
 .topbar-right { display: flex; align-items: center; gap: 12px; }
 .topbar-user { display: flex; align-items: center; gap: 8px; font-size: .875rem; color: #8b949e; }
+
+/* Notificações (UC-14) */
+.notif-wrap { position: relative; }
+.notif-btn {
+  width: 34px; height: 34px; border-radius: var(--radius);
+  background: transparent; border: 1px solid var(--border); color: #8b949e;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; position: relative; transition: all .15s;
+}
+.notif-btn:hover { background: var(--surface-3); color: #e6edf3; border-color: var(--border-2); }
+.notif-btn svg { width: 16px; height: 16px; fill: currentColor; }
+.notif-dot {
+  display: none; position: absolute; top: 6px; right: 7px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--red); border: 2px solid var(--surface);
+}
+.notif-dot.show { display: block; }
+.notif-panel {
+  display: none; position: absolute; top: 44px; right: 0; z-index: 900;
+  width: 340px; max-width: calc(100vw - 20px); max-height: 400px; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--border-2);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+}
+.notif-panel.show { display: block; }
+.notif-empty { padding: 20px; text-align: center; color: var(--muted); font-size: .85rem; }
+.notif-item { padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.notif-item:last-child { border-bottom: none; }
+.notif-item:hover { background: var(--surface-3); }
+.notif-item.unread { border-left: 3px solid var(--red); }
+.notif-item-title { font-size: .82rem; font-weight: 600; color: #e6edf3; margin-bottom: 2px; }
+.notif-item-msg { font-size: .78rem; color: #8b949e; }
+.notif-item-time { font-size: .7rem; color: var(--muted); margin-top: 4px; }
+@media (max-width: 640px) {
+  .notif-wrap { position: static; }
+  .notif-panel { position: fixed; top: 60px; right: 10px; left: 10px; width: auto; max-width: none; }
+}
 .avatar {
   width: 30px; height: 30px; border-radius: 50%;
   background: linear-gradient(135deg, var(--blue-dim), var(--purple));

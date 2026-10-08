@@ -13,7 +13,7 @@ class Command(BaseCommand):
     Celery beat) rodando periodicamente — ex.: a cada 30 minutos.
     """
 
-    help = 'Verifica ocorrências com prazo estourado e dispara notificações (UC-14).'
+    help = 'Verifica prazos de SLA, avisos preventivos e mudanças de status pendentes, disparando notificações (UC-14).'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -26,6 +26,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         resultado = processar_prazos_e_notificar(canal=options['canal'])
         self.stdout.write(self.style.SUCCESS(
-            f"Processamento concluído: {resultado['notificadas']} notificação(ões) enviada(s), "
-            f"{resultado['ignoradas']} ocorrência(s) já haviam sido notificadas anteriormente."
+            f"Processamento concluído — "
+            f"{resultado['prazo_estourado']} prazo(s) estourado(s), "
+            f"{resultado['aviso_preventivo']} aviso(s) preventivo(s), "
+            f"{resultado['status_change']} mudança(s) de status notificada(s) "
+            f"(total: {resultado['total']})."
         ))
