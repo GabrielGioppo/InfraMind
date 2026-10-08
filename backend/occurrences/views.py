@@ -10,7 +10,7 @@ from occurrences.models import Occurrence
 from occurrences.serializers import OccurrenceSerializer, OccurrenceAdminSerializer
 from history.models import OccurrenceHistory
 from logs.utils import register_log
-from gemini_api.client import detect_duplicate_occurrences
+from gemini_api.facade import IAProcessamentoFacade
 
 DUPLICATE_RADIUS_METERS = 50
 
@@ -69,11 +69,11 @@ def _find_duplicate(latitude, longitude, category_id, title, description, addres
         if not nearby:
             return None
 
-        result = detect_duplicate_occurrences(
-            new_title=title,
-            new_description=description or '',
-            existing_occurrences=nearby,
-        )
+        result = IAProcessamentoFacade().processar_novo_chamado(
+            title=title,
+            description=description or '',
+            nearby_occurrences=nearby,
+        )['duplicidade']
 
         if not result.get('is_duplicate'):
             return None

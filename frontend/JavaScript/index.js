@@ -1198,10 +1198,9 @@ async function _reverseGeocodeFillAddr(lat, lng, labelEl) {
   const addrEl = document.getElementById('c-addr');
   let addrText = lat.toFixed(5) + ', ' + lng.toFixed(5);
   try {
-    const r = await fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lng + '&format=json',
-      { headers: { 'Accept-Language': 'pt-BR' } });
+    const r = await fetch(`${API}/api/v1/geo/reverse/?lat=${lat}&lng=${lng}`);
     const d = await r.json();
-    if (d.display_name) addrText = d.display_name;
+    if (d.endereco_formatado) addrText = d.endereco_formatado;
   } catch {}
   if (addrEl) addrEl.value = addrText;
   if (labelEl) labelEl.textContent = '📍 ' + addrText;
@@ -1219,15 +1218,15 @@ async function geocodeAddress() {
   if (inputFormulario) inputFormulario.value = addr;
   toast('Buscando endereço...', 'info');
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&limit=3&addressdetails=1`;
-    const resp = await fetch(url, { headers: { 'Accept-Language': 'pt-BR,pt;q=0.9' } });
+    const url = `${API}/api/v1/geo/search/?address=${encodeURIComponent(addr)}`;
+    const resp = await fetch(url);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const results = await resp.json();
-    if (!results || !results.length) {
+    const result = await resp.json();
+    if (!result || result.latitude == null) {
       toast('Endereço não encontrado. Tente apenas cidade e estado, ex: "Curitiba, PR"', 'error');
       return;
     }
-    const { lat, lon, display_name } = results[0];
+    const { latitude: lat, longitude: lon, endereco_formatado: display_name } = result;
     document.getElementById('c-lat').value = parseFloat(lat).toFixed(6);
     document.getElementById('c-lng').value = parseFloat(lon).toFixed(6);
     const label = document.getElementById('c-coords-label');

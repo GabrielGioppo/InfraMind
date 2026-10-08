@@ -664,10 +664,9 @@ function requestGPS() {
       label.textContent = 'Localização capturada ✓';
       let addrText = lat + ', ' + lng;
       try {
-        const r = await fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lng + '&format=json',
-          { headers: { 'Accept-Language': 'pt-BR' } });
+        const r = await fetch(`${API}/api/v1/geo/reverse/?lat=${lat}&lng=${lng}`);
         const d = await r.json();
-        if (d.display_name) addrText = d.display_name;
+        if (d.endereco_formatado) addrText = d.endereco_formatado;
       } catch {}
       res.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg><span id="loc-gps-display">' + addrText + '</span>';
       res.style.display = 'flex'; btn.disabled = false;
@@ -721,10 +720,9 @@ function _buildMap() {
     mapRes.style.display = 'flex';
     let addrText = lat.toFixed(5) + ', ' + lng.toFixed(5);
     try {
-      const r = await fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lng + '&format=json',
-        { headers: { 'Accept-Language': 'pt-BR' } });
+      const r = await fetch(`${API}/api/v1/geo/reverse/?lat=${lat}&lng=${lng}`);
       const d = await r.json();
-      if (d.display_name) addrText = d.display_name;
+      if (d.endereco_formatado) addrText = d.endereco_formatado;
     } catch {}
     mapRes.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg><span id="loc-map-display">' + addrText + '</span>';
   });
