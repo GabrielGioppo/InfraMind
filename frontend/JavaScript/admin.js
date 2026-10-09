@@ -42,6 +42,18 @@ function statusBadge(s) {
     return `<span class="badge ${map[s]||'badge-closed'}">${lbl[s]||s}</span>`;
 }
 
+function slaBadge(o) {
+    const map = {
+        estourado: ['badge-red',    'Prazo estourado'],
+        proximo:   ['badge-yellow', 'Prazo próximo'],
+        ok:        ['badge-green',  'No prazo'],
+    };
+    const m = map[o.sla_status];
+    if (!m) return '<span style="color:var(--text3);font-size:12px">—</span>';
+    const limite = o.sla_deadline ? ` title="Limite: ${fmt(o.sla_deadline)}"` : '';
+    return `<span class="badge ${m[0]}"${limite}>${m[1]}</span>`;
+}
+
 function impBadge(c) {
     if (!c) return '<span style="color:var(--text3);font-size:12px">—</span>';
     const map = { green:'badge-green', yellow:'badge-yellow', red:'badge-red' };
@@ -100,6 +112,14 @@ async function loadDashboard() {
         document.getElementById('s-resolved').textContent = resolved;
         document.getElementById('s-open').textContent = open;
 
+        const atrasadas = occs.filter(o => o.sla_status === 'estourado').length;
+        const alerta = document.getElementById('sla-alert');
+        if (alerta) {
+            alerta.style.display = atrasadas ? 'flex' : 'none';
+            document.getElementById('sla-alert-text').textContent =
+                `${atrasadas} ocorrência${atrasadas > 1 ? 's' : ''} com prazo (SLA) estourado${atrasadas > 1 ? 's' : ''}.`;
+        }
+
         // mini chart
         const statusGroups = { open:0, in_progress:0, resolved:0, closed:0 };
         occs.forEach(o => { if (statusGroups[o.status] !== undefined) statusGroups[o.status]++; });
@@ -136,9 +156,10 @@ async function loadDashboard() {
                 <td>${statusBadge(o.status)}</td>
                 <td><span style="font-family:var(--mono);font-size:12px;color:var(--text2)">${o.priority||0}</span></td>
                 <td>${impBadge(o.importance_color)}</td>
+                <td>${slaBadge(o)}</td>
                 <td style="color:var(--text2);font-size:12px">${fmt(o.created_at)}</td>
             </tr>`).join('')
-            : '<tr><td colspan="5" class="empty-state">Nenhuma ocorrência</td></tr>';
+            : '<tr><td colspan="6" class="empty-state">Nenhuma ocorrência</td></tr>';
 
     } catch(e) { console.error(e); toast('Erro ao carregar dashboard','error'); }
 }
@@ -146,7 +167,7 @@ async function loadDashboard() {
 // ── OCCURRENCES ──
 let occPage = 1; const OCC_PER = 12;
 async function loadOccurrences() {
-    document.getElementById('occ-tbody').innerHTML = '<tr><td colspan="7" class="loading">Carregando...</td></tr>';
+    document.getElementById('occ-tbody').innerHTML = '<tr><td colspan="8" class="loading">Carregando...</td></tr>';
     try {
         const r = await api('/api/v1/occurrences/');
         if (!r) return;
@@ -182,6 +203,7 @@ function renderOcc() {
                     ${['green','yellow','red'].map(c=>`<div class="imp-btn ${c}-btn${o.importance_color===c?' selected':''}" title="${c}" onclick="quickSetImportance(${o.id},'${c}',this)"></div>`).join('')}
                 </div>
             </td>
+            <td>${slaBadge(o)}</td>
             <td><span style="font-family:var(--mono);font-size:12px;color:var(--text2)">${o.validation_count||0}</span></td>
             <td style="color:var(--text2);font-size:12px">${fmt(o.created_at)}</td>
             <td>
@@ -191,7 +213,7 @@ function renderOcc() {
                 </div>
             </td>
         </tr>`).join('')
-        : '<tr><td colspan="7" class="empty-state">Nenhuma ocorrência encontrada</td></tr>';
+        : '<tr><td colspan="8" class="empty-state">Nenhuma ocorrência encontrada</td></tr>';
 
     const pages = Math.ceil(total/OCC_PER);
     document.getElementById('occ-pagination').innerHTML =
@@ -390,7 +412,7 @@ function renderLogs() {
     const total = allLogs.length;
     const start = (logsPage-1)*LOGS_PER;
     const slice = allLogs.slice(start, start+LOGS_PER);
-    const actionClass = { create:'log-create', update:'log-update', delete:'log-delete', validate:'log-validate', status_change:'log-status' };
+    const actionClass = { create:'log-create', update:'log-update', delete:'log-delete', validate:'log-validate', status_change:'log-status', notification_sent:'log-create', notification_failed:'log-delete' };
 
     document.getElementById('logs-tbody').innerHTML = slice.length
         ? slice.map(l => `<tr>

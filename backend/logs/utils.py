@@ -29,3 +29,23 @@ def register_log(request, action, model_name, object_id, details=None):
         ip_address=get_client_ip(request),
         device=get_device(request),
     )
+
+
+def register_system_log(action, model_name, object_id, details=None, user=None):
+    """
+    Log de auditoria para rotinas sem request HTTP (ex.: UC-14, comando
+    processar_prazos). Sem IP; o dispositivo fica identificado como 'sistema'.
+    Nunca levanta exceção: falha de auditoria não pode derrubar o fluxo.
+    """
+    try:
+        Log.objects.create(
+            user=user,
+            action=action,
+            model_name=model_name,
+            object_id=object_id,
+            details=details or {},
+            ip_address=None,
+            device='sistema',
+        )
+    except Exception as e:
+        print(f'[register_system_log] Falha ao gravar log de auditoria: {e}')

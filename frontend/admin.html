@@ -105,6 +105,11 @@
             </div>
         </div>
 
+        <div id="sla-alert" class="sla-alert" style="display:none">
+            <span id="sla-alert-text"></span>
+            <button class="btn btn-ghost btn-sm" onclick="showPage('occurrences')">Ver ocorrências</button>
+        </div>
+
         <div class="two-col">
             <div>
                 <div class="section-header"><span class="section-title">Ocorrências por status</span></div>
@@ -125,8 +130,8 @@
         </div>
         <div class="table-wrap">
             <table>
-                <thead><tr><th>Título</th><th>Status</th><th>Prioridade</th><th>Importância</th><th>Data</th></tr></thead>
-                <tbody id="recent-occ-tbody"><tr><td colspan="5" class="loading">Carregando...</td></tr></tbody>
+                <thead><tr><th>Título</th><th>Status</th><th>Prioridade</th><th>Importância</th><th>Prazo</th><th>Data</th></tr></thead>
+                <tbody id="recent-occ-tbody"><tr><td colspan="6" class="loading">Carregando...</td></tr></tbody>
             </table>
         </div>
     </div>
@@ -157,8 +162,8 @@
                 </button>
             </div>
             <table>
-                <thead><tr><th>ID</th><th>Título</th><th>Status</th><th>Importância</th><th>Validações</th><th>Data</th><th>Ações</th></tr></thead>
-                <tbody id="occ-tbody"><tr><td colspan="7" class="loading">Carregando...</td></tr></tbody>
+                <thead><tr><th>ID</th><th>Título</th><th>Status</th><th>Importância</th><th>Prazo</th><th>Validações</th><th>Data</th><th>Ações</th></tr></thead>
+                <tbody id="occ-tbody"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody>
             </table>
             <div class="pagination" id="occ-pagination"></div>
         </div>

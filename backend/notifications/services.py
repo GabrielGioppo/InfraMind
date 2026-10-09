@@ -23,6 +23,7 @@ from django.utils import timezone
 from notifications.factory import EmailNotifFactory, PushNotifFactory
 from notifications.models import Notificacao
 from occurrences.models import Occurrence
+from occurrences.sla import LIMIAR_AVISO_PREVENTIVO, STATUS_ENCERRADOS
 from history.models import OccurrenceHistory
 
 User = get_user_model()
@@ -36,10 +37,8 @@ FACTORIES = {
     'push':  PushNotifFactory(),
 }
 
-OCCURRENCE_STATUS_ENCERRADOS = ['resolved', 'closed']
-
-# Limiar do aviso preventivo (A1): 80% do prazo decorrido sem conclusão.
-LIMIAR_AVISO_PREVENTIVO = 0.8
+# Regra de prazo compartilhada com o painel admin (occurrences/sla.py).
+OCCURRENCE_STATUS_ENCERRADOS = list(STATUS_ENCERRADOS)
 
 
 def _ja_notificado(occurrence, tipo: str) -> bool:
