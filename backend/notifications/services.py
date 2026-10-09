@@ -87,7 +87,8 @@ def _processar_prazo_estourado(factory, admins) -> list:
             f'{occ.estimated_time}h sem ser resolvida. '
             f'Status atual: {occ.get_status_display()}.'
         )
-        destinatarios = admins + ([occ.user] if occ.user else [])
+        # Dedup por id: um admin que é dono da ocorrência não recebe duas vezes.
+        destinatarios = list({u.id: u for u in admins + ([occ.user] if occ.user else [])}.values())
         for destinatario in destinatarios:
             notificacao = factory.notificar(
                 destinatario, titulo, mensagem,

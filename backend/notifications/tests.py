@@ -71,3 +71,13 @@ class AuditoriaNotificacaoTests(TestCase):
             Notificacao.objects.filter(status='enviada').count(),
         )
         self.assertGreater(Log.objects.count(), 0)
+
+    def test_admin_dono_da_ocorrencia_nao_recebe_prazo_estourado_duplicado(self):
+        admin = User.objects.create_user(
+            username='adm', email='a@x.com', password='x', is_staff=True,
+        )
+        _occ(11, user=admin)
+        processar_prazos_e_notificar()
+        self.assertEqual(
+            Notificacao.objects.filter(user=admin, tipo='prazo_estourado').count(), 1,
+        )
