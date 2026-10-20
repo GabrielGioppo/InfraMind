@@ -37,7 +37,8 @@ class OccurrenceSerializer(SlaFieldsMixin, serializers.ModelSerializer):
     class Meta:
         model = Occurrence
         exclude = AI_FIELDS
-        read_only_fields = ['user', 'validation_count', 'priority', 'is_duplicate', 'importance_color']
+        read_only_fields = ['user', 'validation_count', 'priority', 'is_duplicate', 'importance_color',
+                            'prazo_definido']
 
 
 class OccurrenceAdminSerializer(SlaFieldsMixin, serializers.ModelSerializer):

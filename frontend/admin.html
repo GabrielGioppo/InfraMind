@@ -130,8 +130,8 @@
         </div>
         <div class="table-wrap">
             <table>
-                <thead><tr><th>Título</th><th>Status</th><th>Prioridade</th><th>Importância</th><th>Prazo</th><th>Data</th></tr></thead>
-                <tbody id="recent-occ-tbody"><tr><td colspan="6" class="loading">Carregando...</td></tr></tbody>
+                <thead><tr><th>Título</th><th>Status</th><th>Prioridade</th><th>Prazo</th><th>Data</th></tr></thead>
+                <tbody id="recent-occ-tbody"><tr><td colspan="5" class="loading">Carregando...</td></tr></tbody>
             </table>
         </div>
     </div>
@@ -298,14 +298,33 @@
     </div>
 </main>
 
+<!-- Detalhes da ocorrência (somente leitura) -->
+<div class="modal-backdrop" id="occ-detail-modal">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <span class="modal-title" id="occ-detail-title">Ocorrência</span>
+            <button class="modal-close" onclick="closeModal('occ-detail-modal')">×</button>
+        </div>
+        <div class="modal-body" id="occ-detail-body"></div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('occ-detail-modal')">Fechar</button>
+            <button class="btn btn-primary" id="occ-detail-edit-btn">Gerenciar (prazo, status, atualização)</button>
+        </div>
+    </div>
+</div>
+
+<!-- Gerenciar ocorrência: status, importância, prazo e atualização para o cidadão -->
 <div class="modal-backdrop" id="occ-modal">
     <div class="modal">
         <div class="modal-header">
-            <span class="modal-title">Editar Ocorrência</span>
+            <span class="modal-title">Gerenciar Ocorrência</span>
             <button class="modal-close" onclick="closeModal('occ-modal')">×</button>
         </div>
         <div class="modal-body">
             <input type="hidden" id="edit-occ-id">
+            <div class="modal-field"><label>Ocorrência</label>
+                <div class="modal-static" id="edit-occ-name"></div>
+            </div>
             <div class="modal-field"><label>Status</label>
                 <select id="edit-occ-status">
                     <option value="open">Aberta</option>
@@ -322,8 +341,20 @@
                     <option value="red">🔴 Vermelho — Importante</option>
                 </select>
             </div>
+            <div class="modal-field"><label>Prazo para resolver</label>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <input type="date" id="edit-occ-deadline">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('edit-occ-deadline').value=''">Limpar</button>
+                </div>
+                <div class="modal-hint" id="edit-occ-deadline-hint"></div>
+            </div>
+            <div class="modal-field"><label>Atualização para o cidadão (opcional)</label>
+                <textarea id="edit-occ-feedback" rows="3" placeholder="Ex: Estamos planejando o conserto. Previsão para o dia 02/11."></textarea>
+                <div class="modal-hint">Aparece na ocorrência como “Atualização oficial”. Mudanças de prazo ficam registradas no histórico.</div>
+            </div>
             <div class="modal-field"><label>Tempo estimado (horas)</label>
                 <input type="number" id="edit-occ-time" placeholder="Ex: 48">
+                <div class="modal-hint">Só é usado como prazo quando não há uma data definida acima.</div>
             </div>
         </div>
         <div class="modal-footer">

@@ -3,22 +3,54 @@
 // ============================================================
 const API = 'http://127.0.0.1:9000';
 
-function getToken() { return localStorage.getItem('infraMind_access_token'); }
+// Mesmas chaves de sessão usadas por index.js / landing.js (im_access, im_refresh, im_user).
+function getToken() { return localStorage.getItem('im_access'); }
+function getRefresh() { return localStorage.getItem('im_refresh'); }
+
+async function refreshToken() {
+    const ref = getRefresh();
+    if (!ref) return false;
+    try {
+        const r = await fetch(API + '/authentication/token/refresh/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh: ref })
+        });
+        if (!r.ok) return false;
+        const d = await r.json();
+        localStorage.setItem('im_access', d.access);
+        if (d.refresh) localStorage.setItem('im_refresh', d.refresh);
+        return true;
+    } catch { return false; }
+}
 
 async function api(path, opts = {}) {
-    const token = getToken();
-    const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
-    if (token) headers['Authorization'] = 'Bearer ' + token;
-    const res = await fetch(API + path, { ...opts, headers });
-    if (res.status === 401) { logout(); return null; }
+    const doFetch = () => {
+        const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+        const token = getToken();
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        return fetch(API + path, { ...opts, headers });
+    };
+    let res = await doFetch();
+    if (res.status === 401) {
+        // Access token expirado (60 min): tenta renovar com o refresh token antes de deslogar.
+        if (await refreshToken()) {
+            res = await doFetch();
+        } else {
+            logout();
+            return null;
+        }
+    }
     return res;
 }
 
 function logout() {
-    ['infraMind_access_token','infraMind_refresh_token',
-     'infraMind_session_name','infraMind_session_email','infraMind_session_id']
+    ['im_access', 'im_refresh', 'im_user',
+     // chaves antigas, de versões anteriores do painel
+     'infraMind_access_token', 'infraMind_refresh_token',
+     'infraMind_session_name', 'infraMind_session_email', 'infraMind_session_id']
         .forEach(k => localStorage.removeItem(k));
-    window.location.href = 'index.html';
+    window.location.href = 'landing.html';
 }
 
 function toast(msg, type = 'success') {
@@ -42,23 +74,56 @@ function statusBadge(s) {
     return `<span class="badge ${map[s]||'badge-closed'}">${lbl[s]||s}</span>`;
 }
 
-function slaBadge(o) {
-    const map = {
-        estourado: ['badge-red',    'Prazo estourado'],
-        proximo:   ['badge-yellow', 'Prazo próximo'],
-        ok:        ['badge-green',  'No prazo'],
-    };
-    const m = map[o.sla_status];
-    if (!m) return '<span style="color:var(--text3);font-size:12px">—</span>';
-    const limite = o.sla_deadline ? ` title="Limite: ${fmt(o.sla_deadline)}"` : '';
-    return `<span class="badge ${m[0]}"${limite}>${m[1]}</span>`;
-}
-
 function impBadge(c) {
     if (!c) return '<span style="color:var(--text3);font-size:12px">—</span>';
     const map = { green:'badge-green', yellow:'badge-yellow', red:'badge-red' };
     const lbl = { green:'Normal', yellow:'Médio', red:'Importante' };
     return `<span class="badge ${map[c]}">${lbl[c]}</span>`;
+}
+
+function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+// Data "pura" (YYYY-MM-DD, como vem do campo prazo_definido): formata sem passar por Date,
+// que deslocaria o dia pelo fuso horário.
+function fmtDay(d) {
+    if (!d) return '—';
+    const [y, m, dd] = String(d).slice(0, 10).split('-');
+    return `${dd}/${m}/${y}`;
+}
+
+function fmtDateTime(dt) {
+    if (!dt) return '—';
+    return new Date(dt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+// Prazo (SLA): data limite efetiva (sla_deadline) com a cor indicando a situação (sla_status)
+function slaBadge(o) {
+    if (!o.sla_deadline) return '<span style="color:var(--text3);font-size:12px">Sem prazo</span>';
+    const map = {
+        estourado: ['badge-red',    ' · atrasado'],
+        proximo:   ['badge-yellow', ' · próximo'],
+        ok:        ['badge-green',  ''],
+    };
+    const m = map[o.sla_status] || ['badge-closed', ' · concluída'];   // sla_status vazio = já encerrada
+    const dia = fmt(o.sla_deadline);
+    return `<span class="badge ${m[0]}" title="Limite: ${dia}">${dia}${m[1]}</span>`;
+}
+
+// Prioridade (cor de importância) como círculo colorido
+function prioDot(o) {
+    const lbl = { green:'Normal', yellow:'Médio', red:'Importante' };
+    const c = lbl[o.importance_color] ? o.importance_color : 'none';
+    const tip = c === 'none'
+        ? 'Importância ainda não definida'
+        : `Importância: ${lbl[c]} · pontuação ${o.priority || 0}`;
+    return `<span class="prio-dot ${c}" title="${tip}"></span>`;
+}
+
+function rowClick(ev, id) {
+    if (ev.target.closest('button, .imp-selector')) return;  // botões da linha têm ação própria
+    openOccDetail(id);
 }
 
 // ── PAGE ROUTING ──
@@ -151,15 +216,14 @@ async function loadDashboard() {
         // recent occs
         const recent = [...occs].sort((a,b) => new Date(b.created_at)-new Date(a.created_at)).slice(0,8);
         document.getElementById('recent-occ-tbody').innerHTML = recent.length
-            ? recent.map(o => `<tr>
-                <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.title}</td>
+            ? recent.map(o => `<tr class="row-link" onclick="openOccDetail(${o.id})">
+                <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(o.title)}</td>
                 <td>${statusBadge(o.status)}</td>
-                <td><span style="font-family:var(--mono);font-size:12px;color:var(--text2)">${o.priority||0}</span></td>
-                <td>${impBadge(o.importance_color)}</td>
+                <td>${prioDot(o)}</td>
                 <td>${slaBadge(o)}</td>
                 <td style="color:var(--text2);font-size:12px">${fmt(o.created_at)}</td>
             </tr>`).join('')
-            : '<tr><td colspan="6" class="empty-state">Nenhuma ocorrência</td></tr>';
+            : '<tr><td colspan="5" class="empty-state">Nenhuma ocorrência</td></tr>';
 
     } catch(e) { console.error(e); toast('Erro ao carregar dashboard','error'); }
 }
@@ -194,9 +258,9 @@ function renderOcc() {
     const slice = filtered.slice(start, start+OCC_PER);
 
     document.getElementById('occ-tbody').innerHTML = slice.length
-        ? slice.map(o => `<tr>
+        ? slice.map(o => `<tr class="row-link" onclick="rowClick(event,${o.id})">
             <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">#${o.id}</td>
-            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${o.title}">${o.title}</td>
+            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(o.title)}">${esc(o.title)}</td>
             <td>${statusBadge(o.status)}</td>
             <td>
                 <div class="imp-selector">
@@ -208,6 +272,7 @@ function renderOcc() {
             <td style="color:var(--text2);font-size:12px">${fmt(o.created_at)}</td>
             <td>
                 <div style="display:flex;gap:6px">
+                    <button class="btn btn-ghost btn-sm" onclick="openOccDetail(${o.id})">Ver</button>
                     <button class="btn btn-ghost btn-sm" onclick="openOccModal(${o.id})">Editar</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteOcc(${o.id})">Del</button>
                 </div>
@@ -238,30 +303,170 @@ async function quickSetImportance(id, color, btn) {
     } catch(e) { toast('Erro de conexão','error'); }
 }
 
-function openOccModal(id) {
-    const occ = allOcc.find(o => o.id === id);
-    if (!occ) return;
+async function openOccModal(id) {
+    let occ = allOcc.find(o => o.id === id);
+    if (!occ) {  // vindo do dashboard/mapa, a lista pode não estar carregada
+        try {
+            const r = await api(`/api/v1/occurrences/${id}/`);
+            if (r && r.ok) occ = await r.json();
+        } catch (e) { console.error(e); }
+    }
+    if (!occ) { toast('Ocorrência não encontrada', 'error'); return; }
+
+    _reopenDetailAfterSave = document.getElementById('occ-detail-modal').classList.contains('open');
+    closeModal('occ-detail-modal');
+
     document.getElementById('edit-occ-id').value = id;
+    document.getElementById('edit-occ-name').textContent = `#${occ.id} · ${occ.title}`;
     document.getElementById('edit-occ-status').value = occ.status || 'open';
     document.getElementById('edit-occ-importance').value = occ.importance_color || '';
+    document.getElementById('edit-occ-deadline').value = occ.prazo_definido || '';
+    document.getElementById('edit-occ-feedback').value = '';
     document.getElementById('edit-occ-time').value = occ.estimated_time || '';
+    document.getElementById('edit-occ-deadline-hint').textContent = occ.prazo_definido
+        ? `Prazo atual: ${fmtDay(occ.prazo_definido)}. Escolha outra data para reajustar.`
+        : (occ.sla_deadline
+            ? `Sem data definida; hoje o prazo vem do tempo estimado (${fmt(occ.sla_deadline)}). Escolha uma data no calendário para substituí-lo.`
+            : 'Sem prazo definido. Escolha uma data no calendário.');
     openModal('occ-modal');
 }
 
+let _reopenDetailAfterSave = false;
+
 async function saveOcc() {
-    const id = document.getElementById('edit-occ-id').value;
+    const id = Number(document.getElementById('edit-occ-id').value);
     const payload = {
         status: document.getElementById('edit-occ-status').value,
         importance_color: document.getElementById('edit-occ-importance').value || null,
         estimated_time: document.getElementById('edit-occ-time').value || null,
+        prazo_definido: document.getElementById('edit-occ-deadline').value || null,
     };
+    const comment = document.getElementById('edit-occ-feedback').value.trim();
     try {
         const r = await api(`/api/v1/occurrences/${id}/`, { method:'PATCH', body: JSON.stringify(payload) });
-        if (!r || !r.ok) { toast('Erro ao salvar','error'); return; }
+        if (!r || !r.ok) {
+            let msg = 'Erro ao salvar';
+            try { msg += ': ' + JSON.stringify(await r.json()); } catch (e) {}
+            toast(msg, 'error');
+            return;
+        }
+        let feedbackFailed = false;
+        if (comment) {
+            const rf = await api('/api/v1/feedbacks/', { method:'POST', body: JSON.stringify({ occurrence: id, comment }) });
+            feedbackFailed = !rf || !rf.ok;
+        }
         closeModal('occ-modal');
-        toast('Ocorrência atualizada');
-        loadOccurrences();
+        if (feedbackFailed) toast('Ocorrência salva, mas a atualização para o cidadão não foi enviada', 'error');
+        else toast(comment ? 'Ocorrência atualizada e cidadão informado' : 'Ocorrência atualizada');
+        await refreshAfterOccChange(id);
     } catch(e) { toast('Erro de conexão','error'); }
+}
+
+// Recarrega a tela que está aberta e, se o usuário veio do detalhe, volta para ele
+async function refreshAfterOccChange(id) {
+    const active = (document.querySelector('.page.active')?.id || '').replace('page-', '');
+    if (active === 'occurrences') await loadOccurrences();
+    else if (active === 'dashboard') loadDashboard();
+    else if (active === 'map') loadMapPage();
+    if (_reopenDetailAfterSave) { _reopenDetailAfterSave = false; openOccDetail(id); }
+}
+
+// ── DETALHE DA OCORRÊNCIA (somente leitura) ──
+let _detailMap = null;
+const URGENCY_LABEL = { critica:'Crítica', alta:'Alta', media:'Média', baixa:'Baixa' };
+
+function imgSrc(raw) {
+    if (!raw) return null;
+    return raw.startsWith('http') ? raw : API + raw;
+}
+
+async function openOccDetail(id) {
+    const body = document.getElementById('occ-detail-body');
+    if (_detailMap) { _detailMap.remove(); _detailMap = null; }
+    document.getElementById('occ-detail-title').textContent = `Ocorrência #${id}`;
+    document.getElementById('occ-detail-edit-btn').onclick = () => openOccModal(id);
+    body.innerHTML = '<div class="loading">Carregando...</div>';
+    openModal('occ-detail-modal');
+
+    try {
+        const [r, rh] = await Promise.all([
+            api(`/api/v1/occurrences/${id}/`),
+            api(`/api/v1/occurrences/${id}/history/`),
+        ]);
+        if (!r) return;
+        if (!r.ok) { body.innerHTML = '<div class="empty-state">Ocorrência não encontrada</div>'; return; }
+        const o = await r.json();
+        let hist = [];
+        if (rh && rh.ok) { const d = await rh.json(); hist = Array.isArray(d) ? d : (d.results || []); }
+
+        const img = o.images?.length ? imgSrc(o.images[0].image || o.images[0].url) : null;
+        const lat = parseFloat(o.latitude), lng = parseFloat(o.longitude);
+        const hasCoords = !isNaN(lat) && !isNaN(lng);
+        const reporter = o.user_details?.username ? '@' + o.user_details.username : 'Anônimo';
+        const urg = o.urgency_level
+            ? `${URGENCY_LABEL[o.urgency_level] || o.urgency_level}${o.urgency_score ? ` (${o.urgency_score}/100)` : ''}`
+            : '—';
+
+        const notes = (o.feedbacks || []).map(f => {
+            const official = !f.rating;
+            const who = esc(f.user_details?.username || `Usuário #${f.user}`);
+            const tag = official
+                ? '<span class="badge badge-admin">Atualização oficial</span>'
+                : `<span class="badge badge-citizen">Cidadão · ${'★'.repeat(f.rating)}</span>`;
+            return `<div class="od-note">
+                <div class="od-note-head"><span>${who} ${tag}</span><span class="od-note-date">${fmtDateTime(f.created_at)}</span></div>
+                <p>${esc(f.comment)}</p>
+            </div>`;
+        }).join('') || '<div style="color:var(--text3);font-size:13px">Nenhuma atualização enviada ainda.</div>';
+
+        const timeline = hist.map(h => {
+            const text = h.change_type === 'status'
+                ? `${statusBadge(h.previous_status || '—')} → ${statusBadge(h.new_status || '—')}`
+                : '';
+            const obs = h.observation ? `<span>${esc(h.observation)}</span>` : '';
+            return `<div class="od-tl-item">
+                <div class="od-tl-date">${fmtDateTime(h.changed_at)}</div>
+                <div class="od-tl-text">${text}${obs}</div>
+            </div>`;
+        }).join('') || '<div style="color:var(--text3);font-size:13px">Sem alterações registradas.</div>';
+
+        body.innerHTML = `
+            ${img ? `<img class="od-hero" src="${img}" alt="" onerror="this.style.display='none'">` : ''}
+            <div style="font-size:16px;font-weight:600;margin-bottom:4px">${esc(o.title)}</div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:16px">Registrada em ${fmtDateTime(o.created_at)}</div>
+            <div class="detail-grid">
+                <div class="detail-field"><label>Status</label>${statusBadge(o.status)}</div>
+                <div class="detail-field"><label>Importância</label>${impBadge(o.importance_color)}</div>
+                <div class="detail-field"><label>Prazo</label>${slaBadge(o)}</div>
+                <div class="detail-field"><label>Urgência (IA)</label><span>${esc(urg)}</span></div>
+                <div class="detail-field"><label>Categoria</label><span>${esc(o.category_details?.name || '—')}</span></div>
+                <div class="detail-field"><label>Cidadão</label><span>${esc(reporter)}</span></div>
+                <div class="detail-field"><label>Validações</label><span>${o.validation_count || 0} confirmação(ões)</span></div>
+                <div class="detail-field"><label>Tempo estimado</label><span>${o.estimated_time ? o.estimated_time + ' h' : '—'}</span></div>
+                <div class="detail-field" style="grid-column:1/-1"><label>Endereço</label><span>${esc(o.address || '—')}</span></div>
+            </div>
+            <div class="od-section"><div class="od-section-title">Descrição</div>
+                <div class="od-desc">${esc(o.description || '—')}</div></div>
+            ${o.urgency_reason ? `<div class="od-section"><div class="od-section-title">Análise da IA</div>
+                <div class="od-desc">${esc(o.urgency_reason)}</div></div>` : ''}
+            ${hasCoords ? `<div class="od-section"><div class="od-section-title">Localização</div>
+                <div id="occ-detail-map" class="od-map"></div></div>` : ''}
+            <div class="od-section"><div class="od-section-title">Atualizações e feedbacks</div>${notes}</div>
+            <div class="od-section"><div class="od-section-title">Histórico</div><div class="od-tl">${timeline}</div></div>
+        `;
+
+        if (hasCoords) {
+            await loadLeaflet();
+            if (!document.getElementById('occ-detail-map')) return;  // o modal foi fechado/trocado
+            _detailMap = L.map('occ-detail-map').setView([lat, lng], 16);
+            L.tileLayer(OSM_TILES, { attribution: OSM_ATTRIBUTION, maxZoom: 19, className: 'dark-tiles' }).addTo(_detailMap);
+            L.circleMarker([lat, lng], { radius: 8, color: '#fff', weight: 2, fillColor: '#4f6ef7', fillOpacity: 1 }).addTo(_detailMap);
+            setTimeout(() => _detailMap && _detailMap.invalidateSize(), 150);
+        }
+    } catch (e) {
+        console.error(e);
+        body.innerHTML = '<div class="empty-state">Erro ao carregar a ocorrência</div>';
+    }
 }
 
 async function deleteOcc(id) {
@@ -299,7 +504,12 @@ function renderUsers() {
     const total = filtered.length;
     const start = (usersPage-1)*USERS_PER;
     const slice = filtered.slice(start, start+USERS_PER);
-    const initials = u => ((u.first_name||u.username||'?')[0] + (u.last_name||'')[0]).toUpperCase().replace(/\s/,'');
+    const initials = u => {
+        const f = (u.first_name || '').trim(), l = (u.last_name || '').trim();
+        if (f && l) return (f[0] + l[0]).toUpperCase();
+        return (f || u.username || '?').slice(0, 2).toUpperCase();
+    };
+    const fullName = u => [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username;
 
     document.getElementById('users-tbody').innerHTML = slice.length
         ? slice.map(u => `<tr>
@@ -308,8 +518,8 @@ function renderUsers() {
                 <div style="display:flex;align-items:center;gap:8px">
                     <div class="avatar" style="width:28px;height:28px;font-size:10px">${initials(u)}</div>
                     <div>
-                        <div style="font-size:13px">${u.first_name||''} ${u.last_name||''}</div>
-                        <div style="font-size:11px;color:var(--text3);font-family:var(--mono)">@${u.username}</div>
+                        <div style="font-size:13px">${esc(fullName(u))}</div>
+                        <div style="font-size:11px;color:var(--text3);font-family:var(--mono)">@${esc(u.username)}</div>
                     </div>
                 </div>
             </td>
@@ -513,23 +723,38 @@ function onGlobalSearch(v) {
 
 // ── INIT ──
 async function init() {
-    if (!getToken()) { window.location.href = 'index.html'; return; }
-    const token = getToken();
+    if (!getToken()) { window.location.href = 'landing.html'; return; }
+
+    // Valida o token e o perfil: só administradores acessam este painel.
+    let me = null;
+    let loaded = false;
     try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const uid = payload.user_id;
+        const payload = JSON.parse(atob(getToken().split('.')[1]));
         const r = await api('/api/v1/users/');
-        if (r) {
-            const data = await r.json();
-            const users = Array.isArray(data) ? data : (data.results || []);
-            const me = users.find(u => u.id === uid);
-            if (me) {
-                const name = (me.first_name && me.last_name) ? `${me.first_name} ${me.last_name}` : me.username;
-                document.getElementById('admin-name').textContent = name;
-                document.getElementById('admin-avatar').textContent = name.slice(0,2).toUpperCase();
-            }
-        }
-    } catch(e) {}
+        if (!r) return; // sessão inválida: api() já deslogou e redirecionou
+        const data = await r.json();
+        const users = Array.isArray(data) ? data : (data.results || []);
+        me = users.find(u => u.id === payload.user_id) || null;
+        loaded = true;
+    } catch (e) { console.error(e); }
+
+    // API fora do ar: não redireciona (evita loop index <-> admin), só avisa.
+    if (!loaded) {
+        document.body.insertAdjacentHTML('afterbegin',
+            '<div style="padding:12px 16px;background:#3d1214;color:#f85149;font:500 .85rem sans-serif">' +
+            'Não foi possível conectar à API. Verifique se o backend está rodando e recarregue a página.</div>');
+        return;
+    }
+
+    if (!me || !(me.user_type === 'admin' || me.is_staff)) {
+        window.location.href = 'index.html';
+        return;
+    }
+
+    const name = (me.first_name && me.last_name) ? `${me.first_name} ${me.last_name}` : me.username;
+    document.getElementById('admin-name').textContent = name;
+    document.getElementById('admin-avatar').textContent = name.slice(0, 2).toUpperCase();
+
     loadDashboard();
     loadNotifications();
 }
@@ -585,6 +810,10 @@ async function markNotifRead(id) {
 // Cole este bloco no FINAL do seu admin.js
 // Dependência: Leaflet.js (adicionada automaticamente no loadMapPage)
 // ============================================================
+
+// Tiles do OpenStreetMap (os tiles da CARTO passaram a exigir chave de API)
+const OSM_TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const OSM_ATTRIBUTION = '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
 // ── Estado do mapa ──────────────────────────────────────────
 let _mapInstance   = null;   // instância Leaflet
@@ -715,10 +944,11 @@ function _initMap() {
         zoomControl: true,
     });
 
-    // Tile escuro compatível com o tema dark do admin
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '© <a href="https://carto.com/">CARTO</a>',
+    // OpenStreetMap (sem chave de API) com filtro escuro via CSS
+    L.tileLayer(OSM_TILES, {
+        attribution: OSM_ATTRIBUTION,
         maxZoom: 19,
+        className: 'dark-tiles',   // escurece os tiles via CSS (tema dark do admin)
     }).addTo(_mapInstance);
 }
 
@@ -787,13 +1017,16 @@ function _showPopup(occ, mouseEvent) {
     document.getElementById('popup-body').innerHTML = `
         <div style="display:flex;align-items:center;gap:6px;">
             <span style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0"></span>
-            <span>${cat ? cat.name : '—'}</span>
+            <span>${cat ? esc(cat.name) : '—'}</span>
         </div>
         <div><span style="color:var(--text3)">Status:</span> ${STATUS_LABEL[occ.status] || occ.status}</div>
-        ${occ.address ? `<div><span style="color:var(--text3)">Endereço:</span> ${occ.address}</div>` : ''}
+        ${occ.address ? `<div><span style="color:var(--text3)">Endereço:</span> ${esc(occ.address)}</div>` : ''}
         ${occ.importance_color ? `<div><span style="color:var(--text3)">Importância:</span> ${IMPORTANCE_LABEL[occ.importance_color] || occ.importance_color}</div>` : ''}
         <div><span style="color:var(--text3)">Validações:</span> ${occ.validation_count || 0}</div>
+        <div><span style="color:var(--text3)">Prazo:</span> ${slaBadge(occ)}</div>
         <div><span style="color:var(--text3)">Data:</span> ${fmt(occ.created_at)}</div>
+        <button class="btn btn-primary btn-sm" style="margin-top:6px;justify-content:center"
+                onclick="document.getElementById('map-popup').style.display='none';openOccDetail(${occ.id})">Ver detalhes</button>
     `;
 
     // Posiciona o popup perto do clique

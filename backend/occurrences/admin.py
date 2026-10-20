@@ -32,7 +32,7 @@ class OccurrenceAdmin(admin.ModelAdmin):
             'fields': ('title', 'description', 'category', 'user', 'address', 'latitude', 'longitude')
         }),
         ('Status e Controle', {
-            'fields': ('status', 'priority', 'estimated_time', 'is_duplicate', 'duplicate_of', 'resolved_at')
+            'fields': ('status', 'priority', 'estimated_time', 'prazo_definido', 'is_duplicate', 'duplicate_of', 'resolved_at')
         }),
         ('Análise do Administrador', {
             'fields': ('importance_color',),

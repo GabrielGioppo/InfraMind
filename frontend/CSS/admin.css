@@ -308,3 +308,46 @@ tr:hover td { background:rgba(255,255,255,.02); }
 @media (max-width: 480px) {
     .topbar-search { display: none; } /* busca global some em telas bem pequenas */
 }
+
+/* ── Mapa: tiles OpenStreetMap escurecidos + z-index isolado (não cobre modais) ── */
+.leaflet-container { z-index: 0; background: var(--bg3); font-family: var(--font); }
+.dark-tiles { filter: invert(1) hue-rotate(180deg) brightness(.95) contrast(.9) saturate(.7); }
+.leaflet-control-attribution { background: rgba(13,15,20,.75) !important; color: var(--text3) !important; }
+.leaflet-control-attribution a { color: var(--text2) !important; }
+
+/* ── Modais ── */
+.modal-lg { width: 760px; max-width: 94vw; max-height: 88vh; }
+.modal-field textarea { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:7px; padding:9px 12px; color:var(--text); font-size:13px; font-family:var(--font); outline:none; resize:vertical; }
+.modal-field textarea:focus { border-color:var(--accent); }
+.modal-static { font-size:13px; color:var(--text); padding:2px 0; }
+.modal-hint { font-size:11px; color:var(--text3); margin-top:6px; line-height:1.4; }
+input[type="date"] { color-scheme: dark; }
+
+/* ── Linhas clicáveis e prioridade em círculo ── */
+.row-link { cursor:pointer; }
+.row-link:hover td { background: var(--bg3); }
+.prio-dot { display:inline-block; width:16px; height:16px; border-radius:50%; vertical-align:middle; }
+.prio-dot.green  { background:var(--green);  box-shadow:0 0 0 3px rgba(34,197,94,.18); }
+.prio-dot.yellow { background:var(--yellow); box-shadow:0 0 0 3px rgba(245,158,11,.18); }
+.prio-dot.red    { background:var(--red);    box-shadow:0 0 0 3px rgba(239,68,68,.18); }
+.prio-dot.none   { background:transparent; border:1.5px dashed var(--text3); }
+
+/* ── Alerta de prazos estourados ── */
+.sla-alert { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 0 16px; padding:12px 16px; border-radius:8px; background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.3); color:var(--red); font-size:13px; font-weight:500; }
+
+/* ── Detalhe da ocorrência ── */
+.od-hero { width:100%; max-height:240px; object-fit:cover; border-radius:var(--radius); margin-bottom:16px; border:1px solid var(--border); }
+.od-section { margin-top:22px; }
+.od-section-title { font-size:12px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:.6px; margin-bottom:10px; }
+.od-desc { font-size:13px; color:var(--text); line-height:1.55; white-space:pre-wrap; }
+.od-map { height:200px; border-radius:var(--radius); border:1px solid var(--border); overflow:hidden; }
+.od-note { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px; }
+.od-note-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:4px; font-size:12px; font-weight:600; }
+.od-note-date { font-weight:400; color:var(--text3); font-size:11px; }
+.od-note p { font-size:13px; color:var(--text2); margin:0; white-space:pre-wrap; }
+.od-tl { border-left:2px solid var(--border); margin-left:4px; padding-left:14px; }
+.od-tl-item { position:relative; padding-bottom:12px; }
+.od-tl-item::before { content:''; position:absolute; left:-20px; top:4px; width:10px; height:10px; border-radius:50%; background:var(--accent); border:2px solid var(--bg2); }
+.od-tl-date { font-size:11px; color:var(--text3); font-family:var(--mono); margin-bottom:3px; }
+.od-tl-text { font-size:13px; color:var(--text2); display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.detail-field span { font-size:13px; color:var(--text); }

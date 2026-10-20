@@ -1,21 +1,3 @@
-"""
-UC-14 — Processar Prazos e Disparar Notificações — notifications/services.py
-
-Ponto de entrada pensado pra rodar de forma agendada:
-`python manage.py processar_prazos` (ver management/commands/), que por
-sua vez pode ser chamado por um cron do SO ou, futuramente, Celery beat.
-Implementa o fluxo principal (passos 1-6), o fluxo alternativo A1 (aviso
-preventivo aos 80% do prazo) e o fluxo de exceção E1 (reentrega de
-notificações que falharam na execução anterior).
-
-Usa Occurrence.estimated_time (horas) como prazo de atendimento — ainda
-não existe um campo de SLA definido manualmente pelo Gestor Público
-(isso é o UC-09, Atribuir Demanda e Definir SLA, pendente); quando esse
-UC existir, basta trocar a fonte do prazo aqui.
-"""
-
-from datetime import timedelta
-
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.utils import timezone
@@ -23,7 +5,7 @@ from django.utils import timezone
 from notifications.factory import EmailNotifFactory, PushNotifFactory
 from notifications.models import Notificacao
 from occurrences.models import Occurrence
-from occurrences.sla import LIMIAR_AVISO_PREVENTIVO, STATUS_ENCERRADOS
+from occurrences.sla import LIMIAR_AVISO_PREVENTIVO, STATUS_ENCERRADOS, prazo_final
 from history.models import OccurrenceHistory
 
 User = get_user_model()
@@ -56,7 +38,14 @@ def _ja_notificado(occurrence, tipo: str) -> bool:
 def _occurrences_ativas_com_prazo():
     return Occurrence.objects.exclude(
         status__in=OCCURRENCE_STATUS_ENCERRADOS
-    ).filter(estimated_time__isnull=False)
+    ).filter(Q(prazo_definido__isnull=False) | Q(estimated_time__isnull=False))
+
+
+def _descrever_prazo(occ) -> str:
+    """Texto do prazo nas mensagens: data escolhida pelo admin ou horas estimadas."""
+    if occ.prazo_definido:
+        return f'até {occ.prazo_definido.strftime("%d/%m/%Y")}'
+    return f'{occ.estimated_time}h estimadas'
 
 
 def _destinatarios_admin():
@@ -75,16 +64,16 @@ def _processar_prazo_estourado(factory, admins) -> list:
     notificadas_ids = []
 
     for occ in _occurrences_ativas_com_prazo():
-        prazo_final = occ.created_at + timedelta(hours=occ.estimated_time)
-        if agora < prazo_final:
+        limite = prazo_final(occ)
+        if limite is None or agora < limite:
             continue
         if _ja_notificado(occ, TIPO_PRAZO_ESTOURADO):
             continue
 
         titulo = f'Prazo estourado — Ocorrência #{occ.id}'
         mensagem = (
-            f'A ocorrência "{occ.title}" ultrapassou o prazo estimado de '
-            f'{occ.estimated_time}h sem ser resolvida. '
+            f'A ocorrência "{occ.title}" ultrapassou o prazo '
+            f'({_descrever_prazo(occ)}) sem ser resolvida. '
             f'Status atual: {occ.get_status_display()}.'
         )
         # Dedup por id: um admin que é dono da ocorrência não recebe duas vezes.
@@ -109,7 +98,10 @@ def _processar_aviso_preventivo(factory, admins) -> list:
     notificadas_ids = []
 
     for occ in _occurrences_ativas_com_prazo():
-        prazo_total_h = occ.estimated_time
+        limite = prazo_final(occ)
+        if limite is None:
+            continue
+        prazo_total_h = (limite - occ.created_at).total_seconds() / 3600
         decorrido_h = (agora - occ.created_at).total_seconds() / 3600
         if prazo_total_h <= 0 or decorrido_h < prazo_total_h * LIMIAR_AVISO_PREVENTIVO:
             continue
@@ -121,7 +113,7 @@ def _processar_aviso_preventivo(factory, admins) -> list:
         titulo = f'Atenção: prazo próximo do limite — Ocorrência #{occ.id}'
         mensagem = (
             f'A ocorrência "{occ.title}" já consumiu mais de 80% do prazo '
-            f'estimado ({occ.estimated_time}h) sem ser concluída.'
+            f'({_descrever_prazo(occ)}) sem ser concluída.'
         )
         for destinatario in admins:
             notificacao = factory.notificar(
