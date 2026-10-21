@@ -6,12 +6,27 @@ from images.serializers import ImageSerializer
 from feedbacks.serializers import FeedbackSerializer
 from occurrences.sla import prazo_final, sla_status
 
+HORARIO_PADRAO_PRAZO = 'T23:59:59'
+
 
 # Campos gerados pela IA — visíveis apenas para admins
 AI_FIELDS = [
     'urgency_level', 'urgency_score', 'urgency_keywords', 'urgency_reason',
     'ai_duplicate_checked', 'ai_duplicate_confidence',
 ]
+
+
+class PrazoDateTimeField(serializers.DateTimeField):
+    """
+    Aceita 'AAAA-MM-DDTHH:MM' (data e hora) ou só 'AAAA-MM-DD'. Sem horário, assume 23:59:59.
+    Horários sem fuso são interpretados no fuso do projeto (America/Sao_Paulo).
+    """
+    def to_internal_value(self, value):
+        if isinstance(value, str):
+            value = value.strip()
+            if len(value) == 10 and value[4] == '-' and value[7] == '-':
+                value += HORARIO_PADRAO_PRAZO
+        return super().to_internal_value(value)
 
 
 class SlaFieldsMixin(serializers.Serializer):
@@ -43,6 +58,7 @@ class OccurrenceSerializer(SlaFieldsMixin, serializers.ModelSerializer):
 
 class OccurrenceAdminSerializer(SlaFieldsMixin, serializers.ModelSerializer):
     """Serializer exclusivo para admins — permite editar importance_color e ver análise da IA"""
+    prazo_definido = PrazoDateTimeField(required=False, allow_null=True)
     user_details = UserSerializer(source='user', read_only=True)
     category_details = CategorySerializer(source='category', read_only=True)
     images = ImageSerializer(many=True, read_only=True)

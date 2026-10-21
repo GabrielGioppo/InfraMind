@@ -214,8 +214,9 @@ class OccurrenceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView)
         updated.save(update_fields=['priority'])
 
         if previous_deadline != updated.prazo_definido:
-            antes  = previous_deadline.strftime('%d/%m/%Y') if previous_deadline else 'sem prazo'
-            depois = updated.prazo_definido.strftime('%d/%m/%Y') if updated.prazo_definido else 'sem prazo'
+            fmt_prazo = lambda d: timezone.localtime(d).strftime('%d/%m/%Y %H:%M') if d else 'sem prazo'
+            antes  = fmt_prazo(previous_deadline)
+            depois = fmt_prazo(updated.prazo_definido)
             OccurrenceHistory.objects.create(
                 occurrence=updated,
                 user=self.request.user,

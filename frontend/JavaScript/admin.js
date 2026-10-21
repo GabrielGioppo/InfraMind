@@ -85,14 +85,6 @@ function esc(s) {
     return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 }
 
-// Data "pura" (YYYY-MM-DD, como vem do campo prazo_definido): formata sem passar por Date,
-// que deslocaria o dia pelo fuso horário.
-function fmtDay(d) {
-    if (!d) return '—';
-    const [y, m, dd] = String(d).slice(0, 10).split('-');
-    return `${dd}/${m}/${y}`;
-}
-
 function fmtDateTime(dt) {
     if (!dt) return '—';
     return new Date(dt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
@@ -320,26 +312,34 @@ async function openOccModal(id) {
     document.getElementById('edit-occ-name').textContent = `#${occ.id} · ${occ.title}`;
     document.getElementById('edit-occ-status').value = occ.status || 'open';
     document.getElementById('edit-occ-importance').value = occ.importance_color || '';
-    document.getElementById('edit-occ-deadline').value = occ.prazo_definido || '';
+    // prazo_definido chega em ISO no fuso do projeto (ex.: 2026-10-21T18:00:00-03:00).
+    document.getElementById('edit-occ-deadline').value = occ.prazo_definido ? occ.prazo_definido.slice(0, 10) : '';
+    document.getElementById('edit-occ-deadline-time').value = occ.prazo_definido ? occ.prazo_definido.slice(11, 16) : '';
     document.getElementById('edit-occ-feedback').value = '';
-    document.getElementById('edit-occ-time').value = occ.estimated_time || '';
     document.getElementById('edit-occ-deadline-hint').textContent = occ.prazo_definido
-        ? `Prazo atual: ${fmtDay(occ.prazo_definido)}. Escolha outra data para reajustar.`
+        ? `Prazo atual: ${fmtDateTime(occ.prazo_definido)}. Escolha outra data ou horário para reajustar.`
         : (occ.sla_deadline
-            ? `Sem data definida; hoje o prazo vem do tempo estimado (${fmt(occ.sla_deadline)}). Escolha uma data no calendário para substituí-lo.`
-            : 'Sem prazo definido. Escolha uma data no calendário.');
+            ? `Sem prazo definido pelo admin; hoje o limite vem do tempo estimado (${fmtDateTime(occ.sla_deadline)}). Escolha data e horário para substituí-lo.`
+            : 'Sem prazo definido. Escolha a data e, se quiser, o horário.');
     openModal('occ-modal');
 }
 
 let _reopenDetailAfterSave = false;
+
+// Data + horário opcional. Sem horário, o backend assume 23:59:59.
+function prazoDoFormulario() {
+    const dia = document.getElementById('edit-occ-deadline').value;
+    const hora = document.getElementById('edit-occ-deadline-time').value;
+    if (!dia) return null;
+    return hora ? `${dia}T${hora}` : dia;
+}
 
 async function saveOcc() {
     const id = Number(document.getElementById('edit-occ-id').value);
     const payload = {
         status: document.getElementById('edit-occ-status').value,
         importance_color: document.getElementById('edit-occ-importance').value || null,
-        estimated_time: document.getElementById('edit-occ-time').value || null,
-        prazo_definido: document.getElementById('edit-occ-deadline').value || null,
+        prazo_definido: prazoDoFormulario(),
     };
     const comment = document.getElementById('edit-occ-feedback').value.trim();
     try {
@@ -442,7 +442,7 @@ async function openOccDetail(id) {
                 <div class="detail-field"><label>Categoria</label><span>${esc(o.category_details?.name || '—')}</span></div>
                 <div class="detail-field"><label>Cidadão</label><span>${esc(reporter)}</span></div>
                 <div class="detail-field"><label>Validações</label><span>${o.validation_count || 0} confirmação(ões)</span></div>
-                <div class="detail-field"><label>Tempo estimado</label><span>${o.estimated_time ? o.estimated_time + ' h' : '—'}</span></div>
+                <div class="detail-field"><label>Prazo limite</label><span>${o.sla_deadline ? fmtDateTime(o.sla_deadline) : '—'}</span></div>
                 <div class="detail-field" style="grid-column:1/-1"><label>Endereço</label><span>${esc(o.address || '—')}</span></div>
             </div>
             <div class="od-section"><div class="od-section-title">Descrição</div>

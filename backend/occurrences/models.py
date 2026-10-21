@@ -57,9 +57,10 @@ class Occurrence(models.Model):
     priority = models.IntegerField(default=0)
     estimated_time = models.IntegerField(null=True, blank=True)
 
-    # Prazo escolhido pelo admin no calendário (vale até o fim desse dia).
-    # Quando preenchido, tem prioridade sobre o tempo estimado em horas (ver occurrences/sla.py).
-    prazo_definido = models.DateField(
+    # Prazo (data + hora) escolhido pelo admin. Se o admin informar só a data, o horário
+    # vira 23:59:59 (ver PrazoDateTimeField em serializers.py). Quando preenchido, tem
+    # prioridade sobre o tempo estimado em horas (ver occurrences/sla.py).
+    prazo_definido = models.DateTimeField(
         null=True,
         blank=True,
         verbose_name='Prazo definido pelo administrador',

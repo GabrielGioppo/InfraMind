@@ -342,19 +342,17 @@
                 </select>
             </div>
             <div class="modal-field"><label>Prazo para resolver</label>
-                <div style="display:flex;gap:8px;align-items:center">
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                     <input type="date" id="edit-occ-deadline">
-                    <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('edit-occ-deadline').value=''">Limpar</button>
+                    <input type="time" id="edit-occ-deadline-time" title="Horário limite (opcional)">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('edit-occ-deadline').value='';document.getElementById('edit-occ-deadline-time').value=''">Limpar</button>
                 </div>
                 <div class="modal-hint" id="edit-occ-deadline-hint"></div>
+                <div class="modal-hint">Sem horário, o prazo vai até 23:59:59 do dia escolhido.</div>
             </div>
             <div class="modal-field"><label>Atualização para o cidadão (opcional)</label>
                 <textarea id="edit-occ-feedback" rows="3" placeholder="Ex: Estamos planejando o conserto. Previsão para o dia 02/11."></textarea>
                 <div class="modal-hint">Aparece na ocorrência como “Atualização oficial”. Mudanças de prazo ficam registradas no histórico.</div>
-            </div>
-            <div class="modal-field"><label>Tempo estimado (horas)</label>
-                <input type="number" id="edit-occ-time" placeholder="Ex: 48">
-                <div class="modal-hint">Só é usado como prazo quando não há uma data definida acima.</div>
             </div>
         </div>
         <div class="modal-footer">

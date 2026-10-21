@@ -44,7 +44,7 @@ def _occurrences_ativas_com_prazo():
 def _descrever_prazo(occ) -> str:
     """Texto do prazo nas mensagens: data escolhida pelo admin ou horas estimadas."""
     if occ.prazo_definido:
-        return f'até {occ.prazo_definido.strftime("%d/%m/%Y")}'
+        return f'até {timezone.localtime(occ.prazo_definido).strftime("%d/%m/%Y %H:%M")}'
     return f'{occ.estimated_time}h estimadas'
 
 

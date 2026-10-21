@@ -5,11 +5,11 @@ Usada tanto pelo serializer (indicador de prazo no painel admin) quanto
 pela rotina de notificações (notifications/services.py), para que o que
 o painel mostra e o que é notificado nunca divirjam.
 
-O prazo vem de Occurrence.prazo_definido (data escolhida pelo admin no calendário)
-e, na falta dela, de Occurrence.estimated_time (horas). Ver `prazo_final`.
+O prazo vem de Occurrence.prazo_definido (data e hora escolhidas pelo admin) e, na
+falta dele, de Occurrence.estimated_time (horas, legado). Ver `prazo_final`.
 """
 
-from datetime import datetime, time, timedelta
+from datetime import timedelta
 
 from django.utils import timezone
 
@@ -27,12 +27,11 @@ def prazo_final(occ):
     """
     Data limite de atendimento, ou None se a ocorrência não tem prazo.
 
-    Prioridade: data escolhida pelo admin (`prazo_definido`, vale até o fim do dia);
-    senão, criação + tempo estimado em horas (`estimated_time`).
+    Prioridade: data e hora escolhidas pelo admin (`prazo_definido`); senão,
+    criação + tempo estimado em horas (`estimated_time`).
     """
     if occ.prazo_definido:
-        fim_do_dia = datetime.combine(occ.prazo_definido, time(23, 59, 59))
-        return timezone.make_aware(fim_do_dia)
+        return occ.prazo_definido
     if not occ.estimated_time or occ.estimated_time <= 0:
         return None
     return occ.created_at + timedelta(hours=occ.estimated_time)

@@ -1,5 +1,5 @@
-"""Prazo escolhido pelo admin no calendário (Occurrence.prazo_definido)."""
-from datetime import date, timedelta
+"""Prazo (data e hora) escolhido pelo admin (Occurrence.prazo_definido)."""
+from datetime import datetime, timedelta
 
 from django.test import TestCase
 from django.utils import timezone
@@ -12,6 +12,10 @@ from occurrences.models import Occurrence
 from occurrences.serializers import OccurrenceAdminSerializer
 from occurrences.sla import SLA_ESTOURADO, prazo_final, sla_status
 from users.models import User
+
+
+def _dt(ano, mes, dia, hora=0, minuto=0, segundo=0):
+    return timezone.make_aware(datetime(ano, mes, dia, hora, minuto, segundo))
 
 
 class PrazoDefinidoTests(TestCase):
@@ -34,47 +38,58 @@ class PrazoDefinidoTests(TestCase):
         return self._client(user).patch(self.url, payload, format='json')
 
     # ── regra de prazo ────────────────────────────────────────────────
-    def test_prazo_definido_tem_prioridade_e_vale_ate_o_fim_do_dia(self):
+    def test_prazo_definido_tem_prioridade_sobre_horas_estimadas(self):
         self.occ.estimated_time = 1
-        self.occ.prazo_definido = date(2026, 11, 2)
-        limite = prazo_final(self.occ)
-        self.assertEqual(timezone.localtime(limite).date(), date(2026, 11, 2))
-        self.assertEqual(timezone.localtime(limite).hour, 23)
+        self.occ.prazo_definido = _dt(2026, 11, 2, 18, 0)
+        self.assertEqual(prazo_final(self.occ), _dt(2026, 11, 2, 18, 0))
 
     def test_prazo_vencido_estoura_e_adiar_resolve(self):
-        self.occ.prazo_definido = timezone.localdate() - timedelta(days=1)
+        self.occ.prazo_definido = timezone.now() - timedelta(days=1)
         self.assertEqual(sla_status(self.occ), SLA_ESTOURADO)
-        self.occ.prazo_definido = timezone.localdate() + timedelta(days=10)
+        self.occ.prazo_definido = timezone.now() + timedelta(days=10)
         self.assertNotEqual(sla_status(self.occ), SLA_ESTOURADO)
 
     def test_encerrada_continua_sem_indicador(self):
-        self.occ.prazo_definido = timezone.localdate() - timedelta(days=1)
+        self.occ.prazo_definido = timezone.now() - timedelta(days=1)
         self.occ.status = 'resolved'
         self.assertIsNone(sla_status(self.occ))
 
     # ── API ───────────────────────────────────────────────────────────
     def test_admin_define_e_reajusta_prazo_com_historico(self):
-        r = self._patch(self.admin, {'prazo_definido': '2026-11-02'})
+        r = self._patch(self.admin, {'prazo_definido': '2026-11-02T18:00'})
         self.assertEqual(r.status_code, 200)
         self.occ.refresh_from_db()
-        self.assertEqual(self.occ.prazo_definido, date(2026, 11, 2))
+        self.assertEqual(self.occ.prazo_definido, _dt(2026, 11, 2, 18, 0))
 
-        r = self._patch(self.admin, {'prazo_definido': '2026-11-11'})
+        r = self._patch(self.admin, {'prazo_definido': '2026-11-11T09:30'})
         self.assertEqual(r.status_code, 200)
         self.occ.refresh_from_db()
-        self.assertEqual(self.occ.prazo_definido, date(2026, 11, 11))
+        self.assertEqual(self.occ.prazo_definido, _dt(2026, 11, 11, 9, 30))
 
         obs = set(
             OccurrenceHistory.objects.filter(occurrence=self.occ, change_type='edit')
             .values_list('observation', flat=True)
         )
         self.assertEqual(obs, {
-            'Prazo alterado: sem prazo → 02/11/2026',
-            'Prazo alterado: 02/11/2026 → 11/11/2026',
+            'Prazo alterado: sem prazo → 02/11/2026 18:00',
+            'Prazo alterado: 02/11/2026 18:00 → 11/11/2026 09:30',
         })
 
+    def test_so_data_sem_horario_vira_23_59_59(self):
+        r = self._patch(self.admin, {'prazo_definido': '2026-11-02'})
+        self.assertEqual(r.status_code, 200)
+        self.occ.refresh_from_db()
+        self.assertEqual(self.occ.prazo_definido, _dt(2026, 11, 2, 23, 59, 59))
+
+    def test_admin_pode_limpar_o_prazo(self):
+        self._patch(self.admin, {'prazo_definido': '2026-11-02T18:00'})
+        r = self._patch(self.admin, {'prazo_definido': None})
+        self.assertEqual(r.status_code, 200)
+        self.occ.refresh_from_db()
+        self.assertIsNone(self.occ.prazo_definido)
+
     def test_mudar_so_o_status_nao_gera_historico_de_prazo(self):
-        self._patch(self.admin, {'prazo_definido': '2026-11-02'})
+        self._patch(self.admin, {'prazo_definido': '2026-11-02T18:00'})
         self._patch(self.admin, {'status': 'in_progress'})
         self.assertEqual(
             OccurrenceHistory.objects.filter(occurrence=self.occ, change_type='edit').count(), 1,
@@ -86,15 +101,15 @@ class PrazoDefinidoTests(TestCase):
         self.assertIsNone(self.occ.prazo_definido)
 
     def test_serializer_admin_expoe_prazo_definido_e_limite_calculado(self):
-        self.occ.prazo_definido = date(2026, 11, 2)
+        self.occ.prazo_definido = _dt(2026, 11, 2, 18, 0)
         self.occ.save()
         data = OccurrenceAdminSerializer(self.occ).data
-        self.assertEqual(data['prazo_definido'], '2026-11-02')
+        self.assertTrue(data['prazo_definido'].startswith('2026-11-02T18:00:00'))
         self.assertIsNotNone(data['sla_deadline'])
 
     # ── notificações (UC-14) ──────────────────────────────────────────
     def test_rotina_de_prazos_usa_o_prazo_definido(self):
-        self.occ.prazo_definido = timezone.localdate() - timedelta(days=1)
+        self.occ.prazo_definido = timezone.now() - timedelta(days=1)
         self.occ.save()
         processar_prazos_e_notificar()
         self.assertTrue(

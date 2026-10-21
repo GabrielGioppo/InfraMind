@@ -1370,9 +1370,9 @@ function _renderDetailExtras(o) {
     deadEl.innerHTML = '<span style="color:' + (past?'var(--red)':'var(--yellow)') + '">' + dl.toLocaleDateString('pt-BR') + (past?' (expirado)':'') + '</span>';
   }
   const timeWrap = document.getElementById('det-time-wrap');
-  if (timeWrap && (o.estimated_time || o.resolved_at)) {
+  if (timeWrap && (o.sla_deadline || o.resolved_at)) {
     let h = '<div class="time-info-box">';
-    if (o.estimated_time) h += '<div class="time-info-item"><span class="time-info-label">Tempo Estimado</span><span class="time-info-value">' + o.estimated_time + 'h</span></div>';
+    if (o.sla_deadline) h += '<div class="time-info-item"><span class="time-info-label">Prazo</span><span class="time-info-value" style="font-size:.8rem">' + new Date(o.sla_deadline).toLocaleString('pt-BR', {dateStyle:'short', timeStyle:'short'}) + '</span></div>';
     if (o.resolved_at) {
       const ms = new Date(o.resolved_at) - new Date(o.created_at);
       const hrs = Math.round(ms / 36e5);
