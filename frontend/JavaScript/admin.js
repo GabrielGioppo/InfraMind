@@ -721,6 +721,14 @@ function onGlobalSearch(v) {
     if (cur === 'users') { document.getElementById('user-search').value = v; filterUsers(); }
 }
 
+// Aviso de API fora do ar: faixa no topo da área principal (não quebra o layout)
+// e troca o "Carregando..." eterno do dashboard por um estado de erro.
+function mostrarErroApi() {
+    document.getElementById('api-error').classList.add('show');
+    const tb = document.getElementById('recent-occ-tbody');
+    if (tb) tb.innerHTML = '<tr><td colspan="5" class="empty-state">Sem conexão com a API</td></tr>';
+}
+
 // ── INIT ──
 async function init() {
     if (!getToken()) { window.location.href = 'landing.html'; return; }
@@ -740,9 +748,7 @@ async function init() {
 
     // API fora do ar: não redireciona (evita loop index <-> admin), só avisa.
     if (!loaded) {
-        document.body.insertAdjacentHTML('afterbegin',
-            '<div style="padding:12px 16px;background:#3d1214;color:#f85149;font:500 .85rem sans-serif">' +
-            'Não foi possível conectar à API. Verifique se o backend está rodando e recarregue a página.</div>');
+        mostrarErroApi();
         return;
     }
 
