@@ -595,8 +595,27 @@
     </div>
   </div>
 
+<!-- AI Loading Overlay -->
+<div id="ai-loading-overlay" class="ai-loading-overlay">
+  <div class="ai-loading-card">
+    <div class="ai-loading-icon">
+      <svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round">
+        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+      </svg>
+    </div>
+    <div class="ai-loading-title">Aguarde — Ocorrência em Processamento</div>
+    <div class="ai-loading-subtitle">A inteligência artificial está analisando a foto e a descrição em tempo real...</div>
+    <div class="ai-progress-track">
+      <div id="ai-progress-fill" class="ai-progress-fill"></div>
+    </div>
+    <div class="ai-progress-info">
+      <span id="ai-progress-status" class="ai-progress-status">Enviando dados...</span>
+      <span id="ai-progress-percent">0%</span>
+    </div>
+  </div>
+</div>
+
   <!-- Toast container -->
   <div id="toast-root"></div>
-
   </body>
   </html>

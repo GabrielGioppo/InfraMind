@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════
 // INDEX — InfraMind
 // ═══════════════════════════════════════════════
-const API = 'http://127.0.0.1:9000';
+const API = 'http://127.0.0.1:8000';
 
 let STATE = {
   user: null,
@@ -584,6 +584,66 @@ async function runAiAnalysis() {
   btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:currentColor"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg> Analisar com IA';
 }
 
+let _aiProgressInterval = null;
+
+function showAILoadingProgress() {
+  const overlay = document.getElementById('ai-loading-overlay');
+  const fill = document.getElementById('ai-progress-fill');
+  const percent = document.getElementById('ai-progress-percent');
+  const statusEl = document.getElementById('ai-progress-status');
+
+  if (!overlay) return;
+  if (_aiProgressInterval) clearInterval(_aiProgressInterval);
+
+  let current = 0;
+  if (fill) fill.style.width = '0%';
+  if (percent) percent.textContent = '0%';
+  if (statusEl) statusEl.textContent = 'Enviando imagem e dados...';
+
+  overlay.classList.add('active');
+
+  _aiProgressInterval = setInterval(() => {
+    if (current < 90) {
+      const step = current < 30 ? 3 : (current < 60 ? 2 : 1);
+      current = Math.min(90, current + step);
+
+      if (fill) fill.style.width = current + '%';
+      if (percent) percent.textContent = current + '%';
+
+      if (statusEl) {
+        if (current >= 30 && current < 65) {
+          statusEl.textContent = 'Gemini IA analisando evidência visual...';
+        } else if (current >= 65) {
+          statusEl.textContent = 'Verificando urgência e duplicatas...';
+        }
+      }
+    }
+  }, 70);
+}
+
+function hideAILoadingProgress(callback) {
+  const overlay = document.getElementById('ai-loading-overlay');
+  const fill = document.getElementById('ai-progress-fill');
+  const percent = document.getElementById('ai-progress-percent');
+  const statusEl = document.getElementById('ai-progress-status');
+
+  if (_aiProgressInterval) {
+    clearInterval(_aiProgressInterval);
+    _aiProgressInterval = null;
+  }
+
+  if (fill && percent && statusEl) {
+    fill.style.width = '100%';
+    percent.textContent = '100%';
+    statusEl.textContent = 'Processamento concluído!';
+  }
+
+  setTimeout(() => {
+    if (overlay) overlay.classList.remove('active');
+    if (callback) callback();
+  }, 350);
+}
+
 async function createOccurrence() {
   const titleRaw = document.getElementById('c-title').value.trim();
   const desc     = document.getElementById('c-desc').value.trim();
@@ -601,39 +661,88 @@ async function createOccurrence() {
     toast('⚠️ Sem localização no mapa — a ocorrência não aparecerá nos pings do mapa. Clique no mapa para marcar o local.', 'error');
   }
 
-  const payload = {
-    title, description: desc,
-    category: catEl.value || null,
-    address:  addr || null,
-    status: 'open',
-    latitude:  lat,
-    longitude: lng,
-    // Sem isso o servidor usa a cidade do cadastro do usuário.
-    city:  STATE.createGeo?.cidade,
-    state: STATE.createGeo?.uf,
-  };
+  const files = document.getElementById('c-imgs').files;
+  const firstFile = files && files.length > 0 ? files[0] : null;
+
+  // Sem isso o servidor usa a cidade do cadastro do usuário.
+  const cidade = STATE.createGeo?.cidade;
+  const uf     = STATE.createGeo?.uf;
+
+  showAILoadingProgress();
 
   try {
-    const r = await api('/api/v1/occurrences/', { method:'POST', body: JSON.stringify(payload) });
+    let r;
+    if (firstFile) {
+      const fd = new FormData();
+      fd.append('title', title);
+      fd.append('description', desc);
+      if (catEl.value) fd.append('category', catEl.value);
+      if (addr) fd.append('address', addr);
+      fd.append('status', 'open');
+      if (lat) fd.append('latitude', lat);
+      if (lng) fd.append('longitude', lng);
+      if (cidade) fd.append('city', cidade);
+      if (uf) fd.append('state', uf);
+      fd.append('image', firstFile);
+      r = await api('/api/v1/occurrences/', { method: 'POST', body: fd });
+    } else {
+      const payload = {
+        title, description: desc,
+        category: catEl.value || null,
+        address:  addr || null,
+        status: 'open',
+        latitude:  lat,
+        longitude: lng,
+        city:  cidade,
+        state: uf,
+      };
+      r = await api('/api/v1/occurrences/', { method: 'POST', body: JSON.stringify(payload) });
+    }
+
     const d = await r.json();
-    if (!r.ok) { toast('Erro ao criar: '+JSON.stringify(d),'error'); return; }
 
-    if (d.duplicate) {
-      toast('⚠️ ' + d.message, 'error');
-      navigateTo('detail', d.original_id);
-      return;
-    }
+    hideAILoadingProgress(() => {
+      if (!r.ok) { toast('Erro ao criar: ' + JSON.stringify(d), 'error'); return; }
 
-    const occId = d.id || d.occurrence?.id;
+      if (d.duplicate) {
+        toast('⚠️ ' + d.message, 'error');
+        navigateTo('detail', d.original_id);
+        return;
+      }
 
-    const files = document.getElementById('c-imgs').files;
-    for (const file of files) {
-      if (file && occId) await uploadImage(occId, file);
-    }
+      const occId = d.id || d.occurrence?.id;
 
-    toast('Ocorrência registrada com sucesso!');
-    navigateTo('detail', occId);
-  } catch(e) { toast('Erro de conexão','error'); console.error(e); }
+      if (files && files.length > 1) {
+        for (let i = 1; i < files.length; i++) {
+          if (files[i] && occId) uploadImage(occId, files[i]);
+        }
+      }
+
+      const aiAnalysis = d.description_analysis || d.occurrence?.description_analysis;
+      const st = aiAnalysis ? aiAnalysis.status : (d.occurrence?.description_analysis_status || 'NA');
+      const sug = aiAnalysis ? aiAnalysis.sugestao : (d.occurrence?.description_suggestion || '');
+      const descFinal = aiAnalysis ? aiAnalysis.descricao_final : (d.occurrence?.description || '');
+
+      if (st === 'CORRIGIDA' || st === 'SUBSTITUIDA') {
+        toast('ℹ️ Sua descrição foi ajustada com base na foto.', 'info');
+      } else if (st === 'GERADA') {
+        toast('✨ A descrição foi gerada a partir da foto enviada.', 'info');
+      } else if (st === 'FOTO_INSUFICIENTE') {
+        toast('⚠️ Foto insuficiente: por favor envie uma foto mais nítida. ' + (descFinal || ''), 'error');
+      } else if (st === 'MANTIDA' && sug) {
+        toast('💡 Dica da IA: ' + sug, 'info');
+      } else {
+        toast('Ocorrência registrada com sucesso!');
+      }
+
+      navigateTo('detail', occId);
+    });
+  } catch(e) {
+    hideAILoadingProgress(() => {
+      toast('Erro de conexão', 'error');
+      console.error(e);
+    });
+  }
 }
 
 async function uploadImage(occId, file) {

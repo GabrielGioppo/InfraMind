@@ -126,6 +126,25 @@ class Occurrence(models.Model):
         verbose_name='Confiança da verificação de duplicata',
     )
 
+    # Análise de Foto e Descrição (IA)
+    original_description = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name='Descrição Original enviada pelo Usuário',
+    )
+    description_analysis_status = models.CharField(
+        max_length=20,
+        default='NA',
+        verbose_name='Status da Análise da IA',
+        help_text='MANTIDA | CORRIGIDA | SUBSTITUIDA | GERADA | FOTO_INSUFICIENTE | FALHA | NA'
+    )
+    description_suggestion = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name='Sugestão opcional da IA (MANTIDA)',
+    )
+
+
     # Datas
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

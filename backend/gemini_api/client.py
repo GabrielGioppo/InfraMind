@@ -283,3 +283,121 @@ Considere duplicata se o problema é essencialmente o mesmo no mesmo local (scor
     except Exception as e:
         print(f'[Gemini] Erro na detecção de duplicatas: {e}')
         return local_result
+
+
+# ─────────────────────────────────────────────
+# Análise de Foto e Descrição do Usuário (RF / UC Novo)
+# ─────────────────────────────────────────────
+
+VALID_ANALYSIS_STATUSES = {'MANTIDA', 'CORRIGIDA', 'SUBSTITUIDA', 'GERADA', 'FOTO_INSUFICIENTE'}
+
+DESCRIPTION_ANALYSIS_SYSTEM_PROMPT = """Você é um assistente de análise de ocorrências de infraestrutura urbana. Receberá UMA foto e, opcionalmente, uma descrição do usuário. Siga estritamente as regras de negócio e responda no formato definido. Descreva apenas o que é visível na foto. Não explique seu raciocínio.
+
+Regras de Negócio:
+1. Se não houver descrição do usuário (ou se for apenas espaços em branco): GERAR a descrição a partir da foto. Defina o status como GERADA.
+2. Se houver descrição do usuário, avaliar:
+   - Correspondência com a foto. Informações que a foto não pode confirmar (rua, bairro, número, referência, data) NÃO são erro e devem ser sempre preservadas. Só é erro o que a foto contradiz diretamente.
+   - Profundidade. Textos com menos de 25 caracteres exigem atenção, mas não são rasos automaticamente: um texto curto e objetivo que identifica o problema é aceitável. Raso é o texto genérico (ex.: "problema na rua") ou que não deixa claro qual é o problema.
+3. Decisão de Status (uma das cinco):
+   - MANTIDA: descrição correta e suficiente. O texto original NÃO pode ser alterado. Se a foto mostrar algo relevante não citado (ex.: risco a pedestres), retornar uma SUGESTÃO separada, sem mexer no texto.
+   - CORRIGIDA: parcialmente errada. Corrigir SOMENTE o trecho contradito pela foto, mantendo o resto e as informações de local.
+   - SUBSTITUIDA: totalmente diferente da foto, ou rasa/genérica. Substituir pela análise da IA, preservando as informações de local do usuário.
+   - GERADA: não havia descrição do usuário.
+   - FOTO_INSUFICIENTE: só quando, mesmo tentando, a IA não consegue identificar a situação real. Foto escura, distante ou ruim deve ser analisada normalmente.
+4. Descrições geradas ou ajustadas: até 255 caracteres, português do Brasil, linguagem técnica e direta, descrevendo apenas o que é visível (tipo de problema, elemento afetado, extensão ou gravidade aparente, risco evidente). Sem inventar causa, nome de local ou medidas.
+
+Retorne SOMENTE um JSON válido com a seguinte estrutura:
+{
+  "status": "MANTIDA|CORRIGIDA|SUBSTITUIDA|GERADA|FOTO_INSUFICIENTE",
+  "descricao_final": "<descrição técnica objetiva de no máximo 255 caracteres>",
+  "sugestao": "<frase curta de sugestão opcional quando status for MANTIDA e houver algo a acrescentar, caso contrário string vazia>"
+}"""
+
+
+def clean_truncate(text: str, max_len: int = 255) -> str:
+    """
+    Garante o limite de 255 caracteres para textos gerados/ajustados pela IA.
+    Truncagem limpa sem cortar palavras ao meio.
+    """
+    if not text or len(text) <= max_len:
+        return text or ""
+    truncated = text[:max_len]
+    last_space = truncated.rfind(' ')
+    if last_space > 0:
+        truncated = truncated[:last_space]
+    return truncated.rstrip('.,;:') + '...'
+
+
+def analyze_occurrence_description_and_photo(image_file=None, description: str = "", title: str = "") -> dict:
+    """
+    Analisa a foto e a descrição do usuário antes de salvar a ocorrência.
+    Retorna dicionário contendo status, descricao_final, sugestao e original_description.
+    Em caso de falha/timeout ou resposta inválida, retorna o status FALHA e mantém o texto original.
+    """
+    original_desc = (description or "").strip()
+    fallback_desc = original_desc if original_desc else (f"Ocorrência de {title} registrada." if title else "Ocorrência urbana registrada.")
+
+    fallback_response = {
+        'status': 'FALHA',
+        'descricao_final': fallback_desc,
+        'sugestao': '',
+        'original_description': original_desc,
+    }
+
+    gemini = GeminiClient.get_instance()
+    if not gemini.is_available():
+        return fallback_response
+
+    try:
+        from PIL import Image
+        contents = [DESCRIPTION_ANALYSIS_SYSTEM_PROMPT]
+
+        if image_file:
+            if hasattr(image_file, 'read'):
+                try:
+                    img = Image.open(image_file)
+                    contents.append(img)
+                    if hasattr(image_file, 'seek'):
+                        image_file.seek(0)
+                except Exception as img_err:
+                    print(f"[Gemini] Aviso ao ler imagem: {img_err}")
+            elif isinstance(image_file, Image.Image):
+                contents.append(image_file)
+
+        prompt_user = f"Título: '{title}'\nDescrição do Usuário: '{original_desc}'"
+        contents.append(prompt_user)
+
+        response = gemini._client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=contents
+        )
+        raw = (response.text or "").strip()
+        if raw.startswith('```'):
+            raw = raw.split('```')[1]
+            if raw.startswith('json'):
+                raw = raw[4:]
+        data = json.loads(raw.strip())
+
+        status_res = str(data.get('status', '')).upper()
+        if status_res not in VALID_ANALYSIS_STATUSES:
+            print(f"[Gemini] Status de IA inválido retornado: '{status_res}'")
+            return fallback_response
+
+        # Garantia no CÓDIGO de que em MANTIDA o texto salvo é exatamente o original do usuário
+        if status_res == 'MANTIDA':
+            final_desc = original_desc
+        else:
+            final_desc = clean_truncate(str(data.get('descricao_final', '')).strip(), 255)
+
+        sugestao = str(data.get('sugestao', '')).strip() if status_res == 'MANTIDA' else ''
+
+        return {
+            'status': status_res,
+            'descricao_final': final_desc,
+            'sugestao': sugestao,
+            'original_description': original_desc,
+        }
+
+    except Exception as e:
+        print(f"[Gemini] Erro ou timeout na análise da foto/descrição: {e}")
+        return fallback_response
