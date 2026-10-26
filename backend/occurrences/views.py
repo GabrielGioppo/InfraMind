@@ -12,6 +12,9 @@ from history.models import OccurrenceHistory
 from logs.utils import register_log
 from gemini_api.facade import IAProcessamentoFacade
 
+from gemini_api.client import analyze_occurrence_description_and_photo
+from images.models import Image
+
 DUPLICATE_RADIUS_METERS = 50
 
 
@@ -155,7 +158,13 @@ class OccurrenceCreateListView(generics.ListCreateAPIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # ── Verificação de duplicata ANTES de salvar ──────────────────────
+        # Extrai foto do request se enviada junto
+        image_file = request.FILES.get('image') or request.FILES.get('image_file')
+        if not image_file and 'image' in request.FILES:
+            files = request.FILES.getlist('image')
+            if files:
+                image_file = files[0]
+
         latitude    = request.data.get('latitude')
         longitude   = request.data.get('longitude')
         category_id = request.data.get('category')
@@ -163,10 +172,17 @@ class OccurrenceCreateListView(generics.ListCreateAPIView):
         description = request.data.get('description', '')
         address     = request.data.get('address', '')
 
-        original = _find_duplicate(latitude, longitude, category_id, title, description, address)
+        # ── Análise da Foto e Descrição pela IA (ANTES de salvar) ─────────
+        ai_analysis = analyze_occurrence_description_and_photo(
+            image_file=image_file,
+            description=description,
+            title=title
+        )
+
+        # ── Verificação de duplicata ANTES de salvar ──────────────────────
+        original = _find_duplicate(latitude, longitude, category_id, title, ai_analysis['descricao_final'], address)
 
         if original:
-            # Incrementa validação comunitária na ocorrência original
             Occurrence.objects.filter(pk=original.pk).update(
                 validation_count=original.validation_count + 1
             )
@@ -187,10 +203,29 @@ class OccurrenceCreateListView(generics.ListCreateAPIView):
             )
         # ─────────────────────────────────────────────────────────────────
 
-        occ = serializer.save(user=request.user)
+        occ = serializer.save(
+            user=request.user,
+            description=ai_analysis['descricao_final'],
+            original_description=ai_analysis['original_description'],
+            description_analysis_status=ai_analysis['status'],
+            description_suggestion=ai_analysis['sugestao']
+        )
+
+        # Se foto foi enviada no payload de criação, salva no modelo Image
+        if image_file:
+            try:
+                Image.objects.create(occurrence=occ, user=request.user, image=image_file)
+            except Exception as e:
+                print(f"Erro ao salvar imagem principal: {e}")
+
         register_log(request, 'create', 'Occurrence', occ.id, {'title': occ.title})
+        res_data = self.get_serializer(occ, context={'request': request}).data
         return Response(
-            {'message': 'Ocorrência registrada com sucesso.', 'occurrence': serializer.data},
+            {
+                'message': 'Ocorrência registrada com sucesso.',
+                'occurrence': res_data,
+                'description_analysis': ai_analysis
+            },
             status=status.HTTP_201_CREATED,
         )
 
@@ -287,7 +322,12 @@ def create_anonymous_occurrence(request):
     if not anon_id:
         return Response({'error': 'anon_id é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # ── Verificação de duplicata para ocorrências anônimas ────────────
+    image_file = request.FILES.get('image') or request.FILES.get('image_file')
+    if not image_file and 'image' in request.FILES:
+        files = request.FILES.getlist('image')
+        if files:
+            image_file = files[0]
+
     latitude    = request.data.get('latitude')
     longitude   = request.data.get('longitude')
     category_id = request.data.get('category')
@@ -295,7 +335,14 @@ def create_anonymous_occurrence(request):
     description = request.data.get('description', '')
     address     = request.data.get('address', '')
 
-    original = _find_duplicate(latitude, longitude, category_id, title, description, address)
+    # Análise de Foto e Descrição pela IA
+    ai_analysis = analyze_occurrence_description_and_photo(
+        image_file=image_file,
+        description=description,
+        title=title
+    )
+
+    original = _find_duplicate(latitude, longitude, category_id, title, ai_analysis['descricao_final'], address)
     
     if original:
         Occurrence.objects.filter(pk=original.pk).update(
@@ -310,19 +357,43 @@ def create_anonymous_occurrence(request):
             },
             status=status.HTTP_200_OK,
         )
-    # ─────────────────────────────────────────────────────────────────
 
     data = {k: v for k, v in request.data.items()}
     data['status'] = 'open'
+    data['description'] = ai_analysis['descricao_final']
+    data['original_description'] = ai_analysis['original_description']
+    data['description_analysis_status'] = ai_analysis['status']
+    data['description_suggestion'] = ai_analysis['sugestao']
 
     serializer = AnonOccurrenceSerializer(data=data)
     if serializer.is_valid():
-        occ = serializer.save(user=None, anon_id=anon_id)
+        occ = serializer.save(
+            user=None,
+            anon_id=anon_id,
+            description=ai_analysis['descricao_final'],
+            original_description=ai_analysis['original_description'],
+            description_analysis_status=ai_analysis['status'],
+            description_suggestion=ai_analysis['sugestao']
+        )
+        if image_file:
+            try:
+                Image.objects.create(occurrence=occ, user=None, image=image_file)
+            except Exception as e:
+                print(f"Erro ao salvar imagem anônima: {e}")
+
+        res_data = AnonOccurrenceSerializer(occ).data
         return Response(
-            {'id': occ.id, 'anon_id': occ.anon_id, 'title': occ.title},
+            {
+                'id': occ.id,
+                'anon_id': occ.anon_id,
+                'title': occ.title,
+                'occurrence': res_data,
+                'description_analysis': ai_analysis
+            },
             status=status.HTTP_201_CREATED,
         )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 @api_view(['POST'])

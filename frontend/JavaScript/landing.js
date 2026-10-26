@@ -1,7 +1,7 @@
 // ============================================================
 // Landing — InfraMind
 // ============================================================
-const API = 'http://127.0.0.1:9000';
+const API = 'http://127.0.0.1:8000';
 const ANON_KEY = 'im_anon_id';
 const ANON_OCCS_KEY = 'im_anon_occs';
 
@@ -499,50 +499,173 @@ async function submitOcc() {
     longitude: lng ? parseFloat(parseFloat(lng).toFixed(5)) : null,
   };
 
+  const photoInput = document.getElementById('occ-photo');
+  const firstPhoto = photoInput && photoInput.files && photoInput.files.length > 0 ? photoInput.files[0] : null;
+
+  function notifyAI(d) {
+    const aiAnalysis = d.description_analysis || d.occurrence?.description_analysis;
+    const st = aiAnalysis ? aiAnalysis.status : (d.occurrence?.description_analysis_status || 'NA');
+    const sug = aiAnalysis ? aiAnalysis.sugestao : (d.occurrence?.description_suggestion || '');
+    const descFinal = aiAnalysis ? aiAnalysis.descricao_final : (d.occurrence?.description || '');
+
+    if (st === 'CORRIGIDA' || st === 'SUBSTITUIDA') {
+      toast('ℹ️ Sua descrição foi ajustada com base na foto.', 'info');
+    } else if (st === 'GERADA') {
+      toast('✨ A descrição foi gerada a partir da foto enviada.', 'info');
+    } else if (st === 'FOTO_INSUFICIENTE') {
+      toast('⚠️ Foto insuficiente: por favor envie uma foto mais nítida. ' + (descFinal || ''), 'error');
+    } else if (st === 'MANTIDA' && sug) {
+      toast('💡 Dica da IA: ' + sug, 'info');
+    } else {
+      toast('Ocorrência registrada com sucesso!', 'success');
+    }
+  }
+
+let _aiProgressInterval = null;
+
+function showAILoadingProgress() {
+  const overlay = document.getElementById('ai-loading-overlay');
+  const fill = document.getElementById('ai-progress-fill');
+  const percent = document.getElementById('ai-progress-percent');
+  const statusEl = document.getElementById('ai-progress-status');
+
+  if (!overlay) return;
+  if (_aiProgressInterval) clearInterval(_aiProgressInterval);
+
+  let current = 0;
+  if (fill) fill.style.width = '0%';
+  if (percent) percent.textContent = '0%';
+  if (statusEl) statusEl.textContent = 'Enviando imagem e dados...';
+
+  overlay.classList.add('active');
+
+  _aiProgressInterval = setInterval(() => {
+    if (current < 90) {
+      const step = current < 30 ? 3 : (current < 60 ? 2 : 1);
+      current = Math.min(90, current + step);
+
+      if (fill) fill.style.width = current + '%';
+      if (percent) percent.textContent = current + '%';
+
+      if (statusEl) {
+        if (current >= 30 && current < 65) {
+          statusEl.textContent = 'Gemini IA analisando evidência visual...';
+        } else if (current >= 65) {
+          statusEl.textContent = 'Verificando urgência e duplicatas...';
+        }
+      }
+    }
+  }, 70);
+}
+
+function hideAILoadingProgress(callback) {
+  const overlay = document.getElementById('ai-loading-overlay');
+  const fill = document.getElementById('ai-progress-fill');
+  const percent = document.getElementById('ai-progress-percent');
+  const statusEl = document.getElementById('ai-progress-status');
+
+  if (_aiProgressInterval) {
+    clearInterval(_aiProgressInterval);
+    _aiProgressInterval = null;
+  }
+
+  if (fill && percent && statusEl) {
+    fill.style.width = '100%';
+    percent.textContent = '100%';
+    statusEl.textContent = 'Processamento concluído!';
+  }
+
+  setTimeout(() => {
+    if (overlay) overlay.classList.remove('active');
+    if (callback) callback();
+  }, 350);
+}
+
   if (tk.get()) {
-    msgEl.innerHTML = '<div class="msg msg-info">Registrando...</div>';
+    showAILoadingProgress();
     try {
-      const r = await apiFetch('/api/v1/occurrences/', { method: 'POST', body: JSON.stringify(occPayload) });
+      let r;
+      if (firstPhoto) {
+        const fd = new FormData();
+        fd.append('title', occPayload.title);
+        fd.append('description', occPayload.description);
+        fd.append('status', 'open');
+        if (occPayload.category) fd.append('category', occPayload.category);
+        if (occPayload.address) fd.append('address', occPayload.address);
+        if (occPayload.latitude) fd.append('latitude', occPayload.latitude);
+        if (occPayload.longitude) fd.append('longitude', occPayload.longitude);
+        fd.append('image', firstPhoto);
+        r = await apiFetch('/api/v1/occurrences/', { method: 'POST', body: fd });
+      } else {
+        r = await apiFetch('/api/v1/occurrences/', { method: 'POST', body: JSON.stringify(occPayload) });
+      }
       const d = await r.json();
-      if (!r.ok) { msgEl.innerHTML = `<div class="msg msg-error">Erro: ${JSON.stringify(d)}</div>`; return; }
+      hideAILoadingProgress(() => {
+        if (!r.ok) { msgEl.innerHTML = `<div class="msg msg-error">Erro: ${JSON.stringify(d)}</div>`; return; }
+        if (d.duplicate) {
+          closeModal('modal-occ');
+          toast('⚠️ ' + d.message, 'error');
+          return;
+        }
+        const occId = d.id || d.occurrence?.id;
+        if (!firstPhoto) uploadOccPhoto(occId);
+        closeModal('modal-occ');
+        notifyAI(d);
+      });
+    } catch {
+      hideAILoadingProgress(() => {
+        msgEl.innerHTML = '<div class="msg msg-error">Erro de conexão.</div>';
+      });
+    }
+    return;
+  }
+
+  showAILoadingProgress();
+  try {
+    let r;
+    if (firstPhoto) {
+      const fd = new FormData();
+      fd.append('anon_id', getAnonId());
+      fd.append('title', occPayload.title);
+      fd.append('description', occPayload.description);
+      fd.append('status', 'open');
+      if (occPayload.category) fd.append('category', occPayload.category);
+      if (occPayload.address) fd.append('address', occPayload.address);
+      if (occPayload.latitude) fd.append('latitude', occPayload.latitude);
+      if (occPayload.longitude) fd.append('longitude', occPayload.longitude);
+      fd.append('image', firstPhoto);
+      r = await fetch(`${API}/api/v1/occurrences/anonymous/`, { method: 'POST', body: fd });
+    } else {
+      const anonPayload = { ...occPayload, anon_id: getAnonId() };
+      r = await fetch(`${API}/api/v1/occurrences/anonymous/`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(anonPayload),
+      });
+    }
+    const d = await r.json();
+    hideAILoadingProgress(() => {
+      if (!r.ok) { msgEl.innerHTML = `<div class="msg msg-error">Erro ao registrar: ${d.error || JSON.stringify(d)}</div>`; return; }
       if (d.duplicate) {
         closeModal('modal-occ');
         toast('⚠️ ' + d.message, 'error');
         return;
       }
-      const occId = d.id || d.occurrence?.id;
-      await uploadOccPhoto(occId);
+      saveAnonOcc({ id: d.id, anon_id: d.anon_id, title: occPayload.title });
+      if (!firstPhoto) uploadOccPhoto(d.id);
       closeModal('modal-occ');
-      toast('Ocorrência registrada com sucesso!', 'success');
-    } catch { msgEl.innerHTML = '<div class="msg msg-error">Erro de conexão.</div>'; }
-    return;
-  }
-
-  msgEl.innerHTML = '<div class="msg msg-info">Registrando...</div>';
-  try {
-    const anonPayload = { ...occPayload, anon_id: getAnonId() };
-    const r = await fetch(`${API}/api/v1/occurrences/anonymous/`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(anonPayload),
+      notifyAI(d);
+      setTimeout(() => {
+        if (!tk.get()) {
+          const wantRegister = confirm('✅ Ocorrência enviada!\n\nCrie uma conta para acompanhar a resolução.');
+          if (wantRegister) openAuthModal('register');
+        }
+      }, 600);
     });
-    const d = await r.json();
-    if (!r.ok) { msgEl.innerHTML = `<div class="msg msg-error">Erro ao registrar: ${d.error || JSON.stringify(d)}</div>`; return; }
-    if (d.duplicate) {
-      closeModal('modal-occ');
-      toast('⚠️ ' + d.message, 'error');
-      return;
-    }
-    saveAnonOcc({ id: d.id, anon_id: d.anon_id, title: occPayload.title });
-    await uploadOccPhoto(d.id);
-    closeModal('modal-occ');
-    toast('Ocorrência registrada com sucesso!', 'success');
-    setTimeout(() => {
-      if (!tk.get()) {
-        const wantRegister = confirm('✅ Ocorrência enviada!\n\nCrie uma conta para acompanhar a resolução.');
-        if (wantRegister) openAuthModal('register');
-      }
-    }, 600);
-  } catch { msgEl.innerHTML = '<div class="msg msg-error">Erro de conexão com o servidor.</div>'; }
+  } catch {
+    hideAILoadingProgress(() => {
+      msgEl.innerHTML = '<div class="msg msg-error">Erro de conexão com o servidor.</div>';
+    });
+  }
 }
 
 // ══════════════════════════════════════════

@@ -14,7 +14,7 @@ AI_FIELDS = [
 
 
 class OccurrenceSerializer(serializers.ModelSerializer):
-    """Serializer para usuários comuns — campos de IA ocultados"""
+    """Serializer para usuários comuns — inclui status e sugestões da análise de IA da descrição"""
     user_details = UserSerializer(source='user', read_only=True)
     category_details = CategorySerializer(source='category', read_only=True)
     images = ImageSerializer(many=True, read_only=True)
@@ -47,5 +47,7 @@ class AnonOccurrenceSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'description', 'category', 'address',
             'latitude', 'longitude', 'status', 'anon_id', 'created_at',
+            'original_description', 'description_analysis_status', 'description_suggestion',
         ]
         read_only_fields = ['id', 'status', 'created_at']
+

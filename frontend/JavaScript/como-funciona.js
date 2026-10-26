@@ -2,7 +2,7 @@
 // COMO FUNCIONA — InfraMind
 // ═══════════════════════════════════════════════
 
-const API = 'http://127.0.0.1:9000';
+const API = 'http://127.0.0.1:8000';
 
 const tk = {
   get:     () => localStorage.getItem('im_access'),

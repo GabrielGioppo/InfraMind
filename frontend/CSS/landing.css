@@ -788,3 +788,105 @@ input:-webkit-autofill:active {
     -webkit-box-shadow: 0 0 0px 1000px var(--bg-app, #0d1117) inset !important;
     transition: background-color 5000s ease-in-out 0s;
 }
+
+/* ═══ AI LOADING OVERLAY ═══ */
+.ai-loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 14, 23, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.ai-loading-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.ai-loading-card {
+  background: #161b22;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 35px rgba(56, 189, 248, 0.2);
+  border-radius: 16px;
+  padding: 32px 28px;
+  width: 90%;
+  max-width: 440px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.ai-loading-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+  animation: aiPulse 2s infinite ease-in-out;
+}
+@keyframes aiPulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+.ai-loading-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px auto;
+  border-radius: 50%;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38bdf8;
+  animation: aiSpin 3s linear infinite;
+}
+@keyframes aiSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.ai-loading-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #f0f6fc;
+  margin-bottom: 6px;
+}
+.ai-loading-subtitle {
+  font-size: 0.85rem;
+  color: #8b949e;
+  margin-bottom: 24px;
+  line-height: 1.4;
+}
+.ai-progress-track {
+  width: 100%;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 10px;
+}
+.ai-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #38bdf8, #6366f1);
+  border-radius: 10px;
+  transition: width 0.15s ease-out;
+}
+.ai-progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #38bdf8;
+}
+.ai-progress-status {
+  color: #8b949e;
+  font-weight: 400;
+}

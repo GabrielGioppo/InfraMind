@@ -1,7 +1,7 @@
 // ============================================================
 // ADMIN DASHBOARD — InfraMind 
 // ============================================================
-const API = 'http://127.0.0.1:9000';
+const API = 'http://127.0.0.1:8000';
 
 function getToken() { return localStorage.getItem('infraMind_access_token'); }
 
