@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from validations.models import Validation
 from validations.serializers import ValidationSerializer
 from occurrences.models import Occurrence
+from occurrences.visibility import visible_occurrences
 from logs.utils import register_log
 from gemini_api.client import analyze_occurrence_urgency, detect_duplicate_occurrences
 
@@ -24,7 +25,7 @@ def validate_occurrence(request, occurrence_id):
     user = request.user
 
     try:
-        occurrence = Occurrence.objects.get(id=occurrence_id)
+        occurrence = visible_occurrences(user).get(id=occurrence_id)
     except Occurrence.DoesNotExist:
         return Response({'error': 'Ocorrência não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
 

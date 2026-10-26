@@ -3,13 +3,14 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
+from authentication.views import LoggedTokenObtainPairView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
 
     
-    path('authentication/token/', TokenObtainPairView.as_view(), name='token-obtain-pair'),
+    path('authentication/token/', LoggedTokenObtainPairView.as_view(), name='token-obtain-pair'),
     path('authentication/token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
     path('authentication/token/verify/', TokenVerifyView.as_view(), name='token-verify'),
     path('authentication/', include('authentication.urls')),
@@ -26,6 +27,7 @@ urlpatterns = [
     path('api/v1/statistics/', include('statistics_api.urls')),
     path('api/v1/geo/', include('geo.urls')),
     path('api/v1/notifications/', include('notifications.urls')),
+    path('api/v1/denuncias/', include('denuncias.urls')),
 ]
 
 if settings.DEBUG:

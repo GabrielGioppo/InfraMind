@@ -2,13 +2,13 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import get_user_model
-from users.serializers import UserSerializer
+from users.serializers import UserSerializer, UserRegisterSerializer
 
 User = get_user_model()
 
 class UserCreateView(generics.CreateAPIView):
     queryset = User.objects.all()
-    serializer_class = UserSerializer
+    serializer_class = UserRegisterSerializer
     permission_classes = [AllowAny]
 
     def create(self, request, *args, **kwargs):

@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'history',
     'geo',
     'notifications',
+    'denuncias',
 ]
 
 MIDDLEWARE = [
@@ -66,6 +67,10 @@ REST_FRAMEWORK = {
      'DEFAULT_PERMISSION_CLASSES': [
          'rest_framework.permissions.IsAuthenticated',
      ],
+     # Limite por IP nos endpoints de recuperação de senha (evita e-mail em massa).
+     'DEFAULT_THROTTLE_RATES': {
+         'password_reset': '10/hour',
+     },
 }
 
 SIMPLE_JWT = {
@@ -135,3 +140,20 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# ──────────────────────────────────────────────────────────────
+# E-mail (UC-14 e recuperação de senha). Sem EMAIL_HOST no .env o envio é
+# apenas simulado no console (ver notifications/factory.py).
+# ──────────────────────────────────────────────────────────────
+EMAIL_HOST = os.getenv('EMAIL_HOST', '')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_TIMEOUT = 10  # segundos; evita travar a rotina se o servidor não responder
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL') or EMAIL_HOST_USER or 'no-reply@inframind.com'
+
+# Página que recebe o link de redefinição de senha enviado por e-mail.
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://127.0.0.1:5500/frontend/index.html')
+
+# O link de redefinição de senha vale por 1 hora.
+PASSWORD_RESET_TIMEOUT = 3600

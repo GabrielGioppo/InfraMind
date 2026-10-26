@@ -79,7 +79,8 @@ InfraMind/
 │   ├── logs/                # Logs de auditoria
 │   ├── statistics_api/      # Estatísticas e indicadores do painel
 │   ├── gemini_api/          # Integração com Google Gemini
-│   ├── scripts/             # Scripts de manutenção (backup)
+│   ├── denuncias/           # Denúncias de conteúdo e suporte (UC-13)
+│   ├── scripts/             # Scripts de manutenção (backup, agendamento)
 │   ├── manage.py
 │   ├── .env.example
 │   └── requirements.txt
@@ -245,6 +246,80 @@ existentes = [
 print(json.dumps(detect_duplicate_occurrences('Buraco enorme na Rua A', 'Buraco no meio da rua', existentes), indent=2, ensure_ascii=False))
 "
 ```
+
+---
+
+## Cadastro e ocorrências por cidade
+
+O cadastro pede **CPF** (validado pelos dígitos verificadores e único) e **endereço**: CEP, rua, número, complemento (opcional), bairro, cidade e UF. Na tela, o CEP preenche rua, bairro e cidade sozinho pelo ViaCEP; sem internet, é só digitar.
+
+- O **cidadão** vê as ocorrências da cidade onde mora (cidade + UF do cadastro) e as que ele mesmo registrou. O **administrador** vê todas.
+- A cidade de cada ocorrência vem da localização marcada no mapa; sem ela, vale a cidade do cadastro de quem registrou.
+- O cadastro público sempre cria **cidadão**. Administradores são criados pelo Django admin (`python manage.py createsuperuser`, depois `user_type = admin`).
+- CPF e endereço só aparecem para o próprio usuário e para administradores.
+- Usuários e ocorrências criados **antes** deste recurso não têm cidade: o cidadão antigo só vê as próprias ocorrências até um administrador preencher a cidade e a UF dele no Django admin, e as ocorrências antigas só aparecem para quem as criou e para administradores.
+
+---
+
+## E-mail e rotina de prazos (UC-14)
+
+Sem configuração, os e-mails são **simulados**: aparecem no console do servidor. Para enviar de verdade, preencha no `backend/.env` (modelo em `.env.example`). Exemplo com Gmail, usando uma [senha de app](https://myaccount.google.com/apppasswords) (exige verificação em duas etapas):
+
+```env
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=seu_email@gmail.com
+EMAIL_HOST_PASSWORD=sua_senha_de_app
+DEFAULT_FROM_EMAIL=InfraMind <seu_email@gmail.com>
+```
+
+Reinicie o servidor e teste, dentro de `backend/` com o venv ativado:
+
+```bash
+python manage.py shell -c "from django.core.mail import send_mail; print(send_mail('Teste InfraMind', 'Funcionou!', None, ['seu_email@gmail.com']))"
+```
+
+Resultado `1` é e-mail enviado. Um erro de autenticação indica usuário ou senha de app errados.
+
+### Agendar a verificação de prazos
+
+A rotina `python manage.py processar_prazos` avisa sobre prazos estourados, prazos em 80% e mudanças de status, e reenvia o que falhou. Para rodar sozinha a cada 30 minutos no Linux/Mac:
+
+```bash
+bash scripts/instalar_cron.sh                # a cada 30 minutos
+bash scripts/instalar_cron.sh "0 * * * *"    # outra frequência (formato do cron)
+bash scripts/instalar_cron.sh --remover      # tira o agendamento
+```
+
+A saída fica em `backend/processar_prazos.log`. No Windows, crie uma tarefa no Agendador de Tarefas que execute `venv\Scripts\python.exe manage.py processar_prazos` dentro de `backend`.
+
+---
+
+## Recuperação de senha
+
+Na tela de login, **Esqueci minha senha** pede o e-mail da conta e envia um link que vale por 1 hora e só funciona uma vez.
+
+| Endpoint | Corpo | O que faz |
+|----------|-------|-----------|
+| `POST /authentication/password-reset/` | `{"email"}` | Envia o link. A resposta é sempre a mesma, exista o e-mail ou não. Limite de 10 pedidos por hora por IP. |
+| `POST /authentication/password-reset/confirm/` | `{"uid", "token", "password"}` | Define a nova senha (passa pelas regras de senha do Django). |
+
+O link aponta para `FRONTEND_URL` (padrão `http://127.0.0.1:5500/frontend/index.html`). Se o frontend rodar em outro endereço, ajuste no `.env`. Com o e-mail simulado, o link aparece no console do servidor.
+
+---
+
+## Suporte e denúncias
+
+O menu **Suporte / Denúncia** abre um formulário para relatar um problema técnico (`bug`). Na página de uma ocorrência, **Denunciar conteúdo** registra um `conteudo_inadequado` apontando para ela.
+
+| Endpoint | O que faz |
+|----------|-----------|
+| `GET /api/v1/denuncias/` | O cidadão vê as suas; o administrador vê todas |
+| `POST /api/v1/denuncias/` | Registra `{"tipo", "descricao", "occurrence"}` (a ocorrência só é obrigatória em conteúdo inadequado) |
+| `PATCH /api/v1/denuncias/<id>/` | Só administrador: muda o `status` (`aberta`, `em_analise`, `resolvida`) |
+
+O administrador também acompanha e altera as denúncias pelo Django admin (`/admin/`).
 
 ---
 
