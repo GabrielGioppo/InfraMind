@@ -79,6 +79,7 @@ InfraMind/
 │   ├── logs/                # Logs de auditoria
 │   ├── statistics_api/      # Estatísticas e indicadores do painel
 │   ├── gemini_api/          # Integração com Google Gemini
+│   ├── scripts/             # Scripts de manutenção (backup)
 │   ├── manage.py
 │   ├── .env.example
 │   └── requirements.txt
@@ -199,6 +200,8 @@ O InfraMind utiliza o **Google Gemini 2.5 Flash** para enriquecer automaticament
 | `analyze_occurrence_urgency` | Analisa e pontua a urgência da ocorrência (score 0–100, níveis: low / medium / high / critical) |
 | `detect_duplicate_occurrences` | Verifica se a nova ocorrência é duplicata de alguma existente na mesma área |
 
+> Cada chamada ao Gemini espera no máximo **5 segundos** (RNF02). Passou disso, a função usa o fallback local. O limite pode ser ajustado com `GEMINI_TIMEOUT_SECONDS` no `backend/.env`.
+
 > Todas as funções possuem **fallback local** — se a chave do Gemini não estiver configurada, o sistema continua funcionando com análise por palavras-chave (urgência) e similaridade Jaccard (duplicatas).
 
 ### Obtendo a chave da API Gemini
@@ -241,6 +244,43 @@ existentes = [
 ]
 print(json.dumps(detect_duplicate_occurrences('Buraco enorme na Rua A', 'Buraco no meio da rua', existentes), indent=2, ensure_ascii=False))
 "
+```
+
+---
+
+## Backup e restauração
+
+O script `backend/scripts/backup.py` (RNF09) cria uma pasta `backup_AAAAMMDD_HHMMSS/` com:
+
+| Item | Conteúdo |
+|------|----------|
+| `dados.json` | Todos os dados do banco, gerados com `dumpdata` (SQLite ou PostgreSQL) |
+| `media/` | Cópia das imagens enviadas pelos usuários |
+
+### Gerar um backup
+
+Dentro de `backend/`, com o venv ativado:
+
+```bash
+python scripts/backup.py                       # grava em backend/backups/
+python scripts/backup.py --destino /mnt/disco  # grava em outra pasta
+```
+
+Para rodar todo dia às 03:00 no Linux/Mac, adicione ao `crontab -e`:
+
+```
+0 3 * * * cd /caminho/InfraMind/backend && venv/bin/python scripts/backup.py
+```
+
+> A pasta `backend/backups/` está no `.gitignore`: o backup contém e-mails e hashes de senha e **não deve ir para o GitHub**. Guarde uma cópia fora do computador do projeto.
+
+### Restaurar um backup
+
+Com o banco já criado e vazio (`python manage.py migrate`):
+
+```bash
+python manage.py loaddata backups/backup_AAAAMMDD_HHMMSS/dados.json
+cp -r backups/backup_AAAAMMDD_HHMMSS/media/. media/
 ```
 
 ---

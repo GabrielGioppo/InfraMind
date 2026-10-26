@@ -5,6 +5,8 @@ from rest_framework import status
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from logs.utils import register_log
+
 User = get_user_model()
 
 @api_view(['POST'])
@@ -26,6 +28,9 @@ def login_by_email(request):
 
     if not user.is_active:
         return Response({'error': 'Usuário inativo.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    # RF27 / RNF14: registra o login (usuário, IP e dispositivo).
+    register_log(request, 'login', 'User', user.id, {'email': user.email}, user=user)
 
     refresh = RefreshToken.for_user(user)
     return Response({
