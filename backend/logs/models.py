@@ -12,6 +12,8 @@ class Log(models.Model):
         ('validate', 'Validar'),
         ('status_change', 'Mudança de Status'),
         ('login', 'Login'),
+        ('notification_sent', 'Notificação Enviada'),
+        ('notification_failed', 'Falha no Envio de Notificação'),
     ]
 
     user = models.ForeignKey(

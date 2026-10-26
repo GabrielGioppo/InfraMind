@@ -242,10 +242,24 @@ class OccurrenceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView)
     def perform_update(self, serializer):
         occurrence      = self.get_object()
         previous_status = occurrence.status
+        previous_deadline = occurrence.prazo_definido
         updated         = serializer.save()
 
         updated.priority = calculate_priority(updated)
         updated.save(update_fields=['priority'])
+
+        if previous_deadline != updated.prazo_definido:
+            fmt_prazo = lambda d: timezone.localtime(d).strftime('%d/%m/%Y %H:%M') if d else 'sem prazo'
+            antes  = fmt_prazo(previous_deadline)
+            depois = fmt_prazo(updated.prazo_definido)
+            OccurrenceHistory.objects.create(
+                occurrence=updated,
+                user=self.request.user,
+                previous_status=updated.status,
+                new_status=updated.status,
+                change_type='edit',
+                observation=f'Prazo alterado: {antes} → {depois}',
+            )
 
         if previous_status != updated.status:
             OccurrenceHistory.objects.create(

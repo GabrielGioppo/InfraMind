@@ -30,6 +30,9 @@ class OccurrenceHistory(models.Model):
     observation = models.TextField(blank=True, null=True)
     changed_at = models.DateTimeField(auto_now_add=True)
 
+    # UC-14 — marca se a mudança de status já gerou notificação ao cidadão
+    notified = models.BooleanField(default=False)
+
     class Meta:
         ordering = ['-changed_at']
 

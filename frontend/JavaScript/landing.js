@@ -17,6 +17,12 @@ const tk = {
   setUser:(u) => localStorage.setItem('im_user', JSON.stringify(u)),
 };
 
+// Para onde cada perfil vai depois do login:
+// admin -> admin.html | cidadão -> index.html
+function isAdminUser(u) { return !!u && (u.user_type === 'admin' || u.is_staff === true); }
+function homeFor(u) { return isAdminUser(u) ? 'admin.html' : 'index.html'; }
+function goToSystem() { window.location.href = homeFor(tk.user()); }
+
 function getAnonId() {
   let id = localStorage.getItem(ANON_KEY);
   if (!id) {
@@ -274,8 +280,8 @@ async function doLogin() {
     const me = await loadAndStoreUser();
     await claimAnonOccurrences();
     closeModal('modal-auth');
-    toast('Bem-vindo de volta!', 'success');
-    updateNavbar(me);
+    // Login feito na landing: envia direto para o sistema (admin -> admin.html, cidadão -> index.html)
+    window.location.href = homeFor(me);
   } catch (err) {
     console.error(err);
     msgEl.innerHTML = '<div class="msg msg-error">Erro de conexão com o servidor.</div>';
@@ -358,7 +364,7 @@ function updateNavbar(user) {
         <span style="font-size:.82rem;color:#8b949e;white-space:nowrap">
           Olá, <strong style="color:#e6edf3">${name}</strong>
         </span>
-        <a href="index.html" class="btn btn-primary">
+        <a href="${homeFor(u)}" class="btn btn-primary">
           Ir para o sistema
         </a>`;
     } else {
@@ -366,7 +372,7 @@ function updateNavbar(user) {
         <button class="btn btn-ghost" onclick="openAuthModal('login')">Fazer Login</button>
         <button class="btn btn-success" onclick="openOccModal()">
           <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-          Registrar Ocorrência
+          <span class="lbl-full">Registrar Ocorrência</span><span class="lbl-short">Registrar</span>
         </button>`;
     }
   }

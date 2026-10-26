@@ -18,6 +18,7 @@ from abc import ABC, abstractmethod
 from django.conf import settings
 from django.utils import timezone
 
+from logs.utils import register_system_log
 from notifications.models import Notificacao
 
 
@@ -45,16 +46,37 @@ class NotificacaoFactory(ABC):
         notificacao = self.criar_notificacao(user, titulo, mensagem, occurrence, tipo)
         notificacao.save()
 
+        erro = None
         try:
             self._enviar(notificacao)
             notificacao.status = 'enviada'
             notificacao.sent_at = timezone.now()
         except Exception as e:
+            erro = str(e)
             notificacao.status = 'falha'
             print(f'[{self.__class__.__name__}] Falha ao enviar notificação #{notificacao.id}: {e}')
 
         notificacao.save(update_fields=['status', 'sent_at'])
+        self._registrar_auditoria(notificacao, erro)
         return notificacao
+
+    def _registrar_auditoria(self, notificacao: Notificacao, erro: str = None) -> None:
+        """UC-14 passo 6 / E1: grava o envio ou a falha na trilha de auditoria."""
+        detalhes = {
+            'canal': notificacao.canal,
+            'tipo': notificacao.tipo,
+            'destinatario': notificacao.user_id,
+            'occurrence': notificacao.occurrence_id,
+        }
+        if erro:
+            detalhes['erro'] = erro
+        register_system_log(
+            action='notification_failed' if erro else 'notification_sent',
+            model_name='Notificacao',
+            object_id=notificacao.id,
+            details=detalhes,
+            user=notificacao.user,
+        )
 
 
 class EmailNotifFactory(NotificacaoFactory):

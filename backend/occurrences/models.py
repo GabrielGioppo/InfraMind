@@ -56,6 +56,15 @@ class Occurrence(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
     priority = models.IntegerField(default=0)
     estimated_time = models.IntegerField(null=True, blank=True)
+
+    # Prazo (data + hora) escolhido pelo admin. Se o admin informar só a data, o horário
+    # vira 23:59:59 (ver PrazoDateTimeField em serializers.py). Quando preenchido, tem
+    # prioridade sobre o tempo estimado em horas (ver occurrences/sla.py).
+    prazo_definido = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Prazo definido pelo administrador',
+    )
     is_duplicate = models.BooleanField(default=False)
     duplicate_of = models.ForeignKey(
         'self',

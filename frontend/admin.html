@@ -71,11 +71,18 @@
                 <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
                 <input type="text" placeholder="Buscar..." id="global-search" oninput="onGlobalSearch(this.value)">
             </div>
-            <button class="notif-btn" title="Notificações">
+            <div style="position:relative;">
+            <button class="notif-btn" title="Notificações" onclick="toggleNotifPanel()">
                 <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
-                <span class="notif-dot"></span>
+                <span class="notif-dot" id="notif-dot"></span>
             </button>
+            <div class="notif-panel" id="notif-panel"></div>
+            </div>
         </div>
+    </div>
+    <div id="api-error" class="api-error" role="alert">
+        <span>Não foi possível conectar à API. Verifique se o backend está rodando e tente novamente.</span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="location.reload()">Tentar novamente</button>
     </div>
 
     <div id="page-dashboard" class="page active">
@@ -102,6 +109,11 @@
             </div>
         </div>
 
+        <div id="sla-alert" class="sla-alert" style="display:none">
+            <span id="sla-alert-text"></span>
+            <button class="btn btn-ghost btn-sm" onclick="showPage('occurrences')">Ver ocorrências</button>
+        </div>
+
         <div class="two-col">
             <div>
                 <div class="section-header"><span class="section-title">Ocorrências por status</span></div>
@@ -122,7 +134,7 @@
         </div>
         <div class="table-wrap">
             <table>
-                <thead><tr><th>Título</th><th>Status</th><th>Prioridade</th><th>Importância</th><th>Data</th></tr></thead>
+                <thead><tr><th>Título</th><th>Status</th><th>Prioridade</th><th>Prazo</th><th>Data</th></tr></thead>
                 <tbody id="recent-occ-tbody"><tr><td colspan="5" class="loading">Carregando...</td></tr></tbody>
             </table>
         </div>
@@ -154,8 +166,8 @@
                 </button>
             </div>
             <table>
-                <thead><tr><th>ID</th><th>Título</th><th>Status</th><th>Importância</th><th>Validações</th><th>Data</th><th>Ações</th></tr></thead>
-                <tbody id="occ-tbody"><tr><td colspan="7" class="loading">Carregando...</td></tr></tbody>
+                <thead><tr><th>ID</th><th>Título</th><th>Status</th><th>Importância</th><th>Prazo</th><th>Validações</th><th>Data</th><th>Ações</th></tr></thead>
+                <tbody id="occ-tbody"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody>
             </table>
             <div class="pagination" id="occ-pagination"></div>
         </div>
@@ -290,14 +302,33 @@
     </div>
 </main>
 
+<!-- Detalhes da ocorrência (somente leitura) -->
+<div class="modal-backdrop" id="occ-detail-modal">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <span class="modal-title" id="occ-detail-title">Ocorrência</span>
+            <button class="modal-close" onclick="closeModal('occ-detail-modal')">×</button>
+        </div>
+        <div class="modal-body" id="occ-detail-body"></div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('occ-detail-modal')">Fechar</button>
+            <button class="btn btn-primary" id="occ-detail-edit-btn">Gerenciar (prazo, status, atualização)</button>
+        </div>
+    </div>
+</div>
+
+<!-- Gerenciar ocorrência: status, importância, prazo e atualização para o cidadão -->
 <div class="modal-backdrop" id="occ-modal">
     <div class="modal">
         <div class="modal-header">
-            <span class="modal-title">Editar Ocorrência</span>
+            <span class="modal-title">Gerenciar Ocorrência</span>
             <button class="modal-close" onclick="closeModal('occ-modal')">×</button>
         </div>
         <div class="modal-body">
             <input type="hidden" id="edit-occ-id">
+            <div class="modal-field"><label>Ocorrência</label>
+                <div class="modal-static" id="edit-occ-name"></div>
+            </div>
             <div class="modal-field"><label>Status</label>
                 <select id="edit-occ-status">
                     <option value="open">Aberta</option>
@@ -314,8 +345,18 @@
                     <option value="red">🔴 Vermelho — Importante</option>
                 </select>
             </div>
-            <div class="modal-field"><label>Tempo estimado (horas)</label>
-                <input type="number" id="edit-occ-time" placeholder="Ex: 48">
+            <div class="modal-field"><label>Prazo para resolver</label>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <input type="date" id="edit-occ-deadline">
+                    <input type="time" id="edit-occ-deadline-time" title="Horário limite (opcional)">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('edit-occ-deadline').value='';document.getElementById('edit-occ-deadline-time').value=''">Limpar</button>
+                </div>
+                <div class="modal-hint" id="edit-occ-deadline-hint"></div>
+                <div class="modal-hint">Sem horário, o prazo vai até 23:59:59 do dia escolhido.</div>
+            </div>
+            <div class="modal-field"><label>Atualização para o cidadão (opcional)</label>
+                <textarea id="edit-occ-feedback" rows="3" placeholder="Ex: Estamos planejando o conserto. Previsão para o dia 02/11."></textarea>
+                <div class="modal-hint">Aparece na ocorrência como “Atualização oficial”. Mudanças de prazo ficam registradas no histórico.</div>
             </div>
         </div>
         <div class="modal-footer">

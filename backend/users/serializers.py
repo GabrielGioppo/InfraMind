@@ -8,7 +8,8 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name',
                   'user_type', 'date_of_birth', 'phone', 'address',
-                  'created_at', 'updated_at', 'password']
+                  'is_active', 'created_at', 'updated_at', 'password']
+        read_only_fields = ['is_active']
         extra_kwargs = {
             'password': {'write_only': True},
         }

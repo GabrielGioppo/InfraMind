@@ -92,6 +92,13 @@
     </a>
   </div>
   <div class="topbar-right">
+    <div class="notif-wrap" id="notif-wrap">
+      <button class="notif-btn" id="notif-btn" title="Notificações" aria-label="Notificações" onclick="toggleNotifPanel(event)">
+        <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+        <span class="notif-dot" id="notif-dot"></span>
+      </button>
+      <div class="notif-panel" id="notif-panel"></div>
+    </div>
     <div class="topbar-user">
       <div class="avatar" id="user-avatar">?</div>
       <span id="user-name" style="color:#e6edf3;font-weight:500"></span>
@@ -361,6 +368,7 @@
             <div class="info-row" id="det-deadline-row" style="display:none"><span class="info-label">Limite Valid.</span><span class="info-value" id="det-deadline">—</span></div>
             <div class="info-row" id="det-urgency-row" style="display:none"><span class="info-label">Urgência (IA)</span><span id="det-urgency"></span></div>
             <div class="info-row" id="det-imp-row" style="display:none"><span class="info-label">Importância</span><span id="det-imp"></span></div>
+            <div class="info-row" id="det-sla-row" style="display:none"><span class="info-label">Prazo previsto</span><span id="det-sla"></span></div>
                         <!-- RF24: Tempo estimado e real -->
             <div id="det-time-wrap"></div>
             <hr class="divider">
@@ -464,6 +472,7 @@
       <div class="page-title"><h1>Painel Administrativo</h1><p>Gestão avançada e análise de dados</p></div>
     </div>
     <div class="stats-grid" id="admin-stats-grid" style="margin-bottom:24px;"></div>
+    <div id="sla-alert" class="sla-alert hidden"></div>
 
     <div class="admin-tabs" style="margin-bottom:16px;">
       <button class="admin-tab active" id="admin-tab-list" onclick="switchAdminTab('list')">Lista</button>
@@ -522,7 +531,7 @@
           <thead>
             <tr>
               <th>#</th><th>Título</th><th>Categoria</th><th>Cidadão</th>
-              <th>Status</th><th>Urgência IA</th><th>Importância</th>
+              <th>Status</th><th>Urgência IA</th><th>Importância</th><th>Prazo</th>
               <th>Validações</th><th>Data</th><th>Ações</th>
             </tr>
           </thead>

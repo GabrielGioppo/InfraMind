@@ -140,6 +140,7 @@ async function doLogin(usernameOrEmail, password) {
     if (!tokens) { toast('Credenciais inválidas','error'); return; }
     tk.set(tokens.access, tokens.refresh);
     await loadCurrentUser();
+    if (redirectIfAdmin(STATE.user)) return;
     hideAuthScreens();
     navigateTo('dashboard');
   } catch { toast('Erro de conexão com a API','error'); }
@@ -179,6 +180,15 @@ function updateUserUI() {
   }
 }
 
+// Admin não usa o index.html: vai para o painel próprio (admin.html).
+function redirectIfAdmin(u) {
+  if (u && (u.user_type === 'admin' || u.is_staff === true)) {
+    window.location.replace('admin.html');
+    return true;
+  }
+  return false;
+}
+
 function isAdmin() {
   return STATE.user && (STATE.user.user_type === 'admin' || STATE.user.is_staff);
 }
@@ -203,7 +213,60 @@ function hideAuthScreens() {
   document.getElementById('topbar').classList.remove('hidden');
   document.getElementById('sidebar').classList.remove('hidden');
   document.getElementById('app').classList.remove('hidden');
+  startNotifications();
 }
+
+// ════════════════════════════════════
+// NOTIFICAÇÕES (UC-14)
+// ════════════════════════════════════
+let _notifTimer = null;
+
+function startNotifications() {
+  loadNotifications();
+  if (!_notifTimer) _notifTimer = setInterval(loadNotifications, 60000);
+}
+
+async function loadNotifications() {
+  try {
+    const r = await api('/api/v1/notifications/');
+    if (!r || !r.ok) return;
+    const data = await r.json();
+    const notifs = Array.isArray(data) ? data : (data.results || []);
+    document.getElementById('notif-dot')?.classList.toggle('show', notifs.some(n => !n.read));
+    renderNotifPanel(notifs);
+  } catch {}
+}
+
+function renderNotifPanel(notifs) {
+  const panel = document.getElementById('notif-panel');
+  if (!panel) return;
+  if (!notifs.length) {
+    panel.innerHTML = '<div class="notif-empty">Nenhuma notificação por enquanto.</div>';
+    return;
+  }
+  panel.innerHTML = notifs.slice(0, 20).map(n => `
+    <div class="notif-item ${n.read ? '' : 'unread'}" onclick="markNotifRead(${Number(n.id)})">
+      <div class="notif-item-title">${esc(n.titulo)}</div>
+      <div class="notif-item-msg">${esc(n.mensagem)}</div>
+      <div class="notif-item-time">${esc(fmtDateFull(n.created_at))}</div>
+    </div>`).join('');
+}
+
+function toggleNotifPanel(e) {
+  e?.stopPropagation();
+  document.getElementById('notif-panel')?.classList.toggle('show');
+}
+
+async function markNotifRead(id) {
+  try {
+    await api(`/api/v1/notifications/${id}/read/`, { method: 'POST' });
+    loadNotifications();
+  } catch {}
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#notif-wrap')) document.getElementById('notif-panel')?.classList.remove('show');
+});
 
 const PAGES = ['dashboard','occurrences','create','detail','edit','admin'];
 
@@ -721,6 +784,15 @@ async function loadDetail(id) {
       document.getElementById('det-imp').innerHTML = `<span class="badge ${impClass(o.importance_color)}">${impLabel(o.importance_color)}</span>`;
     }
 
+    const slaRow = document.getElementById('det-sla-row');
+    if (slaRow) {
+      slaRow.style.display = o.sla_deadline ? 'flex' : 'none';
+      if (o.sla_deadline) {
+        const tone = { estourado:['var(--red)',' (atrasado)'], proximo:['var(--yellow)',' (próximo)'], ok:['var(--green)',''] }[o.sla_status] || ['var(--muted)',' (concluída)'];
+        document.getElementById('det-sla').innerHTML = `<span style="color:${tone[0]};font-weight:600">${fmtDate(o.sla_deadline)}${tone[1]}</span>`;
+      }
+    }
+
     const actions = [];
     if (canEdit(o)) {
       actions.push(`<button class="btn btn-ghost btn-sm" onclick="navigateTo('edit',${o.id})">Editar</button>`);
@@ -816,7 +888,7 @@ async function loadHistory(id) {
       list.map((h,i) => `
         <div class="timeline-item ${i===0?'latest':''}">
           <div class="timeline-date">${fmtDateFull(h.changed_at)}</div>
-          <div class="timeline-text">${statusBadge(h.previous_status||'—')} → ${statusBadge(h.new_status||'—')}</div>
+          ${h.change_type === 'status' || !h.change_type ? `<div class="timeline-text">${statusBadge(h.previous_status||'—')} → ${statusBadge(h.new_status||'—')}</div>` : ''}
           ${h.observation ? `<div class="timeline-obs">${esc(h.observation)}</div>` : ''}
         </div>`).join('') + `</div>`;
   } catch(e) { document.getElementById('det-history').innerHTML = `<p style="font-size:.82rem;color:var(--muted)">Erro ao carregar histórico.</p>`; }
@@ -1013,6 +1085,12 @@ async function loadAdminOccurrences() {
     const d = await r.json();
     const list = Array.isArray(d) ? d : (d.results || []);
     window._STATE_ADMIN = list;
+    const atrasadas = list.filter(o => o.sla_status === 'estourado').length;
+    const slaEl = document.getElementById('sla-alert');
+    if (slaEl) {
+      slaEl.classList.toggle('hidden', !atrasadas);
+      slaEl.textContent = `${atrasadas} ocorrência${atrasadas > 1 ? 's' : ''} com prazo (SLA) estourado${atrasadas > 1 ? 's' : ''} na lista atual.`;
+    }
     document.getElementById('admin-table-body').innerHTML = list.map(o => `
       <tr>
         <td class="td-mono">#${o.id}</td>
@@ -1022,6 +1100,7 @@ async function loadAdminOccurrences() {
         <td>${statusBadge(o.status)}</td>
         <td>${urgencyBadge(o.urgency_level)}</td>
         <td>${o.importance_color ? `<span class="badge ${impClass(o.importance_color)}">${impLabel(o.importance_color)}</span>` : '<span style="color:var(--muted);font-size:.78rem">—</span>'}</td>
+        <td>${slaBadge(o)}</td>
         <td style="font-size:.85rem">${o.validation_count||0}</td>
         <td class="td-mono" style="font-size:.78rem">${fmtDate(o.created_at)}</td>
         <td>
@@ -1132,6 +1211,18 @@ function urgencyBadge(l) {
   return `<span class="badge ${map[l]||'badge-low'}">${labels[l]||l}</span>`;
 }
 
+function slaBadge(o) {
+  const map = {
+    estourado: ['badge-critical', 'Prazo estourado'],
+    proximo:   ['badge-high',     'Prazo próximo'],
+    ok:        ['badge-sla-ok',   'No prazo'],
+  };
+  const m = map[o.sla_status];
+  if (!m) return '<span style="color:var(--muted);font-size:.78rem">—</span>';
+  const tip = o.sla_deadline ? ` title="Limite: ${fmtDate(o.sla_deadline)}"` : '';
+  return `<span class="badge ${m[0]}"${tip}>${m[1]}</span>`;
+}
+
 function impClass(c) {
   return c === 'green' ? 'imp-green' : c === 'yellow' ? 'imp-yellow' : c === 'red' ? 'imp-red' : '';
 }
@@ -1204,6 +1295,7 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
   if (tk.get() && savedUser) {
     try {
       STATE.user = JSON.parse(savedUser);
+      if (redirectIfAdmin(STATE.user)) return;
       updateUserUI();
       hideAuthScreens();
       navigateTo('dashboard');
@@ -1213,6 +1305,7 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
   } else if (tk.get()) {
     try {
       await loadCurrentUser();
+      if (redirectIfAdmin(STATE.user)) return;
       if (STATE.user) {
         hideAuthScreens();
         navigateTo('dashboard');
@@ -1381,9 +1474,9 @@ function _renderDetailExtras(o) {
     deadEl.innerHTML = '<span style="color:' + (past?'var(--red)':'var(--yellow)') + '">' + dl.toLocaleDateString('pt-BR') + (past?' (expirado)':'') + '</span>';
   }
   const timeWrap = document.getElementById('det-time-wrap');
-  if (timeWrap && (o.estimated_time || o.resolved_at)) {
+  if (timeWrap && (o.sla_deadline || o.resolved_at)) {
     let h = '<div class="time-info-box">';
-    if (o.estimated_time) h += '<div class="time-info-item"><span class="time-info-label">Tempo Estimado</span><span class="time-info-value">' + o.estimated_time + 'h</span></div>';
+    if (o.sla_deadline) h += '<div class="time-info-item"><span class="time-info-label">Prazo</span><span class="time-info-value" style="font-size:.8rem">' + new Date(o.sla_deadline).toLocaleString('pt-BR', {dateStyle:'short', timeStyle:'short'}) + '</span></div>';
     if (o.resolved_at) {
       const ms = new Date(o.resolved_at) - new Date(o.created_at);
       const hrs = Math.round(ms / 36e5);
