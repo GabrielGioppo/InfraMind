@@ -14,6 +14,9 @@ TIPO_PRAZO_ESTOURADO = 'prazo_estourado'
 TIPO_AVISO_PRAZO     = 'aviso_prazo'
 TIPO_STATUS_CHANGE   = 'status_change'
 
+# Título dos avisos de denúncia; o painel admin usa o prefixo para abrir a aba Denúncias.
+TITULO_NOVA_DENUNCIA = 'Nova denúncia'
+
 FACTORIES = {
     'email': EmailNotifFactory(),
     'push':  PushNotifFactory(),
@@ -175,3 +178,33 @@ def processar_prazos_e_notificar(canal: str = 'email') -> dict:
         'status_change':    len(status_change),
         'total':            len(prazo_estourado) + len(aviso_preventivo) + len(status_change),
     }
+
+
+def notificar_nova_denuncia(denuncia) -> list:
+    """
+    Avisa no sino de todos os administradores que chegou uma denúncia
+    (UC-13 → UC-14). Canal push: aparece só no painel, sem depender de e-mail.
+    Nunca levanta exceção — a denúncia já foi salva e não pode falhar por causa do aviso.
+    """
+    try:
+        autor = denuncia.user.username if denuncia.user else 'usuário removido'
+        mensagem = f'{denuncia.get_tipo_display()} enviada por {autor}'
+        if denuncia.occurrence:
+            mensagem += f' sobre a ocorrência "{denuncia.occurrence.title}"'
+        mensagem += f': {denuncia.descricao[:120]}'
+        if len(denuncia.descricao) > 120:
+            mensagem += '…'
+
+        notificadas = []
+        for admin in _destinatarios_admin():
+            if denuncia.user_id and admin.id == denuncia.user_id:
+                continue  # o admin que abriu a denúncia não precisa ser avisado dela
+            n = FACTORIES['push'].notificar(
+                admin, f'{TITULO_NOVA_DENUNCIA} #{denuncia.id}', mensagem,
+                occurrence=denuncia.occurrence, tipo='geral',
+            )
+            notificadas.append(n.id)
+        return notificadas
+    except Exception as e:
+        print(f'[notificar_nova_denuncia] Falha ao avisar administradores: {e}')
+        return []

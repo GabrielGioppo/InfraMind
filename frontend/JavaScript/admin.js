@@ -1,7 +1,7 @@
 // ============================================================
 // ADMIN DASHBOARD — InfraMind 
 // ============================================================
-const API = 'http://127.0.0.1:8000';
+const API = 'http://127.0.0.1:9000';
 
 // Mesmas chaves de sessão usadas por index.js / landing.js (im_access, im_refresh, im_user).
 function getToken() { return localStorage.getItem('im_access'); }
@@ -119,7 +119,7 @@ function rowClick(ev, id) {
 }
 
 // ── PAGE ROUTING ──
-const pages = ['dashboard','occurrences','users','feedbacks','logs','categories','map'];
+const pages = ['dashboard','occurrences','users','feedbacks','denuncias','logs','categories','map'];
 function showPage(id) {
     pages.forEach(p => {
         document.getElementById('page-'+p).classList.toggle('active', p === id);
@@ -127,12 +127,13 @@ function showPage(id) {
             if (n.getAttribute('onclick') === `showPage('${p}')`) n.classList.toggle('active', p === id);
         });
     });
-    const titles = { dashboard:'Dashboard', occurrences:'Ocorrências', users:'Usuários', feedbacks:'Feedbacks', logs:'Logs de Auditoria', categories:'Categorias', map:'Mapa de Ocorrências' };
+    const titles = { dashboard:'Dashboard', occurrences:'Ocorrências', users:'Usuários', feedbacks:'Feedbacks', denuncias:'Denúncias', logs:'Logs de Auditoria', categories:'Categorias', map:'Mapa de Ocorrências' };
     document.getElementById('page-title').textContent = titles[id] || id;
     if (id === 'dashboard')   loadDashboard();
     if (id === 'occurrences') loadOccurrences();
     if (id === 'users')       loadUsers();
     if (id === 'feedbacks')   loadFeedbacks();
+    if (id === 'denuncias')   loadDenuncias();
     if (id === 'logs')        loadLogs();
     if (id === 'categories')  loadCategories();
     if (id === 'map')         loadMapPage();
@@ -604,6 +605,109 @@ async function loadFeedbacks() {
     } catch(e) { toast('Erro ao carregar feedbacks','error'); }
 }
 
+// ── DENÚNCIAS (UC-13) ──
+let allDenuncias = [];
+let denPage = 1; const DEN_PER = 15;
+const DEN_STATUS = { aberta: ['badge-red', 'Aberta'], em_analise: ['badge-yellow', 'Em análise'], resolvida: ['badge-green', 'Resolvida'] };
+
+async function loadDenuncias() {
+    document.getElementById('den-tbody').innerHTML = '<tr><td colspan="7" class="loading">Carregando...</td></tr>';
+    try {
+        const r = await api('/api/v1/denuncias/');
+        if (!r) return;
+        const data = await r.json();
+        allDenuncias = Array.isArray(data) ? data : (data.results || []);
+        atualizarBadgeDenuncias();
+        denPage = 1;
+        renderDenuncias();
+    } catch(e) { toast('Erro ao carregar denúncias', 'error'); }
+}
+
+// Contador do menu: só denúncias ainda abertas (aguardando ação).
+function atualizarBadgeDenuncias() {
+    const abertas = allDenuncias.filter(d => d.status === 'aberta').length;
+    const b = document.getElementById('denuncia-count-badge');
+    if (!b) return;
+    b.textContent = abertas;
+    b.style.display = abertas ? '' : 'none';
+}
+
+function filterDenuncias() { denPage = 1; renderDenuncias(); }
+
+function renderDenuncias() {
+    const q  = document.getElementById('den-search').value.trim().toLowerCase();
+    const st = document.getElementById('den-status-filter').value;
+    const tp = document.getElementById('den-tipo-filter').value;
+    const lista = allDenuncias.filter(d =>
+        (!st || d.status === st) &&
+        (!tp || d.tipo === tp) &&
+        (!q || (d.descricao || '').toLowerCase().includes(q) || (d.autor || '').toLowerCase().includes(q))
+    );
+
+    const tbody = document.getElementById('den-tbody');
+    const pag = document.getElementById('den-pagination');
+    if (!lista.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="empty-state">${allDenuncias.length ? 'Nenhuma denúncia com esses filtros' : 'Nenhuma denúncia registrada'}</td></tr>`;
+        pag.innerHTML = '';
+        return;
+    }
+
+    const paginas = Math.ceil(lista.length / DEN_PER);
+    if (denPage > paginas) denPage = paginas;
+    const fatia = lista.slice((denPage - 1) * DEN_PER, denPage * DEN_PER);
+
+    tbody.innerHTML = fatia.map(d => {
+        const cor = d.tipo === 'bug' ? 'badge-open' : 'badge-yellow';
+        const occ = d.occurrence
+            ? `<a href="#" onclick="event.preventDefault();abrirOcorrenciaDaDenuncia(${d.occurrence})" title="Abrir ocorrência">#${d.occurrence} ${esc(d.occurrence_title || '')}</a>`
+            : '<span style="color:var(--text3)">—</span>';
+        const opcoes = Object.entries(DEN_STATUS).map(([v, [, rot]]) =>
+            `<option value="${v}" ${d.status === v ? 'selected' : ''}>${rot}</option>`).join('');
+        return `<tr>
+            <td>#${d.id}</td>
+            <td><span class="badge ${cor}">${esc(d.tipo_display)}</span></td>
+            <td>${esc(d.autor || 'Usuário removido')}</td>
+            <td>${occ}</td>
+            <td style="max-width:360px;white-space:normal" title="${esc(d.descricao)}">${esc(d.descricao)}</td>
+            <td><select class="filter-select" onchange="mudarStatusDenuncia(${d.id}, this)" data-atual="${d.status}">${opcoes}</select></td>
+            <td>${fmtDateTime(d.created_at)}</td>
+        </tr>`;
+    }).join('');
+
+    pag.innerHTML = `<span class="pagination-info">${lista.length} denúncias — pág. ${denPage}/${paginas}</span>
+        <div class="pagination-btns">
+            <button class="pg-btn" onclick="denPage=Math.max(1,denPage-1);renderDenuncias()">‹</button>
+            ${Array.from({length:Math.min(paginas,5)},(_,i)=>`<button class="pg-btn${i+1===denPage?' active':''}" onclick="denPage=${i+1};renderDenuncias()">${i+1}</button>`).join('')}
+            <button class="pg-btn" onclick="denPage=Math.min(${paginas},denPage+1);renderDenuncias()">›</button>
+        </div>`;
+}
+
+async function mudarStatusDenuncia(id, select) {
+    const novo = select.value;
+    const anterior = select.dataset.atual;
+    select.disabled = true;
+    try {
+        const r = await api(`/api/v1/denuncias/${id}/`, { method: 'PATCH', body: JSON.stringify({ status: novo }) });
+        if (!r) return;
+        if (!r.ok) throw new Error();
+        const d = allDenuncias.find(x => x.id === id);
+        if (d) { d.status = novo; d.status_display = DEN_STATUS[novo][1]; }
+        select.dataset.atual = novo;
+        atualizarBadgeDenuncias();
+        toast(`Denúncia #${id}: ${DEN_STATUS[novo][1]}`);
+    } catch {
+        select.value = anterior;   // não deixa a tela mostrando um status que o servidor não gravou
+        toast('Não foi possível alterar o status', 'error');
+    } finally {
+        select.disabled = false;
+    }
+}
+
+function abrirOcorrenciaDaDenuncia(id) {
+    showPage('occurrences');
+    openOccDetail(id);
+}
+
 // ── LOGS ──
 let logsPage = 1; const LOGS_PER = 15;
 async function loadLogs() {
@@ -763,6 +867,18 @@ async function init() {
 
     loadDashboard();
     loadNotifications();
+    carregarContadorDenuncias();
+}
+
+// Preenche o contador do menu sem precisar abrir a aba.
+async function carregarContadorDenuncias() {
+    try {
+        const r = await api('/api/v1/denuncias/');
+        if (!r || !r.ok) return;
+        const data = await r.json();
+        allDenuncias = Array.isArray(data) ? data : (data.results || []);
+        atualizarBadgeDenuncias();
+    } catch(e) {}
 }
 
 // ============================================================
@@ -805,10 +921,16 @@ function toggleNotifPanel() {
 }
 
 async function markNotifRead(id) {
+    const n = (window._notifCache || []).find(x => x.id === id);
     try {
         await api(`/api/v1/notifications/${id}/read/`, { method: 'POST' });
         loadNotifications();
     } catch(e) {}
+    // Aviso de denúncia nova: leva direto para a aba Denúncias.
+    if (n && /^Nova denúncia/.test(n.titulo || '')) {
+        document.getElementById('notif-panel').classList.remove('show');
+        showPage('denuncias');
+    }
 }
 
 // ============================================================

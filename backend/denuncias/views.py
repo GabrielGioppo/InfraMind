@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from denuncias.models import Denuncia
 from denuncias.serializers import DenunciaSerializer, DenunciaStatusSerializer
 from logs.utils import register_log
+from notifications.services import notificar_nova_denuncia
 from occurrences.visibility import is_admin
 
 
@@ -27,6 +28,7 @@ class DenunciaListCreateView(generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         denuncia = serializer.save(user=request.user)
         register_log(request, 'create', 'Denuncia', denuncia.id, {'tipo': denuncia.tipo})
+        notificar_nova_denuncia(denuncia)
         return Response(
             {'message': 'Recebemos sua mensagem. Obrigado por avisar!', 'denuncia': serializer.data},
             status=status.HTTP_201_CREATED,
