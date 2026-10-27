@@ -311,7 +311,13 @@ async function doRegister() {
     return;
   }
 
-  const payload = { username, email, password };
+  const pessoais = lerDadosCadastro();   // cadastro.js: CPF e endereço
+  if (pessoais.erro) {
+    msgEl.innerHTML = `<div class="msg msg-error">${pessoais.erro}</div>`;
+    return;
+  }
+
+  const payload = { username, email, password, ...pessoais.dados };
 
   try {
     msgEl.innerHTML = '<div class="msg msg-info">Criando sua conta...</div>';
@@ -321,7 +327,7 @@ async function doRegister() {
     });
     const d = await r.json();
     if (!r.ok) {
-      const detail = d.email?.[0] || d.username?.[0] || JSON.stringify(d);
+      const detail = mensagemDeErro(d);
       msgEl.innerHTML = `<div class="msg msg-error">Erro no cadastro: ${detail}</div>`;
       return;
     }

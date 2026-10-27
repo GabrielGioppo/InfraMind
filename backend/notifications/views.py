@@ -13,7 +13,8 @@ class NotificationListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Notificacao.objects.filter(user=self.request.user)
+        # E-mails de recuperação de senha não aparecem no sino.
+        return Notificacao.objects.filter(user=self.request.user).exclude(tipo='recuperacao_senha')
 
 
 @api_view(['POST'])

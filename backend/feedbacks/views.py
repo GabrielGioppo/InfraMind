@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from feedbacks.models import Feedback
 from feedbacks.serializers import FeedbackSerializer, AdminFeedbackSerializer
+from occurrences.visibility import visible_occurrences
 
 
 def get_feedback_serializer(user):
@@ -28,12 +29,13 @@ class FeedbackCreateListView(generics.ListCreateAPIView):
 
         # Usuários comuns veem todos os feedbacks (visibilidade pública)
         # mas só podem editar/excluir os seus próprios (controlado em outra view)
+        # Só dos feedbacks de ocorrências que o usuário pode ver (a cidade dele).
+        base = Feedback.objects.filter(occurrence__in=visible_occurrences(user))
         occurrence_id = self.request.query_params.get('occurrence')
         if occurrence_id:
-            return Feedback.objects.filter(occurrence_id=occurrence_id).order_by('-created_at')
+            return base.filter(occurrence_id=occurrence_id).order_by('-created_at')
 
-        # Retorna feedbacks da ocorrência do usuário ou todos se nenhum filtro
-        return Feedback.objects.all().order_by('-created_at')
+        return base.order_by('-created_at')
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)

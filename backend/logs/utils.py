@@ -15,13 +15,16 @@ def get_device(request):
     return user_agent[:200]
 
 
-def register_log(request, action, model_name, object_id, details=None):
+def register_log(request, action, model_name, object_id, details=None, user=None):
     """
     Cria um registro de log automático com IP e dispositivo (RF28 / RNF14).
     Uso: register_log(request, 'create', 'Occurrence', occ.id, {'title': occ.title})
+
+    `user` só é necessário quando o request ainda não está autenticado
+    (ex.: no login, em que o usuário acabou de provar a senha).
     """
     Log.objects.create(
-        user=request.user if request.user.is_authenticated else None,
+        user=user or (request.user if request.user.is_authenticated else None),
         action=action,
         model_name=model_name,
         object_id=object_id,

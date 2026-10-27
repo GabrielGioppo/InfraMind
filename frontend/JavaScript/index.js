@@ -11,6 +11,7 @@ let STATE = {
   currentOccId: null,
   feedbackRating: 0,
   viewMode: 'grid',
+  createGeo: null,   // { cidade, uf } do ponto marcado no mapa (geocodificação reversa)
 };
 
 // ════════════════════════════════════
@@ -96,6 +97,7 @@ document.getElementById('login-form').onsubmit = async e => {
 document.getElementById('register-form').onsubmit = async e => {
   e.preventDefault();
   const btn = e.target.querySelector('button[type=submit]');
+  const restaurar = () => { btn.disabled = false; btn.textContent = 'Criar Conta'; };
   btn.disabled = true; btn.textContent = 'Criando...';
 
   const username = document.getElementById('reg-name').value.trim();
@@ -103,19 +105,18 @@ document.getElementById('register-form').onsubmit = async e => {
   const password = document.getElementById('reg-pass').value;
 
   if (!username || !email || !password) {
-    toast('Preencha todos os campos.', 'error');
-    btn.disabled = false; btn.textContent = 'Criar Conta'; return;
+    toast('Preencha todos os campos.', 'error'); restaurar(); return;
   }
   if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-    toast('O usuário só pode conter letras, números e _. Sem espaços.', 'error');
-    btn.disabled = false; btn.textContent = 'Criar Conta'; return;
+    toast('O usuário só pode conter letras, números e _. Sem espaços.', 'error'); restaurar(); return;
   }
   if (password.length < 8) {
-    toast('A senha precisa ter pelo menos 8 caracteres.', 'error');
-    btn.disabled = false; btn.textContent = 'Criar Conta'; return;
+    toast('A senha precisa ter pelo menos 8 caracteres.', 'error'); restaurar(); return;
   }
+  const pessoais = lerDadosCadastro();   // cadastro.js: CPF e endereço
+  if (pessoais.erro) { toast(pessoais.erro, 'error'); restaurar(); return; }
 
-  const payload = { username, email, password };
+  const payload = { username, email, password, ...pessoais.dados };
 
   try {
     const r = await fetch(`${API}/api/v1/users/register/`, {
@@ -123,7 +124,7 @@ document.getElementById('register-form').onsubmit = async e => {
     });
     const d = await r.json();
     if (!r.ok) {
-      toast('Erro: ' + (d.email?.[0] || d.username?.[0] || JSON.stringify(d)), 'error');
+      toast('Erro: ' + mensagemDeErro(d), 'error');
     } else {
       toast('Conta criada com sucesso!');
       // Auto-login após cadastro — mantém na página
@@ -131,7 +132,7 @@ document.getElementById('register-form').onsubmit = async e => {
     }
   } catch { toast('Erro de conexão','error'); }
 
-  btn.disabled = false; btn.textContent = 'Criar Conta';
+  restaurar();
 };
 
 async function doLogin(usernameOrEmail, password) {
@@ -202,7 +203,7 @@ function doLogout() {
 // SCREEN / PAGE NAV
 // ════════════════════════════════════
 function showScreen(id) {
-  ['screen-login','screen-register'].forEach(s => {
+  ['screen-login','screen-register','screen-reset'].forEach(s => {
     document.getElementById(s).classList.toggle('hidden', s !== id);
   });
 }
@@ -210,6 +211,7 @@ function showScreen(id) {
 function hideAuthScreens() {
   document.getElementById('screen-login').classList.add('hidden');
   document.getElementById('screen-register').classList.add('hidden');
+  document.getElementById('screen-reset').classList.add('hidden');
   document.getElementById('topbar').classList.remove('hidden');
   document.getElementById('sidebar').classList.remove('hidden');
   document.getElementById('app').classList.remove('hidden');
@@ -498,6 +500,7 @@ async function loadCreatePage() {
   document.getElementById('c-desc').value = '';
   document.getElementById('c-lat').value = '';
   document.getElementById('c-lng').value = '';
+  STATE.createGeo = null;
   const extras = document.getElementById('create-extras');
   if (extras) extras.removeAttribute('open');
   const locManual = document.getElementById('loc-manual-drawer');
@@ -661,6 +664,10 @@ async function createOccurrence() {
   const files = document.getElementById('c-imgs').files;
   const firstFile = files && files.length > 0 ? files[0] : null;
 
+  // Sem isso o servidor usa a cidade do cadastro do usuário.
+  const cidade = STATE.createGeo?.cidade;
+  const uf     = STATE.createGeo?.uf;
+
   showAILoadingProgress();
 
   try {
@@ -674,6 +681,8 @@ async function createOccurrence() {
       fd.append('status', 'open');
       if (lat) fd.append('latitude', lat);
       if (lng) fd.append('longitude', lng);
+      if (cidade) fd.append('city', cidade);
+      if (uf) fd.append('state', uf);
       fd.append('image', firstFile);
       r = await api('/api/v1/occurrences/', { method: 'POST', body: fd });
     } else {
@@ -684,6 +693,8 @@ async function createOccurrence() {
         status: 'open',
         latitude:  lat,
         longitude: lng,
+        city:  cidade,
+        state: uf,
       };
       r = await api('/api/v1/occurrences/', { method: 'POST', body: JSON.stringify(payload) });
     }
@@ -808,6 +819,9 @@ async function loadDetail(id) {
     }
     if (STATE.user && String(o.user) !== String(STATE.user.id)) {
       sideActions.push(`<button class="btn btn-success btn-sm" onclick="openModal('modal-validate')">👥 Confirmar Problema</button>`);
+    }
+    if (STATE.user && !isAdmin() && String(o.user) !== String(STATE.user.id)) {
+      sideActions.push(`<button class="btn btn-ghost btn-sm" onclick="openDenuncia(${o.id}, ${JSON.stringify(o.title).replace(/"/g, '&quot;')})" style="color:var(--red)">🚩 Denunciar conteúdo</button>`);
     }
     if (isAdmin()) {
       sideActions.push(`<button class="btn btn-ghost btn-sm" onclick="openFeedbackModal()">📝 Enviar Atualização</button>`);
@@ -1291,6 +1305,11 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 // INIT
 // ════════════════════════════════════
 (async function init() {
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('reset_uid') && qs.get('reset_token')) { showScreen('screen-reset'); return; }
+  if (location.hash === '#forgot' && !tk.get()) {
+    showScreen('screen-login'); openModal('modal-forgot'); return;
+  }
   const savedUser = localStorage.getItem('im_user');
   if (tk.get() && savedUser) {
     try {
@@ -1320,14 +1339,99 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 // RF03: Recuperação de senha
 // ════════════════════════════════════
 async function submitForgot() {
-  const user = document.getElementById('forgot-user').value.trim();
+  const email = document.getElementById('forgot-email').value.trim();
   const msgEl = document.getElementById('forgot-msg');
-  if (!user) { toast('Informe o usuário','error'); return; }
-  msgEl.style.display = 'block';
-  msgEl.style.background = 'rgba(47,129,247,.1)';
-  msgEl.style.border = '1px solid rgba(47,129,247,.3)';
-  msgEl.style.color = 'var(--blue)';
-  msgEl.textContent = '✓ Solicitação registrada para "' + user + '". Um administrador redefinirá sua senha.';
+  const btn = document.getElementById('forgot-btn');
+  if (!email) { toast('Informe o e-mail','error'); return; }
+  const mostrar = (texto, ok) => {
+    msgEl.style.display = 'block';
+    msgEl.style.background = ok ? 'rgba(63,185,80,.1)' : 'rgba(248,81,73,.1)';
+    msgEl.style.border = '1px solid ' + (ok ? 'rgba(63,185,80,.3)' : 'rgba(248,81,73,.3)');
+    msgEl.style.color = ok ? 'var(--green)' : 'var(--red)';
+    msgEl.textContent = texto;
+  };
+  btn.disabled = true;
+  try {
+    const r = await fetch(`${API}/authentication/password-reset/`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email })
+    });
+    const d = await r.json();
+    if (r.status === 429) mostrar('Muitas tentativas. Tente de novo mais tarde.', false);
+    else if (!r.ok) mostrar(mensagemDeErro(d), false);
+    else mostrar('✓ ' + d.message, true);
+  } catch { mostrar('Erro de conexão com o servidor.', false); }
+  btn.disabled = false;
+}
+
+// Link do e-mail: index.html?reset_uid=...&reset_token=...
+function leaveResetScreen() {
+  history.replaceState(null, '', location.pathname);
+  showScreen('screen-login');
+}
+
+document.getElementById('reset-form').onsubmit = async e => {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type=submit]');
+  const p1 = document.getElementById('reset-pass').value;
+  const p2 = document.getElementById('reset-pass2').value;
+  if (p1.length < 8) { toast('A senha precisa ter pelo menos 8 caracteres.', 'error'); return; }
+  if (p1 !== p2) { toast('As senhas não conferem.', 'error'); return; }
+  const qs = new URLSearchParams(location.search);
+  btn.disabled = true;
+  try {
+    const r = await fetch(`${API}/authentication/password-reset/confirm/`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ uid: qs.get('reset_uid'), token: qs.get('reset_token'), password: p1 })
+    });
+    const d = await r.json();
+    if (!r.ok) {
+      const msg = d.password ? d.password[0] : mensagemDeErro(d);
+      toast(msg, 'error');
+    } else {
+      toast('Senha redefinida! Entre com a nova senha.');
+      leaveResetScreen();
+    }
+  } catch { toast('Erro de conexão','error'); }
+  btn.disabled = false;
+};
+
+// ════════════════════════════════════
+// UC-13: Denúncia e suporte
+// ════════════════════════════════════
+function openDenuncia(occId = null, occTitulo = '') {
+  document.getElementById('den-desc').value = '';
+  const tipo = document.getElementById('den-tipo');
+  tipo.value = occId ? 'conteudo_inadequado' : 'bug';
+  document.getElementById('den-occ-id').value = occId || '';
+  document.getElementById('den-occ-label').value = occId ? `#${occId} — ${occTitulo}` : '';
+  onDenunciaTipo();
+  openModal('modal-denuncia');
+}
+
+function onDenunciaTipo() {
+  const conteudo = document.getElementById('den-tipo').value === 'conteudo_inadequado';
+  const temOcorrencia = !!document.getElementById('den-occ-id').value;
+  document.getElementById('den-occ-wrap').style.display = (conteudo && temOcorrencia) ? 'block' : 'none';
+  document.getElementById('den-hint').style.display = (conteudo && !temOcorrencia) ? 'block' : 'none';
+}
+
+async function submitDenuncia() {
+  const tipo = document.getElementById('den-tipo').value;
+  const descricao = document.getElementById('den-desc').value.trim();
+  const occ = document.getElementById('den-occ-id').value;
+  if (tipo === 'conteudo_inadequado' && !occ) { toast('Abra a ocorrência e use "Denunciar conteúdo".', 'error'); return; }
+  if (descricao.length < 10) { toast('Descreva com pelo menos 10 caracteres.', 'error'); return; }
+  const btn = document.getElementById('den-btn');
+  btn.disabled = true;
+  try {
+    const payload = { tipo, descricao };
+    if (tipo === 'conteudo_inadequado') payload.occurrence = Number(occ);
+    const r = await api('/api/v1/denuncias/', { method:'POST', body: JSON.stringify(payload) });
+    const d = await r.json();
+    if (!r.ok) toast(mensagemDeErro(d), 'error');
+    else { toast(d.message || 'Enviado!'); closeModal('modal-denuncia'); }
+  } catch { toast('Erro de conexão','error'); }
+  btn.disabled = false;
 }
 
 // ════════════════════════════════════
@@ -1398,9 +1502,19 @@ async function _reverseGeocodeFillAddr(lat, lng, labelEl) {
     const r = await fetch(`${API}/api/v1/geo/reverse/?lat=${lat}&lng=${lng}`);
     const d = await r.json();
     if (d.endereco_formatado) addrText = d.endereco_formatado;
-  } catch {}
+    STATE.createGeo = (d.cidade && d.uf) ? { cidade: d.cidade, uf: d.uf } : null;
+  } catch { STATE.createGeo = null; }
   if (addrEl) addrEl.value = addrText;
   if (labelEl) labelEl.textContent = '📍 ' + addrText;
+}
+
+// Só descobre a cidade/UF do ponto (sem mexer no campo de endereço digitado).
+async function _guardarCidadeDoPonto(lat, lng) {
+  try {
+    const r = await fetch(`${API}/api/v1/geo/reverse/?lat=${lat}&lng=${lng}`);
+    const d = await r.json();
+    STATE.createGeo = (d.cidade && d.uf) ? { cidade: d.cidade, uf: d.uf } : null;
+  } catch { STATE.createGeo = null; }
 }
 
 async function geocodeAddress() {
@@ -1429,6 +1543,7 @@ async function geocodeAddress() {
     const label = document.getElementById('c-coords-label');
     if (label) { label.textContent = '📍 ' + display_name; label.style.display = 'block'; }
     updateCreateMap(parseFloat(lat), parseFloat(lon), addr);
+    _guardarCidadeDoPonto(parseFloat(lat), parseFloat(lon));
     toast('Encontrado! Clique no mapa para ajustar o ponto exato.');
   } catch(e) {
     console.error('Geocode error:', e);

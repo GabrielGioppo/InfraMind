@@ -60,7 +60,7 @@ input, select, textarea { font-family: var(--font); outline: none; }
    AUTH SCREENS
 ═══════════════════════════════════════════ */
 .auth-screen {
-  position: fixed; inset: 0;
+  position: fixed; inset: 0; overflow-y: auto;
   display: flex; align-items: center; justify-content: center;
   background: var(--canvas);
   z-index: 9999;
@@ -75,7 +75,7 @@ input, select, textarea { font-family: var(--font); outline: none; }
   pointer-events: none;
 }
 .auth-box {
-  width: 100%; max-width: 420px;
+  width: 100%; max-width: 420px; margin: auto;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -474,7 +474,7 @@ tr:hover td { background: rgba(255,255,255,.02); }
    TOAST
 ═══════════════════════════════════════════ */
 #toast-container {
-  position: fixed; bottom: 24px; right: 24px; z-index: 2000;
+  position: fixed; bottom: 24px; right: 24px; z-index: 10001; /* acima das telas de login (9999) e do modal de recuperação (10000) */
   display: flex; flex-direction: column; gap: 8px;
 }
 .toast {
@@ -779,4 +779,17 @@ input:-webkit-autofill:active {
   .topbar-logo span { font-size: .95rem; }
   .topbar-user #user-name,
   .topbar-user .role-badge { display: none; } /* mantém só o avatar */
+}
+
+
+/* ── Cadastro com endereço ─────────────────────────── */
+.field-hint { font-size: .75rem; color: var(--muted); margin-top: 5px; }
+#screen-register .auth-box { max-width: 520px; }
+.field-row { display: grid; gap: 12px; }
+.field-row-2 { grid-template-columns: 1fr 1fr; }
+.field-row-city { grid-template-columns: 1fr 90px; }
+.field .opt { text-transform: none; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+@media (max-width: 480px) {
+  .auth-box { padding: 28px 20px; }
+  .field-row-2 { grid-template-columns: 1fr; gap: 0; }
 }

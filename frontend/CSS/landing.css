@@ -912,3 +912,13 @@ input:-webkit-autofill:active {
   .logo-mark { width: 28px; height: 28px; font-size: 12px; }
   .navbar .btn { padding: 7px 8px; font-size: .74rem; }
 }
+
+
+/* ── Cadastro com endereço ─────────────────────────── */
+.field-row { display: grid; gap: 12px; }
+.field-row-2 { grid-template-columns: 1fr 1fr; }
+.field-row-city { grid-template-columns: 1fr 90px; }
+.field .opt { text-transform: none; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+@media (max-width: 480px) {
+  .field-row-2 { grid-template-columns: 1fr; gap: 0; }
+}

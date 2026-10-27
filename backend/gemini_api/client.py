@@ -4,6 +4,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# RNF02: tempo máximo de espera por uma resposta do Gemini. Passou disso, a
+# chamada levanta exceção e cada função de IA cai no seu fallback local.
+GEMINI_TIMEOUT_SECONDS = float(os.getenv('GEMINI_TIMEOUT_SECONDS', '5'))
+
 
 class GeminiClient:
     """
@@ -26,7 +30,12 @@ class GeminiClient:
         if self._api_key:
             try:
                 from google import genai
-                self._client = genai.Client(api_key=self._api_key)
+                from google.genai import types
+                self._client = genai.Client(
+                    api_key=self._api_key,
+                    # O SDK recebe o timeout em milissegundos.
+                    http_options=types.HttpOptions(timeout=int(GEMINI_TIMEOUT_SECONDS * 1000)),
+                )
             except Exception as e:
                 print(f'[Gemini] Aviso: não foi possível inicializar o cliente — {e}')
 

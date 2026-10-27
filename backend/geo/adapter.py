@@ -32,7 +32,8 @@ class TargetGeoInterface(ABC):
 class OpenStreetMapAdapter(TargetGeoInterface):
     """
     Adapta a API do OpenStreetMap (Nominatim) pro formato padrão usado
-    pelo InfraMind: {'latitude', 'longitude', 'endereco_formatado'}.
+    pelo InfraMind: {'latitude', 'longitude', 'endereco_formatado'} (a geocodificação
+    reversa também devolve 'cidade' e 'uf').
     """
 
     BASE_URL   = 'https://nominatim.openstreetmap.org'
@@ -68,12 +69,29 @@ class OpenStreetMapAdapter(TargetGeoInterface):
 
     def obter_endereco(self, latitude: float, longitude: float) -> dict:
         try:
-            data = self._request('/reverse', {'lat': latitude, 'lon': longitude, 'format': 'json'})
+            data = self._request('/reverse', {
+                'lat': latitude, 'lon': longitude, 'format': 'json', 'addressdetails': 1,
+            })
+            cidade, uf = self._cidade_e_uf(data.get('address') or {})
             return {
                 'latitude':           latitude,
                 'longitude':          longitude,
                 'endereco_formatado': data.get('display_name'),
+                'cidade':             cidade,
+                'uf':                 uf,
             }
         except Exception as e:
             print(f'[OpenStreetMapAdapter] Erro na geocodificação reversa: {e}')
-            return {'latitude': latitude, 'longitude': longitude, 'endereco_formatado': None}
+            return {
+                'latitude': latitude, 'longitude': longitude,
+                'endereco_formatado': None, 'cidade': None, 'uf': None,
+            }
+
+    @staticmethod
+    def _cidade_e_uf(address: dict):
+        """Extrai cidade e sigla da UF do bloco `address` do Nominatim."""
+        cidade = (address.get('city') or address.get('town') or address.get('village')
+                  or address.get('municipality'))
+        iso = address.get('ISO3166-2-lvl4') or ''   # ex.: 'BR-SP'
+        uf = iso.split('-')[-1] if iso.startswith('BR-') else None
+        return cidade, uf

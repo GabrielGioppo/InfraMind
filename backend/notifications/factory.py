@@ -107,7 +107,7 @@ class EmailNotifFactory(NotificacaoFactory):
         # EMAIL_HOST != 'localhost'), o envio passa a ser de verdade.
         email_host = getattr(settings, 'EMAIL_HOST', 'localhost')
         if not email_host or email_host == 'localhost':
-            print(f'[EmailNotifFactory] (simulado) Para: {destinatario} | Assunto: {notificacao.titulo}')
+            print(f'[EmailNotifFactory] (simulado) Para: {destinatario} | Assunto: {notificacao.titulo}\n{notificacao.mensagem}')
             return
 
         send_mail(

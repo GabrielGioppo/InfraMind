@@ -11,6 +11,7 @@ from occurrences.serializers import OccurrenceSerializer, OccurrenceAdminSeriali
 from history.models import OccurrenceHistory
 from logs.utils import register_log
 from gemini_api.facade import IAProcessamentoFacade
+from occurrences.visibility import visible_occurrences
 
 from gemini_api.client import analyze_occurrence_description_and_photo
 from images.models import Image
@@ -120,7 +121,7 @@ class OccurrenceCreateListView(generics.ListCreateAPIView):
         user     = self.request.user
         is_admin = user.user_type == 'admin' or user.is_staff
 
-        qs = Occurrence.objects.all()
+        qs = visible_occurrences(user)
 
         status_filter   = self.request.query_params.get('status')
         category_filter = self.request.query_params.get('category')
@@ -203,8 +204,15 @@ class OccurrenceCreateListView(generics.ListCreateAPIView):
             )
         # ─────────────────────────────────────────────────────────────────
 
+        # Cidade/UF vêm da geocodificação feita pelo app; se não vierem, vale a cidade
+        # do cadastro do usuário.
+        city  = (serializer.validated_data.get('city') or request.user.cidade or '').strip()
+        state = (serializer.validated_data.get('state') or request.user.uf or '').strip()
+
         occ = serializer.save(
             user=request.user,
+            city=city,
+            state=state,
             description=ai_analysis['descricao_final'],
             original_description=ai_analysis['original_description'],
             description_analysis_status=ai_analysis['status'],
@@ -237,7 +245,7 @@ class OccurrenceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView)
         return get_serializer_class(self.request.user)
 
     def get_queryset(self):
-        return Occurrence.objects.all()
+        return visible_occurrences(self.request.user)
 
     def perform_update(self, serializer):
         occurrence      = self.get_object()
@@ -292,7 +300,7 @@ def nearby_occurrences(request, lat, lng, radius_km=1):
         return Response({'error': 'Coordenadas inválidas.'}, status=status.HTTP_400_BAD_REQUEST)
 
     delta       = radius / 111.0
-    occurrences = Occurrence.objects.filter(
+    occurrences = visible_occurrences(request.user).filter(
         latitude__isnull=False,
         longitude__isnull=False,
         latitude__range=(lat - delta, lat + delta),
@@ -421,7 +429,12 @@ def claim_anonymous_occurrences(request):
     if not anon_id:\
         return Response({'error': 'anon_id é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    updated = Occurrence.objects.filter(anon_id=anon_id, user__isnull=True).update(
+    pendentes = Occurrence.objects.filter(anon_id=anon_id, user__isnull=True)
+    # Ocorrência anônima sem cidade herda a cidade de quem a reivindica.
+    for occ in pendentes.filter(city=''):
+        occ.city, occ.state = request.user.cidade, request.user.uf
+        occ.save(update_fields=['city', 'state'])
+    updated = pendentes.update(
         user=request.user,
         anon_id=None,
     )

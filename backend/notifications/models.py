@@ -14,6 +14,7 @@ class Notificacao(models.Model):
         ('prazo_estourado', 'Prazo Estourado'),
         ('aviso_prazo', 'Aviso de Proximidade de Prazo'),
         ('status_change', 'Mudança de Status'),
+        ('recuperacao_senha', 'Recuperação de Senha'),
         ('geral', 'Geral'),
     ]
     STATUS_CHOICES = [

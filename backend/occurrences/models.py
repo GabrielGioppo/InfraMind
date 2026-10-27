@@ -1,6 +1,7 @@
 from django.db import models
 from users.models import User
 from categories.models import Category
+from users.validators import chave_cidade
 
 
 class Occurrence(models.Model):
@@ -51,6 +52,11 @@ class Occurrence(models.Model):
     latitude  = models.DecimalField(max_digits=100, decimal_places=20, null=True, blank=True)
     longitude = models.DecimalField(max_digits=100, decimal_places=20, null=True, blank=True)
     address = models.TextField(blank=True, null=True)
+    # Cidade/UF da ocorrência: definem quem a enxerga (occurrences/visibility.py).
+    # `city_key` é a cidade sem acento e em minúsculas, usada na comparação.
+    city = models.CharField(max_length=100, blank=True, default='')
+    state = models.CharField(max_length=2, blank=True, default='')
+    city_key = models.CharField(max_length=100, blank=True, default='', db_index=True, editable=False)
 
     # Status e controle
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
@@ -146,6 +152,14 @@ class Occurrence(models.Model):
 
     # Validações
     validation_count = models.IntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        self.state = (self.state or '').strip().upper()
+        self.city_key = chave_cidade(self.city)
+        update_fields = kwargs.get('update_fields')
+        if update_fields is not None and ('city' in update_fields or 'state' in update_fields):
+            kwargs['update_fields'] = set(update_fields) | {'city_key', 'state'}
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f'{self.title} — {self.status} [{self.urgency_level}]'

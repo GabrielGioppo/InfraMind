@@ -2,3 +2,6 @@ venv/
 *.sqlite3
 __pycache__/
 .env
+# Backups gerados por backend/scripts/backup.py (contêm dados e hashes de senha)
+backups/
+*.log

@@ -76,7 +76,7 @@ class AnonOccurrenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Occurrence
         fields = [
-            'id', 'title', 'description', 'category', 'address',
+            'id', 'title', 'description', 'category', 'address', 'city', 'state',
             'latitude', 'longitude', 'status', 'anon_id', 'created_at',
             'original_description', 'description_analysis_status', 'description_suggestion',
         ]
