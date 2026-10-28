@@ -15,7 +15,8 @@ async function api(path, opts = {}) {
 }
 
 function logout() {
-    ['infraMind_access_token','infraMind_refresh_token',
+    ['im_access','im_refresh','im_user',
+     'infraMind_access_token','infraMind_refresh_token',
      'infraMind_session_name','infraMind_session_email','infraMind_session_id']
         .forEach(k => localStorage.removeItem(k));
     window.location.href = 'index.html';
@@ -504,7 +505,22 @@ async function init() {
             if (me) {
                 const name = (me.first_name && me.last_name) ? `${me.first_name} ${me.last_name}` : me.username;
                 document.getElementById('admin-name').textContent = name;
-                document.getElementById('admin-avatar').textContent = name.slice(0,2).toUpperCase();
+                
+                const av1 = document.getElementById('admin-avatar');
+                const av2 = document.getElementById('admin-topbar-avatar');
+                if (me.profile_picture) {
+                    const src = me.profile_picture.startsWith('http') ? me.profile_picture : `${API}${me.profile_picture}`;
+                    const imgHtml = `<img src="${src}" alt="${name}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                    if (av1) av1.innerHTML = imgHtml;
+                    if (av2) av2.innerHTML = imgHtml;
+                } else {
+                    const initials = name.slice(0,2).toUpperCase();
+                    if (av1) av1.textContent = initials;
+                    if (av2) av2.textContent = initials;
+                }
+
+                localStorage.setItem('im_user', JSON.stringify(me));
+                if (typeof refreshDrawerUserData === 'function') refreshDrawerUserData();
             }
         }
     } catch(e) {}

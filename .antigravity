@@ -1,0 +1,102 @@
+Markdown
+# InfraMind - Mapeamento e Contexto do Projeto
+
+Plataforma Web para gestão, reporte, validação e análise estatística de ocorrências urbanas de infraestrutura municipal, integrando análise de IA (Google Gemini API) e geolocalização.
+
+---
+
+## 🏛️ Arquitetura do Projeto
+
+```text
+InfraMind/
+├── backend/            # API REST construída em Python/Django REST Framework
+└── frontend/           # Interface Web Client (HTML, CSS e JS Vanilla)
+🔧 Backend (Django REST Framework)
+Core do Sistema (backend/app/)
+settings.py: Configurações centrais do Django, banco de dados, apps instalados, middlewares e integração com APIs.
+
+urls.py: Roteador principal de URLs da API REST.
+
+asgi.py / wsgi.py: Interfaces de servidor para execução assíncrona e padrão.
+
+Apps e Módulos do Backend (backend/)
+1. occurrences/ (Gestão de Ocorrências)
+Função: Gerencia os relatórios de problemas urbanos (buracos, iluminação, saneamento, etc.).
+
+Modelos/Campos: Suporte a coordenadas geográficas (latitude/longitude), nível de urgência, status, cores de prioridade e integração com IA.
+
+Signals (signals.py): Dispara rotinas automatizadas após a criação ou atualização de uma ocorrência.
+
+2. gemini_api/ (Integração com IA)
+Função: Facade e cliente de integração com a API do Google Gemini.
+
+Uso: Avaliação automática da descrição e gravidade das ocorrências relatadas pelos cidadãos.
+
+3. validations/ (Validação Comunitária)
+Função: Sistema de confirmação/validação de ocorrências por outros usuários para evitar spam e dados falsos.
+
+4. notifications/ (Notificações e Prazos)
+Função: Controle de alertas, notificações e monitoramento de prazos de resolução.
+
+Comando Customizado (processar_prazos.py): Script executável via manage.py processar_prazos para verificar SLA e prazos pendentes.
+
+5. feedbacks/ (Avaliações e Satisfação)
+Função: Registro do tempo real de resolução e feedback dos usuários sobre os serviços prestados.
+
+6. categories/ (Categorias)
+Função: Cadastro e agrupamento do tipo de ocorrência (ex: Pavimentação, Iluminação, Trânsito).
+
+Seed Data (seed_default_categories.py): Script de migração para popular automaticamente as categorias padrões.
+
+7. geo/ (Geolocalização)
+Função: Adaptador e utilitários para conversão, busca espacial e manipulação de mapas/coordenadas.
+
+8. statistics_api/ (Relatórios e Dados)
+Função: Views e endpoints focados em agregar métricas e alimentar os gráficos do painel administrativo.
+
+9. users/ & authentication/ (Autenticação e Perfis)
+Função: Controle de usuários, perfis de acesso (Cidadão vs. Administrador) e rotas de login/registro.
+
+10. images/, history/ e logs/
+images/: Gerenciamento de uploads de fotos anexadas às ocorrências.
+
+history/: Histórico de auditoria e alteração de status ao longo do tempo.
+
+logs/: Registro de eventos do sistema e identificação do dispositivo (log_device).
+
+💻 Frontend (Web Client)
+Páginas web responsivas organizadas sem frameworks pesados, consumindo a API REST do Django via Fetch API (async/await).
+
+Páginas HTML (frontend/)
+landing.html: Apresentação principal do projeto InfraMind, proposta de valor e acesso rápido.
+
+index.html: Dashboard/Mapa interativo onde usuários visualizam, registram e validam ocorrências.
+
+admin.html: Painel de controle para gestores públicos acompanharem relatórios, estatísticas e status das ocorrências.
+
+como-funciona.html: Guia explicativo passo a passo para os cidadãos.
+
+Estilos e Estilização (frontend/CSS/)
+landing.css, index.css, admin.css, como-funciona.css: Arquivos de estilo modulares para cada página, com regras de mídia queries atreladas à responsividade mobile.
+
+Lógica de Scripts (frontend/JavaScript/)
+index.js: Manipulação de mapas, consumo dos endpoints de occurrences e envio de formulários.
+
+admin.js: Lógica do painel de controle, gráficos e atualização de status de ocorrências.
+
+landing.js & como-funciona.js: Interatividade visual e animações de navegação.
+
+🚀 Diretrizes para Desenvolvimento e IA
+Padrão REST: Toda comunicação entre frontend e backend deve ser feita via JSON através das rotas dos apps do Django.
+
+Estilo Frontend: Manter o CSS modularizado na pasta frontend/CSS/ respeitando as regras de responsividade mobile.
+
+Padrão Django: Novas tabelas e campos devem ser criados via models.py no app correspondente, seguidos da geração e execução de migrações (makemigrations / migrate).
+
+
+---
+
+<ElicitationsGroup message="O que gostaria de fazer a seguir com este arquivo?">
+  <Elicitation label="Salvar como arquivo .antigravity na raiz" query="Como faço para criar e salvar esse conteúdo diretamente dentro de um arquivo .antigravity no VS Code?"/>
+  <Elicitation label="Configurar regras avançadas de estilo no AntiGravity" query="Como posso adicionar regras de formatação de código específicas dentro desse arquivo para o AntiGravity?"/>
+</ElicitationsGroup>
