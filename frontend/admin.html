@@ -7,6 +7,8 @@
     <title>InfraMind — Painel Admin</title>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="CSS/admin.css">
+    <link rel="stylesheet" href="CSS/drawer.css">
+    <script src="JavaScript/drawer.js" defer></script>
     <script src="JavaScript/admin.js" defer></script>
 </head>
 <body>
@@ -51,15 +53,13 @@
             Categorias
         </div>
     </nav>
-    <div class="sidebar-footer">
+    <div class="sidebar-footer" id="admin-user-trigger" onclick="toggleUserDrawer()" title="Abrir menu do administrador" style="cursor:pointer;">
         <div class="avatar" id="admin-avatar">AD</div>
         <div class="avatar-info">
             <div class="avatar-name" id="admin-name">Administrador</div>
             <div class="avatar-role">Superusuário</div>
         </div>
-        <button class="logout-btn" onclick="logout()" title="Sair">
-            <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
-        </button>
+        <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:var(--text3);flex-shrink:0;"><path d="M7 10l5 5 5-5z"/></svg>
     </div>
 </aside>
 
@@ -76,7 +76,8 @@
                 <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
                 <span class="notif-dot" id="notif-dot"></span>
             </button>
-            <div class="notif-panel" id="notif-panel"></div>
+            <div class="avatar admin-topbar-avatar" id="admin-topbar-avatar" onclick="toggleUserDrawer()" title="Menu do Administrador" style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#a371f7);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;cursor:pointer;flex-shrink:0;overflow:hidden;border:1px solid var(--border);">
+                AD
             </div>
         </div>
     </div>
@@ -405,5 +406,49 @@
 </div>
 
 <div class="toast-container" id="toasts"></div>
+
+<!-- ══════════════════════════════════════
+     GAVETA DO USUÁRIO (USER DRAWER)
+══════════════════════════════════════ -->
+<div class="user-drawer-overlay" id="user-drawer-overlay" onclick="closeUserDrawer()"></div>
+<aside class="user-drawer" id="user-drawer">
+  <div class="user-drawer-header">
+    <div class="user-drawer-profile">
+      <div class="user-drawer-avatar" id="drawer-user-avatar">AD</div>
+      <div class="user-drawer-info">
+        <div class="user-drawer-name" id="drawer-user-name">Administrador</div>
+        <div class="user-drawer-role" id="drawer-user-role"><span class="user-drawer-role-badge admin">Administrador</span></div>
+      </div>
+    </div>
+    <button class="user-drawer-close" onclick="closeUserDrawer()" title="Fechar">
+      <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+    </button>
+  </div>
+
+  <div class="user-drawer-body">
+    <div class="user-drawer-section-title">Opções da Conta</div>
+
+    <!-- Opção 1: Editar Perfil -->
+    <a href="perfil.html" class="user-drawer-item">
+      <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+      <div class="user-drawer-item-text">
+        <span>Editar Perfil</span>
+        <small>Informações cadastrais, senha e foto</small>
+      </div>
+    </a>
+  </div>
+
+  <!-- Opção 2: Sair (logout exclusivo na gaveta) -->
+  <div class="user-drawer-footer">
+    <button type="button" class="user-drawer-item danger" onclick="logout()">
+      <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+      <div class="user-drawer-item-text">
+        <span>Sair</span>
+        <small>Encerrar sessão de administrador</small>
+      </div>
+    </button>
+  </div>
+</aside>
+
 </body>
 </html>

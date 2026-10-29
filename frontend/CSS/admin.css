@@ -60,9 +60,10 @@ body { background:var(--bg); color:var(--text); font-family:var(--font); min-hei
 .avatar-info { flex:1; min-width:0; }
 .avatar-name { font-size:13px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .avatar-role { font-size:11px; color:var(--text3); }
-.logout-btn { width:28px; height:28px; border-radius:6px; background:none; border:1px solid var(--border); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--text2); transition:all .15s; }
-.logout-btn:hover { background:var(--bg4); color:var(--red); border-color:var(--red); }
-.logout-btn svg { width:14px; height:14px; fill:currentColor; }
+.admin-topbar-avatar { display: none; }
+@media (max-width: 768px) {
+    .admin-topbar-avatar { display: flex; }
+}
 
 /* MAIN */
 #main { margin-left:240px; flex:1; display:flex; flex-direction:column; height:100vh; overflow-y:auto; }
@@ -279,10 +280,7 @@ tr:hover td { background:rgba(255,255,255,.02); }
     .nav { display: flex; flex: none; gap: 4px; padding: 6px 8px; overflow-x: auto; }
     .nav-section { display: none; }
     .nav-item { flex-shrink: 0; white-space: nowrap; margin-bottom: 0; padding: 8px 12px; }
-    /* avatar/nome somem; botão de sair fica no canto do cabeçalho */
-    .sidebar-footer { position: absolute; top: 10px; right: 12px; padding: 0; border: none; }
-    .sidebar-footer .avatar,
-    .sidebar-footer .avatar-info { display: none; }
+    .sidebar-footer { display: none; }
 
     #main { margin-left: 0; height: auto; flex: 1; min-height: 0; }
     .topbar { padding: 0 14px; }

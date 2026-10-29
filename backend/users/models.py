@@ -20,6 +20,8 @@ class User(AbstractUser):
     )
     date_of_birth = models.DateField(null=True, blank=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
+    cpf = models.CharField(max_length=14, blank=True, null=True)
+    profile_picture = models.ImageField(upload_to='profiles/', blank=True, null=True)
     address = models.TextField(blank=True, null=True)
 
     # Dados pessoais e endereço pedidos no cadastro. A cidade/UF definem quais

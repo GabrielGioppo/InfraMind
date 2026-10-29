@@ -24,7 +24,7 @@ class UserSerializer(serializers.ModelSerializer):
                   'is_active', 'created_at', 'updated_at', 'password']
         read_only_fields = ['is_active']
         extra_kwargs = {
-            'password': {'write_only': True},
+            'password': {'write_only': True, 'required': False},
         }
 
     # ── validações ────────────────────────────────────────────────
@@ -62,7 +62,7 @@ class UserSerializer(serializers.ModelSerializer):
         password = validated_data.pop('password', None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-        if password:
+        if password and str(password).strip():
             instance.set_password(password)
         instance.save()
         return instance

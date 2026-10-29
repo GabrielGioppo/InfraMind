@@ -45,10 +45,9 @@ async function api(path, opts = {}) {
 }
 
 function logout() {
-    ['im_access', 'im_refresh', 'im_user',
-     // chaves antigas, de versões anteriores do painel
-     'infraMind_access_token', 'infraMind_refresh_token',
-     'infraMind_session_name', 'infraMind_session_email', 'infraMind_session_id']
+    ['im_access','im_refresh','im_user',
+     'infraMind_access_token','infraMind_refresh_token',
+     'infraMind_session_name','infraMind_session_email','infraMind_session_id']
         .forEach(k => localStorage.removeItem(k));
     window.location.href = 'landing.html';
 }
@@ -739,28 +738,32 @@ async function init() {
     try {
         const payload = JSON.parse(atob(getToken().split('.')[1]));
         const r = await api('/api/v1/users/');
-        if (!r) return; // sessão inválida: api() já deslogou e redirecionou
-        const data = await r.json();
-        const users = Array.isArray(data) ? data : (data.results || []);
-        me = users.find(u => u.id === payload.user_id) || null;
-        loaded = true;
-    } catch (e) { console.error(e); }
+        if (r) {
+            const data = await r.json();
+            const users = Array.isArray(data) ? data : (data.results || []);
+            const me = users.find(u => u.id === uid);
+            if (me) {
+                const name = (me.first_name && me.last_name) ? `${me.first_name} ${me.last_name}` : me.username;
+                document.getElementById('admin-name').textContent = name;
+                
+                const av1 = document.getElementById('admin-avatar');
+                const av2 = document.getElementById('admin-topbar-avatar');
+                if (me.profile_picture) {
+                    const src = me.profile_picture.startsWith('http') ? me.profile_picture : `${API}${me.profile_picture}`;
+                    const imgHtml = `<img src="${src}" alt="${name}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                    if (av1) av1.innerHTML = imgHtml;
+                    if (av2) av2.innerHTML = imgHtml;
+                } else {
+                    const initials = name.slice(0,2).toUpperCase();
+                    if (av1) av1.textContent = initials;
+                    if (av2) av2.textContent = initials;
+                }
 
-    // API fora do ar: não redireciona (evita loop index <-> admin), só avisa.
-    if (!loaded) {
-        mostrarErroApi();
-        return;
-    }
-
-    if (!me || !(me.user_type === 'admin' || me.is_staff)) {
-        window.location.href = 'index.html';
-        return;
-    }
-
-    const name = (me.first_name && me.last_name) ? `${me.first_name} ${me.last_name}` : me.username;
-    document.getElementById('admin-name').textContent = name;
-    document.getElementById('admin-avatar').textContent = name.slice(0, 2).toUpperCase();
-
+                localStorage.setItem('im_user', JSON.stringify(me));
+                if (typeof refreshDrawerUserData === 'function') refreshDrawerUserData();
+            }
+        }
+    } catch(e) {}
     loadDashboard();
     loadNotifications();
 }

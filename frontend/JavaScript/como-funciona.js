@@ -241,13 +241,27 @@ function updateNavbar(user) {
 
   if (u && tk.get()) {
     const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username;
+    let avatarHtml = name.charAt(0).toUpperCase();
+    if (u.profile_picture) {
+      const src = u.profile_picture.startsWith('http') ? u.profile_picture : `${API}${u.profile_picture}`;
+      avatarHtml = `<img src="${src}" alt="${name}" style="width:100%;height:100%;object-fit:cover;">`;
+    }
+
     actionsEl.innerHTML = `
-      <span style="font-size:.82rem;color:#8b949e;white-space:nowrap">
-        Olá, <strong style="color:#e6edf3">${name}</strong>
-      </span>
-      <a href="${homeFor(u)}" class="btn btn-primary">
+      <div class="topbar-user" id="como-funciona-user-trigger" onclick="toggleUserDrawer()" title="Abrir menu do usuário" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <div class="avatar" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1f3a60,#a371f7);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#e6edf3;border:1px solid #30363d;overflow:hidden;">
+          ${avatarHtml}
+        </div>
+        <span style="font-size:.85rem;color:#e6edf3;font-weight:500">${name}</span>
+        <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:#8b949e;"><path d="M7 10l5 5 5-5z"/></svg>
+      </div>
+      <a href="index.html" class="btn btn-primary btn-sm">
         Ir para o sistema
       </a>`;
+
+    if (typeof refreshDrawerUserData === 'function') {
+      refreshDrawerUserData();
+    }
   } else {
     actionsEl.innerHTML = `
       <button class="btn btn-ghost" onclick="openAuthModal('login')">Fazer Login</button>
@@ -256,6 +270,16 @@ function updateNavbar(user) {
         <span class="lbl-full">Registrar Ocorrência</span><span class="lbl-short">Registrar</span>
       </button>`;
   }
+}
+
+function doLogout() {
+  tk.clear();
+  ['infraMind_access_token','infraMind_refresh_token',
+   'infraMind_session_name','infraMind_session_email','infraMind_session_id']
+    .forEach(k => localStorage.removeItem(k));
+  if (typeof closeUserDrawer === 'function') closeUserDrawer();
+  updateNavbar(null);
+  toast('Você saiu da sua conta.', 'info');
 }
 
 // ── TOC scroll spy ─────────────────────────────

@@ -166,7 +166,15 @@ function updateUserUI() {
   if (!u) return;
   const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username;
   document.getElementById('user-name').textContent = name;
-  document.getElementById('user-avatar').textContent = name.charAt(0).toUpperCase();
+  const avatarEl = document.getElementById('user-avatar');
+  if (avatarEl) {
+    if (u.profile_picture) {
+      const src = u.profile_picture.startsWith('http') ? u.profile_picture : `${API}${u.profile_picture}`;
+      avatarEl.innerHTML = `<img src="${src}" alt="${name}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+    } else {
+      avatarEl.textContent = name.charAt(0).toUpperCase();
+    }
+  }
   const isAdmin = u.user_type === 'admin' || u.is_staff;
   const badge = document.getElementById('user-role-badge');
   badge.textContent = isAdmin ? 'Admin' : 'Cidadão';
@@ -178,6 +186,10 @@ function updateUserUI() {
     document.querySelectorAll('.admin-only-element').forEach(el => el.style.display = '');
   } else {
     document.querySelectorAll('.admin-only-element').forEach(el => el.style.display = 'none');
+  }
+
+  if (typeof refreshDrawerUserData === 'function') {
+    refreshDrawerUserData();
   }
 }
 
