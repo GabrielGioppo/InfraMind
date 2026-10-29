@@ -484,21 +484,6 @@ function removePhoto() {
   if (preview) preview.style.display = 'none';
 }
 
-async function uploadOccPhoto(occId) {
-  const input = document.getElementById('occ-photo-input');
-  if (!input || !input.files[0]) return;
-  const formData = new FormData();
-  formData.append('occurrence', occId);
-  formData.append('image', input.files[0]);
-  try {
-    if (tk.get()) {
-      await apiFetch('/api/v1/images/', { method: 'POST', body: formData, headers: {} });
-    } else {
-      await fetch(`${API}/api/v1/images/anonymous/`, { method: 'POST', body: formData });
-    }
-  } catch (err) { console.warn('Foto não enviada:', err); }
-}
-
 async function submitOcc() {
   const cat   = document.getElementById('occ-cat').value;
   const msgEl = document.getElementById('occ-msg');
@@ -531,7 +516,7 @@ async function submitOcc() {
     longitude: lng ? parseFloat(parseFloat(lng).toFixed(5)) : null,
   };
 
-  const photoInput = document.getElementById('occ-photo');
+  const photoInput = document.getElementById('occ-photo-input');
   const firstPhoto = photoInput && photoInput.files && photoInput.files.length > 0 ? photoInput.files[0] : null;
 
   function notifyAI(d) {
@@ -546,6 +531,8 @@ async function submitOcc() {
       toast('✨ A descrição foi gerada a partir da foto enviada.', 'info');
     } else if (st === 'FOTO_INSUFICIENTE') {
       toast('⚠️ Foto insuficiente: por favor envie uma foto mais nítida. ' + (descFinal || ''), 'error');
+    } else if (st === 'FALHA' && firstPhoto) {
+      toast('Ocorrência registrada, mas a descrição técnica da foto não pôde ser gerada.', 'error');
     } else if (st === 'MANTIDA' && sug) {
       toast('💡 Dica da IA: ' + sug, 'info');
     } else {
@@ -639,8 +626,6 @@ function hideAILoadingProgress(callback) {
           toast('⚠️ ' + d.message, 'error');
           return;
         }
-        const occId = d.id || d.occurrence?.id;
-        if (!firstPhoto) uploadOccPhoto(occId);
         closeModal('modal-occ');
         notifyAI(d);
       });
@@ -683,7 +668,6 @@ function hideAILoadingProgress(callback) {
         return;
       }
       saveAnonOcc({ id: d.id, anon_id: d.anon_id, title: occPayload.title });
-      if (!firstPhoto) uploadOccPhoto(d.id);
       closeModal('modal-occ');
       notifyAI(d);
       setTimeout(() => {

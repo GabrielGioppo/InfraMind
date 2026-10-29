@@ -741,6 +741,8 @@ async function createOccurrence() {
         toast('✨ A descrição foi gerada a partir da foto enviada.', 'info');
       } else if (st === 'FOTO_INSUFICIENTE') {
         toast('⚠️ Foto insuficiente: por favor envie uma foto mais nítida. ' + (descFinal || ''), 'error');
+      } else if (st === 'FALHA' && firstFile) {
+        toast('Ocorrência registrada, mas a descrição técnica da foto não pôde ser gerada.', 'error');
       } else if (st === 'MANTIDA' && sug) {
         toast('💡 Dica da IA: ' + sug, 'info');
       } else {
