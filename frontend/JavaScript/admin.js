@@ -1,7 +1,7 @@
 // ============================================================
 // ADMIN DASHBOARD — InfraMind 
 // ============================================================
-const API = 'http://127.0.0.1:9000';
+const API = 'http://127.0.0.1:8000';
 
 // Mesmas chaves de sessão usadas por index.js / landing.js (im_access, im_refresh, im_user).
 function getToken() { return localStorage.getItem('im_access'); }
