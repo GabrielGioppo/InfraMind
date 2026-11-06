@@ -2,13 +2,13 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import get_user_model
-from users.serializers import UserSerializer, UserRegisterSerializer
+from users.serializers import UserSerializer
 
 User = get_user_model()
 
 class UserCreateView(generics.CreateAPIView):
     queryset = User.objects.all()
-    serializer_class = UserRegisterSerializer
+    serializer_class = UserSerializer
     permission_classes = [AllowAny]
 
     def create(self, request, *args, **kwargs):
@@ -30,3 +30,10 @@ class UserRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
+
+class UserMeView(generics.RetrieveUpdateAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user

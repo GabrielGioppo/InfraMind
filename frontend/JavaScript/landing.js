@@ -366,13 +366,23 @@ function updateNavbar(user) {
   if (actionsEl) {
     if (u && tk.get()) {
       const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username;
+      let avatarHtml = name.charAt(0).toUpperCase();
+      if (u.profile_picture) {
+        const src = u.profile_picture.startsWith('http') ? u.profile_picture : `${API}${u.profile_picture}`;
+        avatarHtml = `<img src="${src}" alt="${name}" style="width:100%;height:100%;object-fit:cover;">`;
+      }
       actionsEl.innerHTML = `
-        <span style="font-size:.82rem;color:#8b949e;white-space:nowrap">
-          Olá, <strong style="color:#e6edf3">${name}</strong>
-        </span>
-        <a href="${homeFor(u)}" class="btn btn-primary">
+        <div class="topbar-user" id="landing-user-trigger" onclick="toggleUserDrawer()" title="Abrir menu do usuário" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <div class="avatar" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1f3a60,#a371f7);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#e6edf3;border:1px solid #30363d;overflow:hidden;">
+            ${avatarHtml}
+          </div>
+          <span style="font-size:.85rem;color:#e6edf3;font-weight:500">${name}</span>
+          <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:#8b949e;"><path d="M7 10l5 5 5-5z"/></svg>
+        </div>
+        <a href="index.html" class="btn btn-primary btn-sm">
           Ir para o sistema
         </a>`;
+      if (typeof refreshDrawerUserData === 'function') refreshDrawerUserData();
     } else {
       actionsEl.innerHTML = `
         <button class="btn btn-ghost" onclick="openAuthModal('login')">Fazer Login</button>
@@ -403,6 +413,16 @@ function updateNavbar(user) {
         </button>`;
     }
   }
+}
+
+function doLogout() {
+  tk.clear();
+  ['infraMind_access_token','infraMind_refresh_token',
+   'infraMind_session_name','infraMind_session_email','infraMind_session_id']
+    .forEach(k => localStorage.removeItem(k));
+  if (typeof closeUserDrawer === 'function') closeUserDrawer();
+  updateNavbar(null);
+  toast('Você saiu da sua conta.', 'info');
 }
 
 // ══════════════════════════════════════════
@@ -464,21 +484,6 @@ function removePhoto() {
   if (preview) preview.style.display = 'none';
 }
 
-async function uploadOccPhoto(occId) {
-  const input = document.getElementById('occ-photo-input');
-  if (!input || !input.files[0]) return;
-  const formData = new FormData();
-  formData.append('occurrence', occId);
-  formData.append('image', input.files[0]);
-  try {
-    if (tk.get()) {
-      await apiFetch('/api/v1/images/', { method: 'POST', body: formData, headers: {} });
-    } else {
-      await fetch(`${API}/api/v1/images/anonymous/`, { method: 'POST', body: formData });
-    }
-  } catch (err) { console.warn('Foto não enviada:', err); }
-}
-
 async function submitOcc() {
   const cat   = document.getElementById('occ-cat').value;
   const msgEl = document.getElementById('occ-msg');
@@ -511,7 +516,7 @@ async function submitOcc() {
     longitude: lng ? parseFloat(parseFloat(lng).toFixed(5)) : null,
   };
 
-  const photoInput = document.getElementById('occ-photo');
+  const photoInput = document.getElementById('occ-photo-input');
   const firstPhoto = photoInput && photoInput.files && photoInput.files.length > 0 ? photoInput.files[0] : null;
 
   function notifyAI(d) {
@@ -526,6 +531,8 @@ async function submitOcc() {
       toast('✨ A descrição foi gerada a partir da foto enviada.', 'info');
     } else if (st === 'FOTO_INSUFICIENTE') {
       toast('⚠️ Foto insuficiente: por favor envie uma foto mais nítida. ' + (descFinal || ''), 'error');
+    } else if (st === 'FALHA' && firstPhoto) {
+      toast('Ocorrência registrada, mas a descrição técnica da foto não pôde ser gerada.', 'error');
     } else if (st === 'MANTIDA' && sug) {
       toast('💡 Dica da IA: ' + sug, 'info');
     } else {
@@ -619,8 +626,6 @@ function hideAILoadingProgress(callback) {
           toast('⚠️ ' + d.message, 'error');
           return;
         }
-        const occId = d.id || d.occurrence?.id;
-        if (!firstPhoto) uploadOccPhoto(occId);
         closeModal('modal-occ');
         notifyAI(d);
       });
@@ -663,7 +668,6 @@ function hideAILoadingProgress(callback) {
         return;
       }
       saveAnonOcc({ id: d.id, anon_id: d.anon_id, title: occPayload.title });
-      if (!firstPhoto) uploadOccPhoto(d.id);
       closeModal('modal-occ');
       notifyAI(d);
       setTimeout(() => {

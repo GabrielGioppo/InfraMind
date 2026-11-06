@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InfraMind — Redefinir Senha</title>
+  <link rel="icon" type="image/jpeg" href="Images/favicon.jpeg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="CSS/redefinir-senha.css">
+</head>
+<body>
+
+  <main class="reset-card">
+    <div class="auth-logo">
+      <div class="auth-logo-mark">IM</div>
+      <h1 class="auth-logo-title">InfraMind</h1>
+      <p class="auth-logo-sub">Redefinição de Senha</p>
+    </div>
+
+    <!-- Alerta de erro ou aviso -->
+    <div id="reset-alert" class="reset-alert"></div>
+
+    <!-- ── FORMULÁRIO DE NOVA SENHA ── -->
+    <form id="reset-form" onsubmit="handlePasswordReset(event)">
+      <p style="color:var(--text-2);font-size:0.88rem;margin-bottom:20px;text-align:center;">
+        Crie uma nova senha segura para acessar sua conta na plataforma.
+      </p>
+
+      <div class="field">
+        <label for="new-password">Nova Senha</label>
+        <div class="field-input-wrapper">
+          <input type="password" id="new-password" placeholder="Mínimo 8 caracteres" required minlength="8" autocomplete="new-password">
+          <button type="button" class="pw-toggle-btn" onclick="toggleVisibility('new-password', this)" title="Mostrar/ocultar senha">
+            <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+          </button>
+        </div>
+        <span class="field-hint">A senha precisa ter pelo menos 8 caracteres.</span>
+      </div>
+
+      <div class="field">
+        <label for="confirm-password">Confirmar Nova Senha</label>
+        <div class="field-input-wrapper">
+          <input type="password" id="confirm-password" placeholder="Repita a nova senha" required minlength="8" autocomplete="new-password">
+          <button type="button" class="pw-toggle-btn" onclick="toggleVisibility('confirm-password', this)" title="Mostrar/ocultar senha">
+            <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-submit" id="btn-submit-reset">
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+        Salvar Nova Senha
+      </button>
+
+      <a href="landing.html" class="btn-back-home">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        Voltar para a página inicial
+      </a>
+    </form>
+
+    <!-- ── ESTADO DE SUCESSO ── -->
+    <div id="reset-success" class="reset-success-box">
+      <div class="success-icon-wrap">
+        <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+      </div>
+      <h2 class="success-title">Senha alterada com sucesso!</h2>
+      <p class="success-desc">
+        Sua nova senha foi gravada com segurança. Agora você já pode fazer login na plataforma utilizando suas novas credenciais.
+      </p>
+      <a href="landing.html?login=true" class="btn-login-now">
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        Voltar para a página inicial e Fazer Login
+      </a>
+    </div>
+  </main>
+
+  <script>
+    const API = window.API || 'http://127.0.0.1:8000';
+
+    function toggleVisibility(id, btn) {
+      const inp = document.getElementById(id);
+      if (!inp) return;
+      const isPass = inp.type === 'password';
+      inp.type = isPass ? 'text' : 'password';
+      const path = btn.querySelector('svg path');
+      if (path) {
+        path.setAttribute('d', isPass
+          ? 'M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.82l2.92 2.92c1.51-1.26 2.7-2.89 3.44-4.74-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27z'
+          : 'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z'
+        );
+      }
+    }
+
+    function showAlert(msg, type = 'error') {
+      const el = document.getElementById('reset-alert');
+      if (!el) return;
+      el.className = `reset-alert ${type}`;
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    function hideAlert() {
+      const el = document.getElementById('reset-alert');
+      if (el) el.style.display = 'none';
+    }
+
+    // Valida parâmetros ao carregar
+    const params = new URLSearchParams(window.location.search);
+    const uid = params.get('reset_uid');
+    const token = params.get('reset_token');
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!uid || !token) {
+        document.getElementById('reset-form').style.display = 'none';
+        showAlert('Link de redefinição inválido ou incompleto. Solicite um novo link pela página de login.', 'warning');
+      }
+    });
+
+    async function handlePasswordReset(e) {
+      e.preventDefault();
+      hideAlert();
+
+      if (!uid || !token) {
+        showAlert('Link inválido ou expirado. Peça um novo link de redefinição.', 'error');
+        return;
+      }
+
+      const pass = document.getElementById('new-password').value;
+      const conf = document.getElementById('confirm-password').value;
+
+      if (!pass || pass.length < 8) {
+        showAlert('A nova senha precisa ter pelo menos 8 caracteres.', 'error');
+        return;
+      }
+
+      if (pass !== conf) {
+        showAlert('As senhas digitadas não coincidem. Verifique e tente novamente.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('btn-submit-reset');
+      btn.disabled = true;
+      btn.innerHTML = `
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;animation:spin 1s linear infinite;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+        Salvando...`;
+
+      try {
+        const res = await fetch(`${API}/authentication/password-reset/confirm/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uid, token, password: pass })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          // Exibe sucesso
+          document.getElementById('reset-form').style.display = 'none';
+          document.getElementById('reset-success').style.display = 'block';
+        } else {
+          let errText = 'Não foi possível redefinir a senha.';
+          if (data.error) errText = data.error;
+          else if (data.password && Array.isArray(data.password)) errText = data.password[0];
+          showAlert(errText, 'error');
+        }
+      } catch (err) {
+        console.error('Erro ao redefinir senha:', err);
+        showAlert('Erro de conexão com o servidor. Tente novamente.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          Salvar Nova Senha`;
+      }
+    }
+  </script>
+</body>
+</html>

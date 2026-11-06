@@ -201,7 +201,7 @@ O InfraMind utiliza o **Google Gemini 2.5 Flash** para enriquecer automaticament
 | `analyze_occurrence_urgency` | Analisa e pontua a urgência da ocorrência (score 0–100, níveis: low / medium / high / critical) |
 | `detect_duplicate_occurrences` | Verifica se a nova ocorrência é duplicata de alguma existente na mesma área |
 
-> Cada chamada ao Gemini espera no máximo **5 segundos** (RNF02). Passou disso, a função usa o fallback local. O limite pode ser ajustado com `GEMINI_TIMEOUT_SECONDS` no `backend/.env`.
+> O timeout de rede do Gemini é de **30 segundos** por padrão. Erros de rede ou timeout acionam o fallback local. Ajuste com `GEMINI_TIMEOUT_SECONDS` no `backend/.env`; valores abaixo de **10 segundos** são elevados a 10, pois o Gemini recusa prazos menores.
 
 > Todas as funções possuem **fallback local** — se a chave do Gemini não estiver configurada, o sistema continua funcionando com análise por palavras-chave (urgência) e similaridade Jaccard (duplicatas).
 

@@ -8,6 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="CSS/landing.css">
     <script src="JavaScript/cadastro.js" defer></script>
+    <link rel="stylesheet" href="CSS/drawer.css">
+    <script src="JavaScript/drawer.js" defer></script>
     <script src="JavaScript/landing.js" defer></script>
   </head>
   <body>
@@ -617,5 +619,58 @@
 
   <!-- Toast container -->
   <div id="toast-root"></div>
+
+  <!-- ═══════════════════════════════════════
+       GAVETA DO USUÁRIO (USER DRAWER)
+  ═══════════════════════════════════════ -->
+  <div class="user-drawer-overlay" id="user-drawer-overlay" onclick="closeUserDrawer()"></div>
+  <aside class="user-drawer" id="user-drawer">
+    <div class="user-drawer-header">
+      <div class="user-drawer-profile">
+        <div class="user-drawer-avatar" id="drawer-user-avatar">?</div>
+        <div class="user-drawer-info">
+          <div class="user-drawer-name" id="drawer-user-name">Usuário</div>
+          <div class="user-drawer-role" id="drawer-user-role">Cidadão</div>
+        </div>
+      </div>
+      <button class="user-drawer-close" onclick="closeUserDrawer()" title="Fechar">
+        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      </button>
+    </div>
+
+    <div class="user-drawer-body">
+      <div class="user-drawer-section-title">Opções da Conta</div>
+
+      <!-- Opção 1: Editar Perfil -->
+      <a href="perfil.html" class="user-drawer-item">
+        <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        <div class="user-drawer-item-text">
+          <span>Editar Perfil</span>
+          <small>Informações cadastrais, senha e foto</small>
+        </div>
+      </a>
+
+      <!-- Acessar Sistema -->
+      <a href="index.html" class="user-drawer-item">
+        <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        <div class="user-drawer-item-text">
+          <span>Acessar o Sistema</span>
+          <small>Ir para o feed e mapa de ocorrências</small>
+        </div>
+      </a>
+    </div>
+
+    <!-- Opção 2: Sair (logout exclusivo na gaveta) -->
+    <div class="user-drawer-footer">
+      <button type="button" class="user-drawer-item danger" onclick="doLogout()">
+        <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+        <div class="user-drawer-item-text">
+          <span>Sair</span>
+          <small>Encerrar sessão no sistema</small>
+        </div>
+      </button>
+    </div>
+  </aside>
+
   </body>
   </html>

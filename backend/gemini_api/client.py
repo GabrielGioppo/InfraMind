@@ -1,12 +1,14 @@
 import os
 import json
+from io import BytesIO
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# RNF02: tempo máximo de espera por uma resposta do Gemini. Passou disso, a
-# chamada levanta exceção e cada função de IA cai no seu fallback local.
-GEMINI_TIMEOUT_SECONDS = float(os.getenv('GEMINI_TIMEOUT_SECONDS', '5'))
+# Timeout de rede: 30 s por padrão, respeitando o mínimo de 10 s exigido
+# pelo Gemini. Erros de rede continuam acionando o fallback local.
+GEMINI_TIMEOUT_SECONDS = float(os.getenv('GEMINI_TIMEOUT_SECONDS', '30'))
+GEMINI_MIN_TIMEOUT_SECONDS = 10
 
 
 class GeminiClient:
@@ -34,7 +36,9 @@ class GeminiClient:
                 self._client = genai.Client(
                     api_key=self._api_key,
                     # O SDK recebe o timeout em milissegundos.
-                    http_options=types.HttpOptions(timeout=int(GEMINI_TIMEOUT_SECONDS * 1000)),
+                    http_options=types.HttpOptions(
+                        timeout=int(max(GEMINI_MIN_TIMEOUT_SECONDS, GEMINI_TIMEOUT_SECONDS) * 1000),
+                    ),
                 )
             except Exception as e:
                 print(f'[Gemini] Aviso: não foi possível inicializar o cliente — {e}')
@@ -314,18 +318,35 @@ Retorne SOMENTE um JSON válido com a seguinte estrutura:
 }"""
 
 
+DESCRIPTION_ANALYSIS_RESPONSE_SCHEMA = {
+    'type': 'OBJECT',
+    'properties': {
+        'status': {'type': 'STRING', 'enum': sorted(VALID_ANALYSIS_STATUSES)},
+        'descricao_final': {'type': 'STRING'},
+        'sugestao': {'type': 'STRING'},
+    },
+    'required': ['status', 'descricao_final', 'sugestao'],
+}
+
+
 def clean_truncate(text: str, max_len: int = 255) -> str:
     """
     Garante o limite de 255 caracteres para textos gerados/ajustados pela IA.
-    Truncagem limpa sem cortar palavras ao meio.
+    Evita cortar palavras quando possível, sempre respeitando max_len.
     """
     if not text or len(text) <= max_len:
         return text or ""
-    truncated = text[:max_len]
-    last_space = truncated.rfind(' ')
-    if last_space > 0:
-        truncated = truncated[:last_space]
-    return truncated.rstrip('.,;:') + '...'
+    if max_len <= 0:
+        return ''
+    if max_len <= 3:
+        return '.' * max_len
+    limit = max_len - 3  # Reserva o espaço das reticências.
+    truncated = text[:limit]
+    if not text[limit].isspace():
+        last_space = truncated.rfind(' ')
+        if last_space > 0:
+            truncated = truncated[:last_space]
+    return truncated.rstrip(' .,;:\t\r\n') + '...'
 
 
 def analyze_occurrence_description_and_photo(image_file=None, description: str = "", title: str = "") -> dict:
@@ -344,32 +365,45 @@ def analyze_occurrence_description_and_photo(image_file=None, description: str =
         'original_description': original_desc,
     }
 
+    # Sem evidência visual não há análise de foto nem alteração pela IA.
+    if image_file is None:
+        return fallback_response
+
     gemini = GeminiClient.get_instance()
     if not gemini.is_available():
         return fallback_response
 
+    img = None
     try:
         from PIL import Image
-        contents = [DESCRIPTION_ANALYSIS_SYSTEM_PROMPT]
+        from google.genai import types
 
-        if image_file:
-            if hasattr(image_file, 'read'):
-                try:
-                    img = Image.open(image_file)
-                    contents.append(img)
-                    if hasattr(image_file, 'seek'):
-                        image_file.seek(0)
-                except Exception as img_err:
-                    print(f"[Gemini] Aviso ao ler imagem: {img_err}")
-            elif isinstance(image_file, Image.Image):
-                contents.append(image_file)
+        if isinstance(image_file, Image.Image):
+            image_file.load()
+            img = image_file.copy()
+        elif hasattr(image_file, 'read') and hasattr(image_file, 'seek'):
+            # Decodifica uma cópia completa: o SDK não depende do stream do upload,
+            # que permanece aberto e volta ao início para ser salvo pela view.
+            try:
+                image_file.seek(0)
+                image_bytes = image_file.read()
+            finally:
+                image_file.seek(0)
+            with Image.open(BytesIO(image_bytes)) as source:
+                source.load()
+                img = source.copy()
+        else:
+            return fallback_response
 
         prompt_user = f"Título: '{title}'\nDescrição do Usuário: '{original_desc}'"
-        contents.append(prompt_user)
-
         response = gemini._client.models.generate_content(
             model='gemini-2.5-flash',
-            contents=contents
+            contents=[img, prompt_user],
+            config=types.GenerateContentConfig(
+                system_instruction=DESCRIPTION_ANALYSIS_SYSTEM_PROMPT,
+                response_mime_type='application/json',
+                response_schema=DESCRIPTION_ANALYSIS_RESPONSE_SCHEMA,
+            ),
         )
         raw = (response.text or "").strip()
         if raw.startswith('```'):
@@ -378,18 +412,25 @@ def analyze_occurrence_description_and_photo(image_file=None, description: str =
                 raw = raw[4:]
         data = json.loads(raw.strip())
 
-        status_res = str(data.get('status', '')).upper()
-        if status_res not in VALID_ANALYSIS_STATUSES:
-            print(f"[Gemini] Status de IA inválido retornado: '{status_res}'")
+        # Mesmo com schema no Gemini, só aceitamos localmente dados completos.
+        if not isinstance(data, dict) or not all(
+            isinstance(data.get(field), str)
+            for field in ('status', 'descricao_final', 'sugestao')
+        ):
+            return fallback_response
+        status_res = data['status'].strip().upper()
+        if status_res not in VALID_ANALYSIS_STATUSES or not data['descricao_final'].strip():
+            return fallback_response
+        if status_res == 'GERADA' and original_desc:
+            return fallback_response
+        if status_res in {'MANTIDA', 'CORRIGIDA', 'SUBSTITUIDA'} and not original_desc:
             return fallback_response
 
-        # Garantia no CÓDIGO de que em MANTIDA o texto salvo é exatamente o original do usuário
-        if status_res == 'MANTIDA':
-            final_desc = original_desc
-        else:
-            final_desc = clean_truncate(str(data.get('descricao_final', '')).strip(), 255)
-
-        sugestao = str(data.get('sugestao', '')).strip() if status_res == 'MANTIDA' else ''
+        # MANTIDA nunca substitui o texto do usuário pela resposta do modelo.
+        final_desc = original_desc if status_res == 'MANTIDA' else clean_truncate(
+            data['descricao_final'].strip(), 255,
+        )
+        sugestao = data['sugestao'].strip() if status_res == 'MANTIDA' else ''
 
         return {
             'status': status_res,
@@ -401,3 +442,6 @@ def analyze_occurrence_description_and_photo(image_file=None, description: str =
     except Exception as e:
         print(f"[Gemini] Erro ou timeout na análise da foto/descrição: {e}")
         return fallback_response
+    finally:
+        if img is not None:
+            img.close()
