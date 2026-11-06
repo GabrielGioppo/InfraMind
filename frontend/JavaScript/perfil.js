@@ -2,7 +2,7 @@
 // PERFIL & DASHBOARD DO USUÁRIO — InfraMind
 // ══════════════════════════════════════════════════════
 
-const API = 'http://127.0.0.1:9000';
+const API = 'http://127.0.0.1:8000';
 
 let CURRENT_USER = null;
 let SELECTED_PHOTO_FILE = null;
