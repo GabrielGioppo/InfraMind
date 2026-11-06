@@ -1,7 +1,18 @@
+from io import BytesIO
+
 from django.test import TestCase
 from unittest.mock import patch, MagicMock
+from PIL import Image
 from occurrences.models import Occurrence
 from gemini_api.client import analyze_occurrence_description_and_photo, clean_truncate
+
+
+def _foto():
+    """Imagem PNG em memória: a análise de IA só roda quando há foto."""
+    buf = BytesIO()
+    Image.new('RGB', (8, 8), 'gray').save(buf, 'PNG')
+    buf.seek(0)
+    return buf
 
 
 class AIDescriptionAnalysisTests(TestCase):
@@ -31,7 +42,7 @@ class AIDescriptionAnalysisTests(TestCase):
         mock_client._client.models.generate_content.return_value = mock_response
         mock_gemini_instance.return_value = mock_client
 
-        res = analyze_occurrence_description_and_photo(image_file=None, description="", title="Buraco")
+        res = analyze_occurrence_description_and_photo(image_file=_foto(), description="", title="Buraco")
         self.assertEqual(res['status'], 'GERADA')
         self.assertEqual(res['descricao_final'], "Buraco grande no asfalto com fissuras ao redor.")
 
@@ -46,7 +57,7 @@ class AIDescriptionAnalysisTests(TestCase):
         mock_client._client.models.generate_content.return_value = mock_response
         mock_gemini_instance.return_value = mock_client
 
-        res = analyze_occurrence_description_and_photo(image_file=None, description=original, title="Buraco")
+        res = analyze_occurrence_description_and_photo(image_file=_foto(), description=original, title="Buraco")
         self.assertEqual(res['status'], 'MANTIDA')
         # Garantia no código: MANTIDA nunca altera o texto original
         self.assertEqual(res['descricao_final'], original)
@@ -63,7 +74,7 @@ class AIDescriptionAnalysisTests(TestCase):
         mock_client._client.models.generate_content.return_value = mock_response
         mock_gemini_instance.return_value = mock_client
 
-        res = analyze_occurrence_description_and_photo(image_file=None, description=original, title="Buraco")
+        res = analyze_occurrence_description_and_photo(image_file=_foto(), description=original, title="Buraco")
         self.assertEqual(res['status'], 'MANTIDA')
         self.assertEqual(res['descricao_final'], original)
 
@@ -78,7 +89,7 @@ class AIDescriptionAnalysisTests(TestCase):
         mock_client._client.models.generate_content.return_value = mock_response
         mock_gemini_instance.return_value = mock_client
 
-        res = analyze_occurrence_description_and_photo(image_file=None, description=original, title="Problema")
+        res = analyze_occurrence_description_and_photo(image_file=_foto(), description=original, title="Problema")
         self.assertEqual(res['status'], 'SUBSTITUIDA')
         self.assertEqual(res['descricao_final'], "Acúmulo de lixo e entulho obstruindo a calçada.")
 
@@ -93,7 +104,7 @@ class AIDescriptionAnalysisTests(TestCase):
         mock_client._client.models.generate_content.return_value = mock_response
         mock_gemini_instance.return_value = mock_client
 
-        res = analyze_occurrence_description_and_photo(image_file=None, description=original, title="Vazamento")
+        res = analyze_occurrence_description_and_photo(image_file=_foto(), description=original, title="Vazamento")
         self.assertEqual(res['status'], 'CORRIGIDA')
         self.assertIn("Rua A nº 50", res['descricao_final'])
 
@@ -108,7 +119,7 @@ class AIDescriptionAnalysisTests(TestCase):
         mock_client._client.models.generate_content.return_value = mock_response
         mock_gemini_instance.return_value = mock_client
 
-        res = analyze_occurrence_description_and_photo(image_file=None, description=original, title="Iluminação")
+        res = analyze_occurrence_description_and_photo(image_file=_foto(), description=original, title="Iluminação")
         self.assertEqual(res['status'], 'SUBSTITUIDA')
 
     @patch('gemini_api.client.GeminiClient.get_instance')
@@ -121,7 +132,7 @@ class AIDescriptionAnalysisTests(TestCase):
         mock_client._client.models.generate_content.return_value = mock_response
         mock_gemini_instance.return_value = mock_client
 
-        res = analyze_occurrence_description_and_photo(image_file=None, description="Buraco", title="Buraco")
+        res = analyze_occurrence_description_and_photo(image_file=_foto(), description="Buraco", title="Buraco")
         self.assertEqual(res['status'], 'FOTO_INSUFICIENTE')
         self.assertEqual(res['descricao_final'], "A imagem está muito escura. Envie uma foto sob luz do dia.")
 
@@ -136,7 +147,7 @@ class AIDescriptionAnalysisTests(TestCase):
         mock_client._client.models.generate_content.return_value = mock_response
         mock_gemini_instance.return_value = mock_client
 
-        res = analyze_occurrence_description_and_photo(image_file=None, description=original, title="Teste")
+        res = analyze_occurrence_description_and_photo(image_file=_foto(), description=original, title="Teste")
         self.assertEqual(res['status'], 'FALHA')
         self.assertEqual(res['descricao_final'], original)
 
@@ -149,6 +160,14 @@ class AIDescriptionAnalysisTests(TestCase):
         mock_client._client.models.generate_content.side_effect = Exception("Timeout de Conexão com Gemini")
         mock_gemini_instance.return_value = mock_client
 
-        res = analyze_occurrence_description_and_photo(image_file=None, description=original, title="Teste")
+        res = analyze_occurrence_description_and_photo(image_file=_foto(), description=original, title="Teste")
         self.assertEqual(res['status'], 'FALHA')
         self.assertEqual(res['descricao_final'], original)
+
+    @patch('gemini_api.client.GeminiClient.get_instance')
+    def test_sem_foto_nao_chama_a_ia_e_mantem_o_texto(self, mock_gemini_instance):
+        """9. Sem foto não há análise: o Gemini nem é consultado e o texto do usuário fica como está"""
+        res = analyze_occurrence_description_and_photo(image_file=None, description="Buraco na rua", title="Buraco")
+        self.assertEqual(res['status'], 'FALHA')
+        self.assertEqual(res['descricao_final'], "Buraco na rua")
+        mock_gemini_instance.assert_not_called()
