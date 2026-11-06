@@ -68,7 +68,7 @@ function refreshDrawerUserData() {
   const avatarEl = document.getElementById('drawer-user-avatar');
   if (avatarEl) {
     if (picture) {
-      const src = picture.startsWith('http') ? picture : `http://127.0.0.1:9000${picture}`;
+      const src = picture.startsWith('http') ? picture : `http://127.0.0.1:8000${picture}`;
       avatarEl.innerHTML = `<img src="${src}" alt="${name}" onerror="this.onerror=null;this.parentElement.textContent='${name.charAt(0).toUpperCase()}';">`;
     } else {
       avatarEl.textContent = name.charAt(0).toUpperCase();
