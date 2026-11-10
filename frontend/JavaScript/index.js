@@ -835,7 +835,7 @@ async function loadDetail(id) {
       sideActions.push(`<button class="btn btn-success btn-sm" onclick="openModal('modal-validate')">👥 Confirmar Problema</button>`);
     }
     if (STATE.user && !isAdmin() && String(o.user) !== String(STATE.user.id)) {
-      sideActions.push(`<button class="btn btn-ghost btn-sm" onclick="openDenuncia(${o.id}, ${JSON.stringify(o.title).replace(/"/g, '&quot;')})" style="color:var(--red)">🚩 Denunciar conteúdo</button>`);
+      sideActions.push(`<button class="btn btn-ghost btn-sm" onclick="openDenuncia(${o.id}, ${JSON.stringify(o.title).replace(/"/g, '&quot;')})" style="color:var(--red)">🚩 Reportar conteúdo</button>`);
     }
     if (isAdmin()) {
       sideActions.push(`<button class="btn btn-ghost btn-sm" onclick="openFeedbackModal()">📝 Enviar Atualização</button>`);
@@ -1433,7 +1433,7 @@ async function submitDenuncia() {
   const tipo = document.getElementById('den-tipo').value;
   const descricao = document.getElementById('den-desc').value.trim();
   const occ = document.getElementById('den-occ-id').value;
-  if (tipo === 'conteudo_inadequado' && !occ) { toast('Abra a ocorrência e use "Denunciar conteúdo".', 'error'); return; }
+  if (tipo === 'conteudo_inadequado' && !occ) { toast('Abra a ocorrência e use "Reportar conteúdo".', 'error'); return; }
   if (descricao.length < 10) { toast('Descreva com pelo menos 10 caracteres.', 'error'); return; }
   const btn = document.getElementById('den-btn');
   btn.disabled = true;

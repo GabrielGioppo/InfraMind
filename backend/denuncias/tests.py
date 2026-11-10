@@ -88,7 +88,7 @@ class DenunciaTests(TestCase):
         _api(self.maria).post(URL, {'tipo': 'conteudo_inadequado', 'occurrence': self.occ.pk,
                                     'descricao': 'Esse conteúdo é ofensivo.'}, format='json')
         d = Denuncia.objects.get()
-        avisos = Notificacao.objects.filter(titulo=f'Nova denúncia #{d.id}')
+        avisos = Notificacao.objects.filter(titulo=f'Novo chamado de suporte #{d.id}')
         self.assertEqual({n.user for n in avisos}, {self.admin, outro_admin})
         n = avisos.get(user=self.admin)
         self.assertEqual((n.canal, n.tipo, n.read, n.status), ('push', 'geral', False, 'enviada'))
@@ -99,7 +99,7 @@ class DenunciaTests(TestCase):
         # E o aviso aparece na lista do sino do admin.
         corpo = _api(self.admin).get('/api/v1/notifications/').json()
         lista = corpo['results'] if isinstance(corpo, dict) else corpo
-        self.assertEqual([x['titulo'] for x in lista], [f'Nova denúncia #{d.id}'])
+        self.assertEqual([x['titulo'] for x in lista], [f'Novo chamado de suporte #{d.id}'])
 
     def test_admin_que_denuncia_nao_se_avisa(self):
         _api(self.admin).post(URL, {'tipo': 'bug', 'descricao': 'Teste de bug pelo admin.'}, format='json')

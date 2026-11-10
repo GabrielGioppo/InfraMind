@@ -126,7 +126,7 @@ function showPage(id) {
             if (n.getAttribute('onclick') === `showPage('${p}')`) n.classList.toggle('active', p === id);
         });
     });
-    const titles = { dashboard:'Dashboard', occurrences:'Ocorrências', users:'Usuários', feedbacks:'Feedbacks', denuncias:'Denúncias', logs:'Logs de Auditoria', categories:'Categorias', map:'Mapa de Ocorrências' };
+    const titles = { dashboard:'Dashboard', occurrences:'Ocorrências', users:'Usuários', feedbacks:'Feedbacks', denuncias:'Suporte', logs:'Logs de Auditoria', categories:'Categorias', map:'Mapa de Ocorrências' };
     document.getElementById('page-title').textContent = titles[id] || id;
     if (id === 'dashboard')   loadDashboard();
     if (id === 'occurrences') loadOccurrences();
@@ -147,6 +147,29 @@ document.querySelectorAll('.modal-backdrop').forEach(b => b.addEventListener('cl
 let allOcc = [], allUsers = [], allCats = [], allLogs = [], allFeedbacks = [];
 
 // ── DASHBOARD ──
+// Gráfico de pizza das ocorrências por status: conic-gradient + legenda (sem biblioteca).
+function renderStatusPie(grupos, rotulos, cores) {
+    const el = document.getElementById('status-chart');
+    const total = Object.values(grupos).reduce((a, b) => a + b, 0);
+    const legenda = Object.entries(grupos).map(([k, v]) => {
+        const pct = total ? Math.round((v / total) * 100) : 0;
+        return `<li><span class="pie-dot" style="background:${cores[k]}"></span>
+            <span class="pie-name">${rotulos[k]}</span>
+            <span class="pie-val">${v} <small>(${pct}%)</small></span></li>`;
+    }).join('');
+    let fundo = 'var(--bg3)';
+    if (total) {
+        let acc = 0;
+        fundo = 'conic-gradient(' + Object.entries(grupos).filter(([, v]) => v > 0).map(([k, v]) => {
+            const ini = (acc / total) * 100; acc += v;
+            return `${cores[k]} ${ini}% ${(acc / total) * 100}%`;
+        }).join(', ') + ')';
+    }
+    el.innerHTML = `<div class="pie" style="background:${fundo}" role="img"
+            aria-label="Ocorrências por status"><div class="pie-hole"><b>${total}</b><span>total</span></div></div>
+        <ul class="pie-legend">${legenda}</ul>`;
+}
+
 async function loadDashboard() {
     try {
         const [rStats, rOcc, rUsers] = await Promise.all([
@@ -177,19 +200,12 @@ async function loadDashboard() {
                 `${atrasadas} ocorrência${atrasadas > 1 ? 's' : ''} com prazo (SLA) estourado${atrasadas > 1 ? 's' : ''}.`;
         }
 
-        // mini chart
+        // gráfico de pizza (ocorrências por status)
         const statusGroups = { open:0, in_progress:0, resolved:0, closed:0 };
         occs.forEach(o => { if (statusGroups[o.status] !== undefined) statusGroups[o.status]++; });
-        const maxVal = Math.max(...Object.values(statusGroups), 1);
         const labels = { open:'Aberta', in_progress:'Andamento', resolved:'Resolvida', closed:'Fechada' };
         const colors = { open:'var(--accent)', in_progress:'var(--yellow)', resolved:'var(--green)', closed:'var(--text3)' };
-        document.getElementById('status-chart').innerHTML = Object.entries(statusGroups).map(([k,v]) =>
-            `<div class="bar-col">
-                <div class="bar" style="height:${Math.round((v/maxVal)*44)}px;background:${colors[k]}"></div>
-                <div class="bar-lbl">${v}</div>
-                <div class="bar-lbl">${labels[k]}</div>
-            </div>`
-        ).join('');
+        renderStatusPie(statusGroups, labels, colors);
 
         // cats
         const rCats = await api('/api/v1/categories/');
@@ -619,10 +635,10 @@ async function loadDenuncias() {
         atualizarBadgeDenuncias();
         denPage = 1;
         renderDenuncias();
-    } catch(e) { toast('Erro ao carregar denúncias', 'error'); }
+    } catch(e) { toast('Erro ao carregar os chamados de suporte', 'error'); }
 }
 
-// Contador do menu: só denúncias ainda abertas (aguardando ação).
+// Contador do menu: só chamados de suporte ainda abertos (aguardando ação).
 function atualizarBadgeDenuncias() {
     const abertas = allDenuncias.filter(d => d.status === 'aberta').length;
     const b = document.getElementById('denuncia-count-badge');
@@ -646,7 +662,7 @@ function renderDenuncias() {
     const tbody = document.getElementById('den-tbody');
     const pag = document.getElementById('den-pagination');
     if (!lista.length) {
-        tbody.innerHTML = `<tr><td colspan="7" class="empty-state">${allDenuncias.length ? 'Nenhuma denúncia com esses filtros' : 'Nenhuma denúncia registrada'}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="empty-state">${allDenuncias.length ? 'Nenhum chamado com esses filtros' : 'Nenhum chamado registrado'}</td></tr>`;
         pag.innerHTML = '';
         return;
     }
@@ -673,7 +689,7 @@ function renderDenuncias() {
         </tr>`;
     }).join('');
 
-    pag.innerHTML = `<span class="pagination-info">${lista.length} denúncias — pág. ${denPage}/${paginas}</span>
+    pag.innerHTML = `<span class="pagination-info">${lista.length} chamados — pág. ${denPage}/${paginas}</span>
         <div class="pagination-btns">
             <button class="pg-btn" onclick="denPage=Math.max(1,denPage-1);renderDenuncias()">‹</button>
             ${Array.from({length:Math.min(paginas,5)},(_,i)=>`<button class="pg-btn${i+1===denPage?' active':''}" onclick="denPage=${i+1};renderDenuncias()">${i+1}</button>`).join('')}
@@ -693,7 +709,7 @@ async function mudarStatusDenuncia(id, select) {
         if (d) { d.status = novo; d.status_display = DEN_STATUS[novo][1]; }
         select.dataset.atual = novo;
         atualizarBadgeDenuncias();
-        toast(`Denúncia #${id}: ${DEN_STATUS[novo][1]}`);
+        toast(`Suporte #${id}: ${DEN_STATUS[novo][1]}`);
     } catch {
         select.value = anterior;   // não deixa a tela mostrando um status que o servidor não gravou
         toast('Não foi possível alterar o status', 'error');
@@ -929,8 +945,8 @@ async function markNotifRead(id) {
         await api(`/api/v1/notifications/${id}/read/`, { method: 'POST' });
         loadNotifications();
     } catch(e) {}
-    // Aviso de denúncia nova: leva direto para a aba Denúncias.
-    if (n && /^Nova denúncia/.test(n.titulo || '')) {
+    // Aviso de chamado novo: leva direto para a aba Suporte (aceita também o título antigo).
+    if (n && /^(Novo chamado de suporte|Nova denúncia)/.test(n.titulo || '')) {
         document.getElementById('notif-panel').classList.remove('show');
         showPage('denuncias');
     }

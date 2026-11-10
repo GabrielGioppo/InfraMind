@@ -14,8 +14,8 @@ TIPO_PRAZO_ESTOURADO = 'prazo_estourado'
 TIPO_AVISO_PRAZO     = 'aviso_prazo'
 TIPO_STATUS_CHANGE   = 'status_change'
 
-# Título dos avisos de denúncia; o painel admin usa o prefixo para abrir a aba Denúncias.
-TITULO_NOVA_DENUNCIA = 'Nova denúncia'
+# Título dos avisos de suporte; o painel admin usa o prefixo para abrir a aba Suporte.
+TITULO_NOVA_DENUNCIA = 'Novo chamado de suporte'
 
 FACTORIES = {
     'email': EmailNotifFactory(),

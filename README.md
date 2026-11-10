@@ -79,7 +79,7 @@ InfraMind/
 │   ├── logs/                # Logs de auditoria
 │   ├── statistics_api/      # Estatísticas e indicadores do painel
 │   ├── gemini_api/          # Integração com Google Gemini
-│   ├── denuncias/           # Denúncias de conteúdo e suporte (UC-13)
+│   ├── denuncias/           # Chamados de suporte e conteúdo reportado (UC-13)
 │   ├── scripts/             # Scripts de manutenção (backup, agendamento)
 │   ├── manage.py
 │   ├── .env.example
@@ -309,9 +309,9 @@ O link aponta para `FRONTEND_URL` (padrão `http://127.0.0.1:5500/frontend/index
 
 ---
 
-## Suporte e denúncias
+## Suporte
 
-O menu **Suporte / Denúncia** abre um formulário para relatar um problema técnico (`bug`). Na página de uma ocorrência, **Denunciar conteúdo** registra um `conteudo_inadequado` apontando para ela.
+O menu **Suporte** abre um formulário para relatar um problema técnico (`bug`). Na página de uma ocorrência, **Reportar conteúdo** registra um `conteudo_inadequado` apontando para ela.
 
 | Endpoint | O que faz |
 |----------|-----------|
@@ -319,7 +319,7 @@ O menu **Suporte / Denúncia** abre um formulário para relatar um problema téc
 | `POST /api/v1/denuncias/` | Registra `{"tipo", "descricao", "occurrence"}` (a ocorrência só é obrigatória em conteúdo inadequado) |
 | `PATCH /api/v1/denuncias/<id>/` | Só administrador: muda o `status` (`aberta`, `em_analise`, `resolvida`) |
 
-O administrador também acompanha e altera as denúncias pelo Django admin (`/admin/`).
+O administrador também acompanha e altera os chamados de suporte (aba **Suporte** do painel admin) pelo Django admin (`/admin/`).
 
 ---
 
