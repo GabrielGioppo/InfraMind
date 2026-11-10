@@ -286,7 +286,7 @@
         <option value="closed">Fechada</option>
       </select>
       <select id="filter-cat" onchange="applyFilters()">
-        <option value="">Todas as categorias</option>
+        <option value="">Todos os setores</option>
       </select>
       <input type="date" id="filter-from" onchange="applyFilters()" title="Data inicial" style="width:140px;">
       <input type="date" id="filter-to" onchange="applyFilters()" title="Data final" style="width:140px;">
@@ -299,7 +299,7 @@
         <table>
           <thead>
             <tr>
-              <th>#</th><th>Título</th><th>Categoria</th><th>Status</th>
+              <th>#</th><th>Título</th><th>Setor / subcategoria</th><th>Status</th>
               <th>Urgência IA</th><th>Prioridade</th><th>Validações</th>
               <th>Data</th><th>Ações</th>
             </tr>
@@ -322,8 +322,10 @@
           <p class="form-section-title">Dados da Ocorrência</p>
           <div class="grid-2">
             <div class="field">
-              <label>Categoria *</label>
-              <select id="c-cat"><option value="">Selecione...</option></select>
+              <label>Setor / categoria *</label>
+              <select id="c-cat" onchange="onCatChange('c-cat','c-sub')"><option value="">Selecione...</option></select>
+              <label style="margin-top:10px">Subcategoria</label>
+              <select id="c-sub"><option value="">Selecione o setor primeiro</option></select>
             </div>
             <div class="field">
               <label>Localização / Endereço</label>
@@ -480,8 +482,10 @@
           </div>
           <div class="grid-2">
             <div class="field">
-              <label>Categoria</label>
-              <select id="e-cat"></select>
+              <label>Setor / categoria</label>
+              <select id="e-cat" onchange="onCatChange('e-cat','e-sub')"></select>
+              <label style="margin-top:10px">Subcategoria</label>
+              <select id="e-sub"></select>
             </div>
             <div class="field">
               <label>Endereço</label>
@@ -590,7 +594,7 @@
         <table>
           <thead>
             <tr>
-              <th>#</th><th>Título</th><th>Categoria</th><th>Cidadão</th>
+              <th>#</th><th>Título</th><th>Setor / subcategoria</th><th>Cidadão</th>
               <th>Status</th><th>Urgência IA</th><th>Importância</th><th>Prazo</th>
               <th>Validações</th><th>Data</th><th>Ações</th>
             </tr>

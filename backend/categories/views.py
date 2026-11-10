@@ -1,7 +1,7 @@
 from rest_framework import generics
 from rest_framework.permissions import AllowAny, BasePermission, SAFE_METHODS
-from categories.models import Category
-from categories.serializers import CategorySerializer
+from categories.models import Category, Subcategory
+from categories.serializers import CategorySerializer, SubcategorySerializer
 
 
 class LeituraPublicaEscritaAdmin(BasePermission):
@@ -24,3 +24,26 @@ class CategoryRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [LeituraPublicaEscritaAdmin]
+
+
+
+class SubcategoryListCreateView(generics.ListCreateAPIView):
+    """GET /api/v1/categories/subcategories/?category=<id> — lista; POST (admin) cria."""
+    serializer_class = SubcategorySerializer
+    permission_classes = [LeituraPublicaEscritaAdmin]
+
+    def get_queryset(self):
+        qs = Subcategory.objects.select_related('category')
+        u = self.request.user
+        if not (u.is_authenticated and (u.user_type == 'admin' or u.is_staff)):
+            qs = qs.filter(is_active=True)
+        categoria = self.request.query_params.get('category')
+        if categoria:
+            qs = qs.filter(category_id=categoria)
+        return qs
+
+
+class SubcategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = SubcategorySerializer
+    permission_classes = [LeituraPublicaEscritaAdmin]
+    queryset = Subcategory.objects.select_related('category')

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from occurrences.models import Occurrence
 from users.serializers import UserSerializer
-from categories.serializers import CategorySerializer
+from categories.serializers import CategoriaResumoSerializer, SubcategorySerializer
 from images.serializers import ImageSerializer
 from feedbacks.serializers import FeedbackSerializer
 from occurrences.sla import prazo_final, sla_status
@@ -42,10 +42,34 @@ class SlaFieldsMixin(serializers.Serializer):
         return sla_status(obj)
 
 
-class OccurrenceSerializer(SlaFieldsMixin, serializers.ModelSerializer):
+class SubcategoriaMixin:
+    """O setor e a subcategoria precisam combinar. Informar só a subcategoria já define o setor;
+    trocar só o setor numa edição limpa a subcategoria que ficou de outro setor."""
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        atual = self.instance
+        categoria = attrs['category'] if 'category' in attrs else getattr(atual, 'category', None)
+        if 'subcategory' in attrs:
+            sub = attrs['subcategory']
+            if sub is not None:
+                if categoria is None:
+                    attrs['category'] = sub.category
+                elif sub.category_id != categoria.pk:
+                    raise serializers.ValidationError(
+                        {'subcategory': 'Essa subcategoria não pertence ao setor escolhido.'})
+        elif 'category' in attrs:
+            sub = getattr(atual, 'subcategory', None)
+            if sub is not None and (categoria is None or sub.category_id != categoria.pk):
+                attrs['subcategory'] = None
+        return attrs
+
+
+class OccurrenceSerializer(SubcategoriaMixin, SlaFieldsMixin, serializers.ModelSerializer):
     """Serializer para usuários comuns — inclui status e sugestões da análise de IA da descrição"""
     user_details = UserSerializer(source='user', read_only=True)
-    category_details = CategorySerializer(source='category', read_only=True)
+    category_details = CategoriaResumoSerializer(source='category', read_only=True)
+    subcategory_details = SubcategorySerializer(source='subcategory', read_only=True)
     images = ImageSerializer(many=True, read_only=True)
     feedbacks = FeedbackSerializer(many=True, read_only=True)
 
@@ -56,11 +80,12 @@ class OccurrenceSerializer(SlaFieldsMixin, serializers.ModelSerializer):
                             'prazo_definido']
 
 
-class OccurrenceAdminSerializer(SlaFieldsMixin, serializers.ModelSerializer):
+class OccurrenceAdminSerializer(SubcategoriaMixin, SlaFieldsMixin, serializers.ModelSerializer):
     """Serializer exclusivo para admins — permite editar importance_color e ver análise da IA"""
     prazo_definido = PrazoDateTimeField(required=False, allow_null=True)
     user_details = UserSerializer(source='user', read_only=True)
-    category_details = CategorySerializer(source='category', read_only=True)
+    category_details = CategoriaResumoSerializer(source='category', read_only=True)
+    subcategory_details = SubcategorySerializer(source='subcategory', read_only=True)
     images = ImageSerializer(many=True, read_only=True)
     feedbacks = FeedbackSerializer(many=True, read_only=True)
 
@@ -70,13 +95,13 @@ class OccurrenceAdminSerializer(SlaFieldsMixin, serializers.ModelSerializer):
         read_only_fields = ['user', 'validation_count', 'priority', 'is_duplicate']
 
 
-class AnonOccurrenceSerializer(serializers.ModelSerializer):
+class AnonOccurrenceSerializer(SubcategoriaMixin, serializers.ModelSerializer):
     """Serializer para criação anônima — não exige user, aceita anon_id"""
 
     class Meta:
         model = Occurrence
         fields = [
-            'id', 'title', 'description', 'category', 'address', 'city', 'state',
+            'id', 'title', 'description', 'category', 'subcategory', 'address', 'city', 'state',
             'latitude', 'longitude', 'status', 'anon_id', 'created_at',
             'original_description', 'description_analysis_status', 'description_suggestion',
         ]

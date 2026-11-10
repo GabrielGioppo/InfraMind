@@ -442,18 +442,36 @@ async function openOccModal() {
   await loadCategoriesForOcc();
 }
 
+// Subcategorias do setor escolhido na landing.
+function onOccCatChange() {
+  const sel = document.getElementById('occ-sub');
+  const setor = (window._occCats || []).find(c => String(c.id) === document.getElementById('occ-cat').value);
+  const subs = (setor?.subcategories || []).filter(s => s.is_active !== false);
+  sel.innerHTML = setor
+    ? '<option value="">' + (subs.length ? 'Selecione a subcategoria' : 'Sem subcategorias neste setor') + '</option>'
+    : '<option value="">Selecione o setor primeiro</option>';
+  subs.forEach(s => {
+    const o = document.createElement('option');
+    o.value = s.id; o.textContent = s.name;
+    sel.appendChild(o);
+  });
+  sel.disabled = !setor || !subs.length;
+}
+
 async function loadCategoriesForOcc() {
   const sel = document.getElementById('occ-cat');
   try {
     const r = await apiFetch('/api/v1/categories/');
     const d = await r.json();
     const cats = Array.isArray(d) ? d : (d.results || []);
-    sel.innerHTML = '<option value="">Selecione uma categoria</option>';
+    window._occCats = cats;
+    sel.innerHTML = '<option value="">Selecione um setor</option>';
     cats.forEach(c => {
       const o = document.createElement('option');
       o.value = c.id; o.textContent = c.name;
       sel.appendChild(o);
     });
+    onOccCatChange();
   } catch {
     sel.innerHTML = '<option value="">Erro ao carregar categorias</option>';
   }
@@ -503,15 +521,17 @@ async function submitOcc() {
 
   const titleRaw = document.getElementById('occ-title').value.trim();
   const desc     = document.getElementById('occ-desc').value.trim();
-  const catLabel = document.getElementById('occ-cat').selectedOptions[0]?.text || '';
+  const subEl    = document.getElementById('occ-sub');
+  const catEl    = document.getElementById('occ-cat');
+  const catLabel = subEl.value ? subEl.selectedOptions[0].text : (catEl.value ? catEl.selectedOptions[0].text : '');
   const title    = titleRaw ||
-                   (catLabel && catLabel !== 'Carregando categorias...' && catLabel !== 'Selecione uma categoria'
+                   (catLabel
                      ? `${catLabel}${addr ? ' — ' + addr : ''}`
                      : addr || 'Ocorrência registrada pela landing page');
 
   const occPayload = {
     title, description: desc || '', status: 'open',
-    category: cat || null, address: addr || null,
+    category: cat || null, subcategory: subEl.value || null, address: addr || null,
     latitude:  lat ? parseFloat(parseFloat(lat).toFixed(5)) : null,
     longitude: lng ? parseFloat(parseFloat(lng).toFixed(5)) : null,
   };
@@ -610,6 +630,7 @@ function hideAILoadingProgress(callback) {
         fd.append('description', occPayload.description);
         fd.append('status', 'open');
         if (occPayload.category) fd.append('category', occPayload.category);
+        if (occPayload.subcategory) fd.append('subcategory', occPayload.subcategory);
         if (occPayload.address) fd.append('address', occPayload.address);
         if (occPayload.latitude) fd.append('latitude', occPayload.latitude);
         if (occPayload.longitude) fd.append('longitude', occPayload.longitude);
@@ -647,6 +668,7 @@ function hideAILoadingProgress(callback) {
       fd.append('description', occPayload.description);
       fd.append('status', 'open');
       if (occPayload.category) fd.append('category', occPayload.category);
+        if (occPayload.subcategory) fd.append('subcategory', occPayload.subcategory);
       if (occPayload.address) fd.append('address', occPayload.address);
       if (occPayload.latitude) fd.append('latitude', occPayload.latitude);
       if (occPayload.longitude) fd.append('longitude', occPayload.longitude);

@@ -1,6 +1,6 @@
 from django.db import models
 from users.models import User
-from categories.models import Category
+from categories.models import Category, Subcategory
 from users.validators import chave_cidade
 
 
@@ -44,6 +44,14 @@ class Occurrence(models.Model):
         related_name='occurrences',
         null=True,
         blank=True
+    )
+
+    subcategory = models.ForeignKey(
+        Subcategory,
+        on_delete=models.SET_NULL,
+        related_name='occurrences',
+        null=True,
+        blank=True,
     )
 
     # Dados da ocorrência

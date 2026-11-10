@@ -71,7 +71,7 @@ InfraMind/
 │   ├── authentication/      # Login por e-mail e tokens JWT
 │   ├── users/               # Cadastro e gerenciamento de usuários
 │   ├── occurrences/         # Registro e gestão de ocorrências
-│   ├── categories/          # Categorias de problemas
+│   ├── categories/          # Setores (categorias) e subcategorias de problemas
 │   ├── images/              # Upload de imagens
 │   ├── validations/         # Validação comunitária
 │   ├── feedbacks/           # Feedbacks de resolução
@@ -309,6 +309,15 @@ O link aponta para `FRONTEND_URL` (padrão `http://127.0.0.1:5500/frontend/index
 
 ---
 
+## Setores e subcategorias
+
+As categorias agora são **setores** (ex.: Saneamento básico, Iluminação pública) e cada setor tem **subcategorias** (ex.: Esgoto entupido ou vazando, Poste caído). A ocorrência guarda o setor (`category`) e a subcategoria (`subcategory`, opcional). Os setores são a base para encaminhar cada ocorrência ao gestor público e à equipe técnica da área.
+
+- Setores padrão: Saneamento básico, Iluminação pública, Vias e pavimentação, Trânsito e sinalização, Drenagem e alagamentos, Limpeza urbana e resíduos, Áreas verdes e arborização, Defesa civil e riscos, Transporte público, Espaços públicos e equipamentos, Meio ambiente e saúde pública e Outros. Eles são criados pela migration `categories/0005_catalogo_setores`.
+- As 17 categorias antigas foram convertidas em setor + subcategoria, e as ocorrências que as usavam foram movidas junto. Categorias criadas à mão continuam existindo como setores sem subcategorias.
+- A subcategoria precisa pertencer ao setor escolhido. Informar só a subcategoria já define o setor; trocar só o setor numa edição limpa a subcategoria.
+- Cidadão e visitante veem só as subcategorias ativas. O administrador cria, desativa e apaga setores e subcategorias na aba **Setores** do painel admin.
+
 ## Suporte
 
 O menu **Suporte** abre um formulário para relatar um problema técnico (`bug`). Na página de uma ocorrência, **Reportar conteúdo** registra um `conteudo_inadequado` apontando para ela.
@@ -429,8 +438,10 @@ Use `{{token_admin}}` ou `{{token_user}}` no campo Bearer Token.
 | GET | `/api/v1/occurrences/<id>/history/` | Histórico de alterações | Token |
 | POST | `/api/v1/occurrences/ai-analyze/` | Análise de urgência via IA | Token |
 | GET | `/api/v1/occurrences/ai-prioritized/` | Lista priorizada pela IA (Admin) | Token (Admin) |
-| GET/POST | `/api/v1/categories/` | Lista e cria categorias | Token |
-| GET/PUT/DELETE | `/api/v1/categories/<id>/` | Detalhe, edição e exclusão | Token |
+| GET/POST | `/api/v1/categories/` | Lista os setores (com as subcategorias) e cria setor | Leitura pública; escrita só admin |
+| GET/PUT/DELETE | `/api/v1/categories/<id>/` | Detalhe, edição e exclusão de setor | Leitura pública; escrita só admin |
+| GET/POST | `/api/v1/categories/subcategories/` | Lista (filtro `?category=<id>`) e cria subcategoria | Leitura pública; escrita só admin |
+| GET/PATCH/DELETE | `/api/v1/categories/subcategories/<id>/` | Detalhe, edição e exclusão de subcategoria | Leitura pública; escrita só admin |
 | GET/POST | `/api/v1/images/` | Lista e faz upload de imagens | Token |
 | GET/PUT/DELETE | `/api/v1/images/<id>/` | Detalhe, edição e exclusão | Token |
 | GET/POST | `/api/v1/validations/` | Lista e cria validações | Token |

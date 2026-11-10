@@ -126,7 +126,7 @@ function showPage(id) {
             if (n.getAttribute('onclick') === `showPage('${p}')`) n.classList.toggle('active', p === id);
         });
     });
-    const titles = { dashboard:'Dashboard', occurrences:'Ocorrências', users:'Usuários', feedbacks:'Feedbacks', denuncias:'Suporte', logs:'Logs de Auditoria', categories:'Categorias', map:'Mapa de Ocorrências' };
+    const titles = { dashboard:'Dashboard', occurrences:'Ocorrências', users:'Usuários', feedbacks:'Feedbacks', denuncias:'Suporte', logs:'Logs de Auditoria', categories:'Setores e subcategorias', map:'Mapa de Ocorrências' };
     document.getElementById('page-title').textContent = titles[id] || id;
     if (id === 'dashboard')   loadDashboard();
     if (id === 'occurrences') loadOccurrences();
@@ -455,7 +455,8 @@ async function openOccDetail(id) {
                 <div class="detail-field"><label>Importância</label>${impBadge(o.importance_color)}</div>
                 <div class="detail-field"><label>Prazo</label>${slaBadge(o)}</div>
                 <div class="detail-field"><label>Urgência (IA)</label><span>${esc(urg)}</span></div>
-                <div class="detail-field"><label>Categoria</label><span>${esc(o.category_details?.name || '—')}</span></div>
+                <div class="detail-field"><label>Setor</label><span>${esc(o.category_details?.name || '—')}</span></div>
+                <div class="detail-field"><label>Subcategoria</label><span>${esc(o.subcategory_details?.name || '—')}</span></div>
                 <div class="detail-field"><label>Cidadão</label><span>${esc(reporter)}</span></div>
                 <div class="detail-field"><label>Validações</label><span>${o.validation_count || 0} confirmação(ões)</span></div>
                 <div class="detail-field"><label>Prazo limite</label><span>${o.sla_deadline ? fmtDateTime(o.sla_deadline) : '—'}</span></div>
@@ -779,25 +780,97 @@ async function loadCategories() {
 
 function renderCats() {
     document.getElementById('cats-tbody').innerHTML = allCats.length
-        ? allCats.map(c => `<tr>
+        ? allCats.map(c => {
+            const subs = c.subcategories || [];
+            const chips = subs.length
+                ? subs.map(s => `<span class="badge ${s.is_active ? 'badge-active' : 'badge-inactive'}" style="margin:2px 4px 2px 0">${esc(s.name)}</span>`).join('')
+                : '<span style="color:var(--text3)">Nenhuma</span>';
+            return `<tr>
             <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">#${c.id}</td>
-            <td style="font-weight:500">${c.name}</td>
-            <td style="color:var(--text2);font-size:13px">${c.description||'—'}</td>
-            <td><span class="badge ${c.is_active?'badge-active':'badge-inactive'}">${c.is_active?'Ativa':'Inativa'}</span></td>
+            <td style="font-weight:500">${esc(c.name)}<div style="color:var(--text3);font-size:12px;font-weight:400">${esc(c.description||'')}</div></td>
+            <td style="max-width:420px;white-space:normal">${chips}</td>
+            <td><span class="badge ${c.is_active?'badge-active':'badge-inactive'}">${c.is_active?'Ativo':'Inativo'}</span></td>
             <td style="font-size:12px;color:var(--text2)">${fmt(c.created_at)}</td>
             <td>
                 <div style="display:flex;gap:6px">
+                    <button class="btn btn-ghost btn-sm" onclick="openSubModal(${c.id})">Subcategorias</button>
                     <button class="btn btn-ghost btn-sm" onclick="openCatModal(${c.id})">Editar</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteCat(${c.id})">Del</button>
                 </div>
             </td>
-        </tr>`).join('')
-        : '<tr><td colspan="6" class="empty-state">Nenhuma categoria</td></tr>';
+        </tr>`;
+        }).join('')
+        : '<tr><td colspan="6" class="empty-state">Nenhum setor</td></tr>';
+}
+
+// ── Subcategorias de um setor ──
+function openSubModal(catId) {
+    document.getElementById('sub-cat-id').value = catId;
+    document.getElementById('sub-name').value = '';
+    renderSubList();
+    openModal('sub-modal');
+}
+
+function renderSubList() {
+    const cat = allCats.find(c => c.id === Number(document.getElementById('sub-cat-id').value));
+    if (!cat) return;
+    document.getElementById('sub-modal-title').textContent = `Subcategorias — ${cat.name}`;
+    const subs = cat.subcategories || [];
+    document.getElementById('sub-list').innerHTML = subs.length ? subs.map(s => `
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px">
+            <span style="flex:1;${s.is_active ? '' : 'opacity:.55;text-decoration:line-through'}">${esc(s.name)}</span>
+            <button class="btn btn-ghost btn-sm" onclick="toggleSub(${s.id}, ${!s.is_active})">${s.is_active ? 'Desativar' : 'Ativar'}</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteSub(${s.id})">Del</button>
+        </div>`).join('')
+        : '<div style="color:var(--text3);font-size:13px">Este setor ainda não tem subcategorias.</div>';
+}
+
+async function recarregarSetores() {
+    const r = await api('/api/v1/categories/');
+    if (!r) return;
+    const data = await r.json();
+    allCats = Array.isArray(data) ? data : (data.results || []);
+    renderCats();
+    renderSubList();
+}
+
+async function addSub() {
+    const catId = Number(document.getElementById('sub-cat-id').value);
+    const name = document.getElementById('sub-name').value.trim();
+    if (!name) { toast('Informe o nome da subcategoria','error'); return; }
+    try {
+        const r = await api('/api/v1/categories/subcategories/', { method:'POST', body: JSON.stringify({ category: catId, name }) });
+        if (!r || !r.ok) {
+            const d = r ? await r.json().catch(() => ({})) : {};
+            toast((d.name && d.name[0]) || (d.non_field_errors && d.non_field_errors[0]) || 'Erro ao salvar subcategoria','error');
+            return;
+        }
+        document.getElementById('sub-name').value = '';
+        toast('Subcategoria criada');
+        await recarregarSetores();
+    } catch(e) { toast('Erro de conexão','error'); }
+}
+
+async function toggleSub(id, ativa) {
+    try {
+        const r = await api(`/api/v1/categories/subcategories/${id}/`, { method:'PATCH', body: JSON.stringify({ is_active: ativa }) });
+        if (!r || !r.ok) { toast('Erro ao atualizar','error'); return; }
+        await recarregarSetores();
+    } catch(e) { toast('Erro de conexão','error'); }
+}
+
+async function deleteSub(id) {
+    if (!confirm('Excluir esta subcategoria? As ocorrências que a usam ficam só com o setor.')) return;
+    try {
+        await api(`/api/v1/categories/subcategories/${id}/`, { method:'DELETE' });
+        toast('Subcategoria removida');
+        await recarregarSetores();
+    } catch(e) { toast('Erro ao excluir','error'); }
 }
 
 function openCatModal(id) {
     const cat = id ? allCats.find(c => c.id === id) : null;
-    document.getElementById('cat-modal-title').textContent = cat ? 'Editar Categoria' : 'Nova Categoria';
+    document.getElementById('cat-modal-title').textContent = cat ? 'Editar setor' : 'Novo setor';
     document.getElementById('cat-id').value = id || '';
     document.getElementById('cat-name').value = cat ? cat.name : '';
     document.getElementById('cat-desc').value = cat ? (cat.description||'') : '';
@@ -817,18 +890,18 @@ async function saveCat() {
         const r = id
             ? await api(`/api/v1/categories/${id}/`, { method:'PUT', body: JSON.stringify(payload) })
             : await api('/api/v1/categories/', { method:'POST', body: JSON.stringify(payload) });
-        if (!r || !r.ok) { toast('Erro ao salvar categoria','error'); return; }
+        if (!r || !r.ok) { toast('Erro ao salvar o setor','error'); return; }
         closeModal('cat-modal');
-        toast(id ? 'Categoria atualizada' : 'Categoria criada');
+        toast(id ? 'Setor atualizado' : 'Setor criado');
         loadCategories();
     } catch(e) { toast('Erro de conexão','error'); }
 }
 
 async function deleteCat(id) {
-    if (!confirm('Excluir esta categoria?')) return;
+    if (!confirm('Excluir este setor e suas subcategorias?')) return;
     try {
         await api(`/api/v1/categories/${id}/`, { method:'DELETE' });
-        toast('Categoria removida');
+        toast('Setor removido');
         loadCategories();
     } catch(e) { toast('Erro ao excluir','error'); }
 }

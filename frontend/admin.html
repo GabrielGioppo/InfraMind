@@ -55,7 +55,7 @@
         <div class="nav-section">Configuração</div>
         <div class="nav-item" onclick="showPage('categories')">
             <svg viewBox="0 0 24 24"><path d="M12 2l-5.5 9h11L12 2zm0 3.84L13.93 9h-3.87L12 5.84zM17.5 13c-2.49 0-4.5 2.01-4.5 4.5S15.01 22 17.5 22s4.5-2.01 4.5-4.5S19.99 13 17.5 13zm0 7c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5zM3 21.5h8v-8H3v8zm2-6h4v4H5v-4z"/></svg>
-            Categorias
+            Setores
         </div>
     </nav>
     <div class="sidebar-footer" id="admin-user-trigger" onclick="toggleUserDrawer()" title="Abrir menu do administrador" style="cursor:pointer;">
@@ -128,7 +128,7 @@
                 </div>
             </div>
             <div>
-                <div class="section-header"><span class="section-title">Categorias</span></div>
+                <div class="section-header"><span class="section-title">Setores</span></div>
                 <div class="table-wrap" style="padding:20px">
                     <div id="cat-list" style="display:flex;flex-direction:column;gap:8px;"></div>
                 </div>
@@ -265,15 +265,15 @@
 
     <div id="page-categories" class="page">
         <div class="section-header">
-            <span class="section-title">Categorias</span>
+            <span class="section-title">Setores e subcategorias</span>
             <button class="btn btn-primary btn-sm" onclick="openCatModal()">
                 <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-                Nova Categoria
+                Novo setor
             </button>
         </div>
         <div class="table-wrap">
             <table>
-                <thead><tr><th>ID</th><th>Nome</th><th>Descrição</th><th>Status</th><th>Criada em</th><th>Ações</th></tr></thead>
+                <thead><tr><th>ID</th><th>Setor</th><th>Subcategorias</th><th>Status</th><th>Criado em</th><th>Ações</th></tr></thead>
                 <tbody id="cats-tbody"><tr><td colspan="6" class="loading">Carregando...</td></tr></tbody>
             </table>
         </div>
@@ -420,12 +420,12 @@
 <div class="modal-backdrop" id="cat-modal">
     <div class="modal">
         <div class="modal-header">
-            <span class="modal-title" id="cat-modal-title">Nova Categoria</span>
+            <span class="modal-title" id="cat-modal-title">Novo setor</span>
             <button class="modal-close" onclick="closeModal('cat-modal')">×</button>
         </div>
         <div class="modal-body">
             <input type="hidden" id="cat-id">
-            <div class="modal-field"><label>Nome *</label><input type="text" id="cat-name" placeholder="Ex: Iluminação Pública"></div>
+            <div class="modal-field"><label>Nome *</label><input type="text" id="cat-name" placeholder="Ex: Iluminação pública"></div>
             <div class="modal-field"><label>Descrição</label><input type="text" id="cat-desc" placeholder="Descrição opcional"></div>
             <div class="modal-field"><label>Status</label>
                 <select id="cat-active">
@@ -437,6 +437,28 @@
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModal('cat-modal')">Cancelar</button>
             <button class="btn btn-primary" onclick="saveCat()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="sub-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title" id="sub-modal-title">Subcategorias</span>
+            <button class="modal-close" onclick="closeModal('sub-modal')">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="sub-cat-id">
+            <div id="sub-list" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto;margin-bottom:14px"></div>
+            <div class="modal-field"><label>Nova subcategoria</label>
+                <div style="display:flex;gap:8px">
+                    <input type="text" id="sub-name" placeholder="Ex: Poste caído" maxlength="120" onkeydown="if(event.key==='Enter'){event.preventDefault();addSub();}">
+                    <button class="btn btn-primary btn-sm" onclick="addSub()">Adicionar</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('sub-modal')">Fechar</button>
         </div>
     </div>
 </div>
