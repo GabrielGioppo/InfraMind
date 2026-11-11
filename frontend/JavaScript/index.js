@@ -193,9 +193,9 @@ function updateUserUI() {
   }
 }
 
-// Admin não usa o index.html: vai para o painel próprio (admin.html).
+// Administrador, gestor público e equipe técnica não usam o index.html: vão para o painel (admin.html).
 function redirectIfAdmin(u) {
-  if (u && (u.user_type === 'admin' || u.is_staff === true)) {
+  if (u && (['admin', 'gestor', 'equipe_tecnica'].includes(u.user_type) || u.is_staff === true)) {
     window.location.replace('admin.html');
     return true;
   }

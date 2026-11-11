@@ -2,6 +2,9 @@
 Quem enxerga qual ocorrência.
 
 - Administrador: todas.
+- Gestor público e equipe técnica: as ocorrências do SETOR deles na CIDADE deles
+  (cidade + UF do cadastro) e as que eles mesmos registraram. Sem setor ou sem
+  cidade definidos, só as próprias.
 - Cidadão: as ocorrências da cidade onde mora (cidade + UF do cadastro) e as que
   ele mesmo registrou, em qualquer cidade.
 """
@@ -9,11 +12,8 @@ Quem enxerga qual ocorrência.
 from django.db.models import Q
 
 from occurrences.models import Occurrence
+from users.perfis import is_admin, is_municipal  # noqa: F401  (is_admin é reexportado)
 from users.validators import chave_cidade
-
-
-def is_admin(user) -> bool:
-    return user.user_type == 'admin' or user.is_staff
 
 
 def visible_occurrences(user, queryset=None):
@@ -23,6 +23,9 @@ def visible_occurrences(user, queryset=None):
     filtro = Q(user=user)
     cidade = chave_cidade(user.cidade)
     uf = (user.uf or '').strip().upper()
-    if cidade and uf:
+    if is_municipal(user):
+        if user.setor_id and cidade and uf:
+            filtro |= Q(category_id=user.setor_id, city_key=cidade, state=uf)
+    elif cidade and uf:
         filtro |= Q(city_key=cidade, state=uf)
     return qs.filter(filtro)

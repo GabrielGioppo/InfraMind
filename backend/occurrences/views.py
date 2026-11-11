@@ -3,15 +3,17 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
 from django.db.models import Case, When, IntegerField
 from django.utils import timezone
 
 from occurrences.models import Occurrence
-from occurrences.serializers import OccurrenceSerializer, OccurrenceAdminSerializer
+from occurrences.serializers import OccurrenceSerializer, OccurrenceAdminSerializer, OccurrenceEquipeSerializer
 from history.models import OccurrenceHistory
 from logs.utils import register_log
 from gemini_api.facade import IAProcessamentoFacade
 from occurrences.visibility import visible_occurrences
+from users.perfis import is_admin as _is_admin, is_equipe, is_municipal
 
 from gemini_api.client import analyze_occurrence_description_and_photo
 from images.models import Image
@@ -19,9 +21,13 @@ from images.models import Image
 DUPLICATE_RADIUS_METERS = 50
 
 
-def get_serializer_class(user):
-    if user.user_type == 'admin' or user.is_staff:
+def get_serializer_class(user, method='GET'):
+    # Administrador e gestor público editam os dados de gestão (importância, prazo, status...).
+    if _is_admin(user) or user.user_type == 'gestor':
         return OccurrenceAdminSerializer
+    # Equipe técnica: ao registrar uma ocorrência age como cidadão; no resto só atualiza o status.
+    if is_equipe(user):
+        return OccurrenceSerializer if method == 'POST' else OccurrenceEquipeSerializer
     return OccurrenceSerializer
 
 
@@ -115,11 +121,11 @@ class OccurrenceCreateListView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
-        return get_serializer_class(self.request.user)
+        return get_serializer_class(self.request.user, self.request.method)
 
     def get_queryset(self):
         user     = self.request.user
-        is_admin = user.user_type == 'admin' or user.is_staff
+        is_admin = _is_admin(user) or is_municipal(user)
 
         qs = visible_occurrences(user)
 
@@ -191,7 +197,7 @@ class OccurrenceCreateListView(generics.ListCreateAPIView):
             new_priority = calculate_priority(original)
             Occurrence.objects.filter(pk=original.pk).update(priority=new_priority)
 
-            original_serializer = get_serializer_class(request.user)(
+            original_serializer = get_serializer_class(request.user, 'POST')(
                 original, context={'request': request}
             )
             return Response(
@@ -242,7 +248,7 @@ class OccurrenceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView)
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
-        return get_serializer_class(self.request.user)
+        return get_serializer_class(self.request.user, self.request.method)
 
     def get_queryset(self):
         return visible_occurrences(self.request.user)
@@ -285,6 +291,8 @@ class OccurrenceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView)
             register_log(self.request, 'update', 'Occurrence', updated.id, {'title': updated.title})
 
     def perform_destroy(self, instance):
+        if is_municipal(self.request.user):
+            raise PermissionDenied('Gestor público e equipe técnica não excluem ocorrências.')
         register_log(self.request, 'delete', 'Occurrence', instance.id, {'title': instance.title})
         instance.delete()
 

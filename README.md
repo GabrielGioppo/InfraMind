@@ -318,6 +318,21 @@ As categorias agora são **setores** (ex.: Saneamento básico, Iluminação púb
 - A subcategoria precisa pertencer ao setor escolhido. Informar só a subcategoria já define o setor; trocar só o setor numa edição limpa a subcategoria.
 - Cidadão e visitante veem só as subcategorias ativas. O administrador cria, desativa e apaga setores e subcategorias na aba **Setores** do painel admin.
 
+## Perfis de usuário
+
+| Perfil | Vê | Pode fazer |
+|--------|----|------------|
+| Cidadão | Ocorrências da cidade onde mora e as que registrou | Registrar, validar, comentar |
+| Gestor Público | Ocorrências do **setor** e da **cidade** dele (mais as que registrou) | Definir importância, prazo e status; enviar atualização ao cidadão. Não exclui |
+| Equipe Técnica | Ocorrências do setor e da cidade dela | Atualizar só o **status** do atendimento. Não exclui |
+| Administrador | Tudo | Tudo, incluindo usuários, logs, suporte e setores |
+
+- Gestor e equipe usam o painel (`admin.html`) com o menu reduzido: Dashboard, Ocorrências e Mapa. As telas de usuários, feedbacks, suporte, logs e setores são só do administrador.
+- O administrador cadastra gestor e equipe em **Usuários › Novo gestor / equipe** (ou `POST /api/v1/users/staff/`), informando perfil, setor, cidade, UF, usuário, e-mail e senha. O setor também pode ser trocado depois, no detalhe do usuário.
+- A cidade e o setor de gestor e equipe só o administrador altera; a pessoa não consegue mudar a própria cidade em `/users/me/`.
+- Gestor ou equipe sem setor, ou sem cidade, só enxergam as ocorrências que eles mesmos registraram.
+- Só o próprio usuário ou o administrador altera ou apaga um usuário, e só o administrador muda `user_type` e `setor` (ninguém se promove sozinho).
+
 ## Suporte
 
 O menu **Suporte** abre um formulário para relatar um problema técnico (`bug`). Na página de uma ocorrência, **Reportar conteúdo** registra um `conteudo_inadequado` apontando para ela.
@@ -439,6 +454,7 @@ Use `{{token_admin}}` ou `{{token_user}}` no campo Bearer Token.
 | POST | `/api/v1/occurrences/ai-analyze/` | Análise de urgência via IA | Token |
 | GET | `/api/v1/occurrences/ai-prioritized/` | Lista priorizada pela IA (Admin) | Token (Admin) |
 | GET/POST | `/api/v1/categories/` | Lista os setores (com as subcategorias) e cria setor | Leitura pública; escrita só admin |
+| POST | `/api/v1/users/staff/` | Cadastra gestor público ou equipe técnica | Admin |
 | GET/PUT/DELETE | `/api/v1/categories/<id>/` | Detalhe, edição e exclusão de setor | Leitura pública; escrita só admin |
 | GET/POST | `/api/v1/categories/subcategories/` | Lista (filtro `?category=<id>`) e cria subcategoria | Leitura pública; escrita só admin |
 | GET/PATCH/DELETE | `/api/v1/categories/subcategories/<id>/` | Detalhe, edição e exclusão de subcategoria | Leitura pública; escrita só admin |

@@ -95,6 +95,17 @@ class OccurrenceAdminSerializer(SubcategoriaMixin, SlaFieldsMixin, serializers.M
         read_only_fields = ['user', 'validation_count', 'priority', 'is_duplicate']
 
 
+class OccurrenceEquipeSerializer(OccurrenceAdminSerializer):
+    """Equipe técnica: vê tudo da sua área, mas só altera o status do atendimento."""
+
+    def get_fields(self):
+        campos = super().get_fields()
+        for nome, campo in campos.items():
+            if nome != 'status':
+                campo.read_only = True
+        return campos
+
+
 class AnonOccurrenceSerializer(SubcategoriaMixin, serializers.ModelSerializer):
     """Serializer para criação anônima — não exige user, aceita anon_id"""
 

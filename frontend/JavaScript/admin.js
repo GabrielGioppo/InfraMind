@@ -52,6 +52,28 @@ function logout() {
     window.location.href = 'landing.html';
 }
 
+// ── Perfis do painel ──────────────────────────────────────────
+// admin: tudo | gestor: ocorrências do setor/cidade dele (importância, prazo, status) |
+// equipe técnica: ocorrências do setor/cidade dela (só o status).
+const PERFIL_ROTULO = { admin:'Administrador', gestor:'Gestor Público', equipe_tecnica:'Equipe Técnica', citizen:'Cidadão' };
+const PAGINAS_SO_ADMIN = ['users', 'feedbacks', 'denuncias', 'logs', 'categories'];
+let ME = null;
+
+const souAdmin    = () => !!ME && (ME.user_type === 'admin' || ME.is_staff === true);
+const souGestor   = () => !!ME && ME.user_type === 'gestor';
+const souEquipe   = () => !!ME && ME.user_type === 'equipe_tecnica';
+const podeGerir   = () => souAdmin() || souGestor();   // importância, prazo e mensagem ao cidadão
+
+function aplicarPerfil() {
+    if (!souAdmin()) document.querySelectorAll('[data-so-admin]').forEach(el => { el.style.display = 'none'; });
+    const rotulo = document.getElementById('admin-role');
+    if (!rotulo) return;
+    if (souAdmin()) { rotulo.textContent = 'Administrador'; return; }
+    const local = [ME.setor_nome, ME.cidade && ME.uf ? `${ME.cidade}/${ME.uf}` : ''].filter(Boolean).join(' · ');
+    rotulo.textContent = PERFIL_ROTULO[ME.user_type] + (local ? ' — ' + local : '');
+    rotulo.title = rotulo.textContent;
+}
+
 function toast(msg, type = 'success') {
     const el = document.createElement('div');
     el.className = 'toast ' + type;
@@ -120,6 +142,7 @@ function rowClick(ev, id) {
 // ── PAGE ROUTING ──
 const pages = ['dashboard','occurrences','users','feedbacks','denuncias','logs','categories','map'];
 function showPage(id) {
+    if (PAGINAS_SO_ADMIN.includes(id) && !souAdmin()) { toast('Área restrita ao administrador', 'error'); id = 'dashboard'; }
     pages.forEach(p => {
         document.getElementById('page-'+p).classList.toggle('active', p === id);
         document.querySelectorAll('.nav-item').forEach(n => {
@@ -172,10 +195,11 @@ function renderStatusPie(grupos, rotulos, cores) {
 
 async function loadDashboard() {
     try {
+        const admin = souAdmin();
         const [rStats, rOcc, rUsers] = await Promise.all([
-            api('/api/v1/statistics/'),
+            admin ? api('/api/v1/statistics/') : Promise.resolve({ json: async () => ({}) }),
             api('/api/v1/occurrences/'),
-            api('/api/v1/users/')
+            admin ? api('/api/v1/users/') : Promise.resolve({ json: async () => [] })
         ]);
         if (!rStats || !rOcc || !rUsers) return;
 
@@ -185,8 +209,9 @@ async function loadDashboard() {
         const occs = Array.isArray(occData) ? occData : (occData.results || []);
         const users = Array.isArray(userData) ? userData : (userData.results || []);
 
-        document.getElementById('s-users').textContent = stats.total_usuarios ?? users.length;
-        document.getElementById('s-occ').textContent = stats.total_ocorrencias ?? occs.length;
+        // Gestor e equipe veem só o que é da área deles; os totais do sistema são do administrador.
+        if (admin) document.getElementById('s-users').textContent = stats.total_usuarios ?? users.length;
+        document.getElementById('s-occ').textContent = admin ? (stats.total_ocorrencias ?? occs.length) : occs.length;
         const resolved = occs.filter(o => o.status === 'resolved' || o.status === 'closed').length;
         const open = occs.filter(o => o.status === 'open').length;
         document.getElementById('s-resolved').textContent = resolved;
@@ -272,7 +297,7 @@ function renderOcc() {
             <td>${statusBadge(o.status)}</td>
             <td>
                 <div class="imp-selector">
-                    ${['green','yellow','red'].map(c=>`<div class="imp-btn ${c}-btn${o.importance_color===c?' selected':''}" title="${c}" onclick="quickSetImportance(${o.id},'${c}',this)"></div>`).join('')}
+                    ${['green','yellow','red'].map(c=>`<div class="imp-btn ${c}-btn${o.importance_color===c?' selected':''}" title="${c}" ${podeGerir() ? `onclick="quickSetImportance(${o.id},'${c}',this)"` : 'style="pointer-events:none;cursor:default"'}></div>`).join('')}
                 </div>
             </td>
             <td>${slaBadge(o)}</td>
@@ -282,7 +307,7 @@ function renderOcc() {
                 <div style="display:flex;gap:6px">
                     <button class="btn btn-ghost btn-sm" onclick="openOccDetail(${o.id})">Ver</button>
                     <button class="btn btn-ghost btn-sm" onclick="openOccModal(${o.id})">Editar</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteOcc(${o.id})">Del</button>
+                    ${souAdmin() ? `<button class="btn btn-danger btn-sm" onclick="deleteOcc(${o.id})">Del</button>` : ''}
                 </div>
             </td>
         </tr>`).join('')
@@ -324,6 +349,8 @@ async function openOccModal(id) {
     _reopenDetailAfterSave = document.getElementById('occ-detail-modal').classList.contains('open');
     closeModal('occ-detail-modal');
 
+    // Equipe técnica só atualiza o status: esconde importância, prazo e mensagem.
+    document.querySelectorAll('#occ-modal [data-so-gestao]').forEach(el => { el.style.display = podeGerir() ? '' : 'none'; });
     document.getElementById('edit-occ-id').value = id;
     document.getElementById('edit-occ-name').textContent = `#${occ.id} · ${occ.title}`;
     document.getElementById('edit-occ-status').value = occ.status || 'open';
@@ -352,12 +379,12 @@ function prazoDoFormulario() {
 
 async function saveOcc() {
     const id = Number(document.getElementById('edit-occ-id').value);
-    const payload = {
-        status: document.getElementById('edit-occ-status').value,
-        importance_color: document.getElementById('edit-occ-importance').value || null,
-        prazo_definido: prazoDoFormulario(),
-    };
-    const comment = document.getElementById('edit-occ-feedback').value.trim();
+    const payload = { status: document.getElementById('edit-occ-status').value };
+    if (podeGerir()) {
+        payload.importance_color = document.getElementById('edit-occ-importance').value || null;
+        payload.prazo_definido = prazoDoFormulario();
+    }
+    const comment = podeGerir() ? document.getElementById('edit-occ-feedback').value.trim() : '';
     try {
         const r = await api(`/api/v1/occurrences/${id}/`, { method:'PATCH', body: JSON.stringify(payload) });
         if (!r || !r.ok) {
@@ -541,7 +568,7 @@ function renderUsers() {
                 </div>
             </td>
             <td style="font-size:12px;color:var(--text2)">${u.email||'—'}</td>
-            <td><span class="badge ${u.user_type==='admin'?'badge-admin':'badge-citizen'}">${u.user_type==='admin'?'Admin':'Cidadão'}</span></td>
+            <td>${tipoBadge(u)}${localDoUsuario(u) ? `<div style="font-size:11px;color:var(--text3);margin-top:3px">${esc(localDoUsuario(u))}</div>` : ''}</td>
             <td><span class="badge ${u.is_active?'badge-active':'badge-inactive'}">${u.is_active?'Ativo':'Inativo'}</span></td>
             <td style="font-size:12px;color:var(--text2)">${fmt(u.created_at)}</td>
             <td>
@@ -560,6 +587,75 @@ function renderUsers() {
         </div>`;
 }
 
+function tipoBadge(u, extenso = false) {
+    const cls = { admin:'badge-admin', gestor:'badge-prog', equipe_tecnica:'badge-prog' }[u.user_type] || 'badge-citizen';
+    const curto = { admin:'Admin', gestor:'Gestor', equipe_tecnica:'Equipe', citizen:'Cidadão' };
+    const rotulo = extenso ? (PERFIL_ROTULO[u.user_type] || 'Cidadão') : (curto[u.user_type] || 'Cidadão');
+    return `<span class="badge ${cls}">${rotulo}</span>`;
+}
+
+function localDoUsuario(u) {
+    if (u.user_type !== 'gestor' && u.user_type !== 'equipe_tecnica') return '';
+    return [u.setor_nome, u.cidade && u.uf ? `${u.cidade}/${u.uf}` : ''].filter(Boolean).join(' · ');
+}
+
+function opcoesSetores(selecionado) {
+    return allCats.map(c => `<option value="${c.id}" ${String(c.id) === String(selecionado) ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+}
+
+async function garantirSetores() {
+    if (allCats.length) return;
+    const r = await api('/api/v1/categories/');
+    if (!r) return;
+    const d = await r.json();
+    allCats = Array.isArray(d) ? d : (d.results || []);
+}
+
+async function salvarSetorDoUsuario(id) {
+    const setor = Number(document.getElementById('user-setor-edit').value);
+    try {
+        const r = await api(`/api/v1/users/${id}/`, { method:'PATCH', body: JSON.stringify({ setor }) });
+        if (!r || !r.ok) { toast('Erro ao salvar o setor', 'error'); return; }
+        toast('Setor atualizado');
+        closeModal('user-modal');
+        loadUsers();
+    } catch(e) { toast('Erro de conexão','error'); }
+}
+
+// ── Cadastro de gestor público / equipe técnica ──
+async function openStaffModal() {
+    await garantirSetores();
+    document.getElementById('st-setor').innerHTML = opcoesSetores('');
+    ['st-cidade','st-uf','st-nome','st-sobrenome','st-username','st-email','st-senha'].forEach(i => { document.getElementById(i).value = ''; });
+    document.getElementById('st-tipo').value = 'gestor';
+    document.getElementById('st-erro').textContent = '';
+    openModal('staff-modal');
+}
+
+async function saveStaff() {
+    const v = id => document.getElementById(id).value.trim();
+    const payload = {
+        user_type: v('st-tipo'), setor: Number(document.getElementById('st-setor').value) || null,
+        cidade: v('st-cidade'), uf: v('st-uf').toUpperCase(),
+        first_name: v('st-nome'), last_name: v('st-sobrenome'),
+        username: v('st-username'), email: v('st-email'), password: document.getElementById('st-senha').value,
+    };
+    const erro = document.getElementById('st-erro');
+    erro.textContent = '';
+    try {
+        const r = await api('/api/v1/users/staff/', { method:'POST', body: JSON.stringify(payload) });
+        if (!r) return;
+        if (!r.ok) {
+            const d = await r.json().catch(() => ({}));
+            erro.textContent = Object.entries(d).map(([k, m]) => `${k}: ${[].concat(m).join(' ')}`).join(' · ') || 'Erro ao cadastrar.';
+            return;
+        }
+        closeModal('staff-modal');
+        toast('Usuário cadastrado');
+        loadUsers();
+    } catch(e) { toast('Erro de conexão','error'); }
+}
+
 function openUserModal(id) {
     const u = allUsers.find(x => x.id === id);
     if (!u) return;
@@ -569,7 +665,15 @@ function openUserModal(id) {
             <div class="detail-field"><label>Username</label><span>@${u.username}</span></div>
             <div class="detail-field"><label>E-mail</label><span>${u.email||'—'}</span></div>
             <div class="detail-field"><label>Telefone</label><span>${u.phone||'—'}</span></div>
-            <div class="detail-field"><label>Tipo</label><span class="badge ${u.user_type==='admin'?'badge-admin':'badge-citizen'}">${u.user_type==='admin'?'Administrador':'Cidadão'}</span></div>
+            <div class="detail-field"><label>Tipo</label>${tipoBadge(u, true)}</div>
+            ${(u.user_type === 'gestor' || u.user_type === 'equipe_tecnica') ? `
+            <div class="detail-field"><label>Cidade</label><span>${esc(u.cidade || '—')}${u.uf ? '/' + esc(u.uf) : ''}</span></div>
+            <div class="detail-field" style="grid-column:1/-1"><label>Setor</label>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <select id="user-setor-edit" style="flex:1">${opcoesSetores(u.setor)}</select>
+                    <button class="btn btn-primary btn-sm" onclick="salvarSetorDoUsuario(${u.id})">Salvar setor</button>
+                </div>
+            </div>` : ''}
             <div class="detail-field"><label>Status</label><span class="badge ${u.is_active?'badge-active':'badge-inactive'}">${u.is_active?'Ativo':'Inativo'}</span></div>
             <div class="detail-field"><label>Cadastro</label><span>${fmt(u.created_at)}</span></div>
             <div class="detail-field" style="grid-column:1/-1"><label>Endereço</label><span>${u.address||'—'}</span></div>
@@ -925,41 +1029,36 @@ function mostrarErroApi() {
 async function init() {
     if (!getToken()) { window.location.href = 'landing.html'; return; }
 
-    // Valida o token e o perfil: só administradores acessam este painel.
-    let me = null;
-    let loaded = false;
+    // Perfil de quem está logado (/users/me/): só administrador, gestor público e equipe técnica entram aqui.
     try {
-        const payload = JSON.parse(atob(getToken().split('.')[1]));
-        const r = await api('/api/v1/users/');
-        if (r) {
-            const data = await r.json();
-            const users = Array.isArray(data) ? data : (data.results || []);
-            const me = users.find(u => u.id === uid);
-            if (me) {
-                const name = (me.first_name && me.last_name) ? `${me.first_name} ${me.last_name}` : me.username;
-                document.getElementById('admin-name').textContent = name;
-                
-                const av1 = document.getElementById('admin-avatar');
-                const av2 = document.getElementById('admin-topbar-avatar');
-                if (me.profile_picture) {
-                    const src = me.profile_picture.startsWith('http') ? me.profile_picture : `${API}${me.profile_picture}`;
-                    const imgHtml = `<img src="${src}" alt="${name}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
-                    if (av1) av1.innerHTML = imgHtml;
-                    if (av2) av2.innerHTML = imgHtml;
-                } else {
-                    const initials = name.slice(0,2).toUpperCase();
-                    if (av1) av1.textContent = initials;
-                    if (av2) av2.textContent = initials;
-                }
-
-                localStorage.setItem('im_user', JSON.stringify(me));
-                if (typeof refreshDrawerUserData === 'function') refreshDrawerUserData();
-            }
-        }
+        const r = await api('/api/v1/users/me/');
+        if (!r) return;
+        if (r.ok) ME = await r.json();
     } catch(e) {}
+    if (!ME) { toast('Não foi possível carregar o seu perfil', 'error'); return; }
+    if (!(souAdmin() || souGestor() || souEquipe())) { window.location.replace('index.html'); return; }
+
+    const name = (ME.first_name && ME.last_name) ? `${ME.first_name} ${ME.last_name}` : ME.username;
+    document.getElementById('admin-name').textContent = name;
+    const av1 = document.getElementById('admin-avatar');
+    const av2 = document.getElementById('admin-topbar-avatar');
+    if (ME.profile_picture) {
+        const src = ME.profile_picture.startsWith('http') ? ME.profile_picture : `${API}${ME.profile_picture}`;
+        const imgHtml = `<img src="${esc(src)}" alt="${esc(name)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+        if (av1) av1.innerHTML = imgHtml;
+        if (av2) av2.innerHTML = imgHtml;
+    } else {
+        const initials = name.slice(0,2).toUpperCase();
+        if (av1) av1.textContent = initials;
+        if (av2) av2.textContent = initials;
+    }
+    localStorage.setItem('im_user', JSON.stringify(ME));
+    if (typeof refreshDrawerUserData === 'function') refreshDrawerUserData();
+
+    aplicarPerfil();
     loadDashboard();
     loadNotifications();
-    carregarContadorDenuncias();
+    if (souAdmin()) carregarContadorDenuncias();
 }
 
 // Preenche o contador do menu sem precisar abrir a aba.

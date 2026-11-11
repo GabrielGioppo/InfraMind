@@ -34,26 +34,26 @@
             <svg viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
             Mapa
         </div>
-        <div class="nav-item" onclick="showPage('users')">
+        <div class="nav-item" data-so-admin onclick="showPage('users')">
             <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
             Usuários
         </div>
-        <div class="nav-item" onclick="showPage('feedbacks')">
+        <div class="nav-item" data-so-admin onclick="showPage('feedbacks')">
             <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
             Feedbacks
             <span class="badge" id="feedback-count-badge">—</span>
         </div>
-        <div class="nav-item" onclick="showPage('denuncias')">
+        <div class="nav-item" data-so-admin onclick="showPage('denuncias')">
             <svg viewBox="0 0 24 24"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg>
             Suporte
             <span class="badge" id="denuncia-count-badge" style="display:none">0</span>
         </div>
-        <div class="nav-item" onclick="showPage('logs')">
+        <div class="nav-item" data-so-admin onclick="showPage('logs')">
             <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8l8 5 8-5v10zm-8-7L4 6h16l-8 5z"/></svg>
             Logs
         </div>
-        <div class="nav-section">Configuração</div>
-        <div class="nav-item" onclick="showPage('categories')">
+        <div class="nav-section" data-so-admin>Configuração</div>
+        <div class="nav-item" data-so-admin onclick="showPage('categories')">
             <svg viewBox="0 0 24 24"><path d="M12 2l-5.5 9h11L12 2zm0 3.84L13.93 9h-3.87L12 5.84zM17.5 13c-2.49 0-4.5 2.01-4.5 4.5S15.01 22 17.5 22s4.5-2.01 4.5-4.5S19.99 13 17.5 13zm0 7c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5zM3 21.5h8v-8H3v8zm2-6h4v4H5v-4z"/></svg>
             Setores
         </div>
@@ -62,7 +62,7 @@
         <div class="avatar" id="admin-avatar">AD</div>
         <div class="avatar-info">
             <div class="avatar-name" id="admin-name">Administrador</div>
-            <div class="avatar-role">Superusuário</div>
+            <div class="avatar-role" id="admin-role">Superusuário</div>
         </div>
         <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:var(--text3);flex-shrink:0;"><path d="M7 10l5 5 5-5z"/></svg>
     </div>
@@ -93,7 +93,7 @@
 
     <div id="page-dashboard" class="page active">
         <div class="stats-grid" id="stats-grid">
-            <div class="stat-card blue">
+            <div class="stat-card blue" data-so-admin>
                 <div class="stat-label"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>Usuários</div>
                 <div class="stat-value" id="s-users">—</div>
                 <div class="stat-delta">Total cadastrado</div>
@@ -190,7 +190,13 @@
                     <option value="">Todos os tipos</option>
                     <option value="citizen">Cidadão</option>
                     <option value="admin">Administrador</option>
+                    <option value="gestor">Gestor Público</option>
+                    <option value="equipe_tecnica">Equipe Técnica</option>
                 </select>
+                <button class="btn btn-primary btn-sm" onclick="openStaffModal()">
+                    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                    Novo gestor / equipe
+                </button>
                 <button class="btn btn-ghost btn-sm" onclick="loadUsers()" style="margin-left:auto">
                     <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
                     Atualizar
@@ -374,7 +380,7 @@
                     <option value="closed">Fechada</option>
                 </select>
             </div>
-            <div class="modal-field"><label>Nível de Importância</label>
+            <div class="modal-field" data-so-gestao><label>Nível de Importância</label>
                 <select id="edit-occ-importance">
                     <option value="">Não definido</option>
                     <option value="green">🟢 Verde — Normal</option>
@@ -382,7 +388,7 @@
                     <option value="red">🔴 Vermelho — Importante</option>
                 </select>
             </div>
-            <div class="modal-field"><label>Prazo para resolver</label>
+            <div class="modal-field" data-so-gestao><label>Prazo para resolver</label>
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                     <input type="date" id="edit-occ-deadline">
                     <input type="time" id="edit-occ-deadline-time" title="Horário limite (opcional)">
@@ -391,7 +397,7 @@
                 <div class="modal-hint" id="edit-occ-deadline-hint"></div>
                 <div class="modal-hint">Sem horário, o prazo vai até 23:59:59 do dia escolhido.</div>
             </div>
-            <div class="modal-field"><label>Atualização para o cidadão (opcional)</label>
+            <div class="modal-field" data-so-gestao><label>Atualização para o cidadão (opcional)</label>
                 <textarea id="edit-occ-feedback" rows="3" placeholder="Ex: Estamos planejando o conserto. Previsão para o dia 02/11."></textarea>
                 <div class="modal-hint">Aparece na ocorrência como “Atualização oficial”. Mudanças de prazo ficam registradas no histórico.</div>
             </div>
@@ -437,6 +443,41 @@
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModal('cat-modal')">Cancelar</button>
             <button class="btn btn-primary" onclick="saveCat()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="staff-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">Novo gestor público / equipe técnica</span>
+            <button class="modal-close" onclick="closeModal('staff-modal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-field"><label>Perfil *</label>
+                <select id="st-tipo">
+                    <option value="gestor">Gestor Público (define importância, prazo e status)</option>
+                    <option value="equipe_tecnica">Equipe Técnica (atualiza só o status)</option>
+                </select>
+            </div>
+            <div class="modal-field"><label>Setor *</label><select id="st-setor"></select></div>
+            <div style="display:grid;grid-template-columns:1fr 90px;gap:10px">
+                <div class="modal-field"><label>Cidade *</label><input type="text" id="st-cidade" placeholder="Ex: Sorocaba"></div>
+                <div class="modal-field"><label>UF *</label><input type="text" id="st-uf" maxlength="2" placeholder="SP" style="text-transform:uppercase"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="modal-field"><label>Nome</label><input type="text" id="st-nome"></div>
+                <div class="modal-field"><label>Sobrenome</label><input type="text" id="st-sobrenome"></div>
+            </div>
+            <div class="modal-field"><label>Usuário (login) *</label><input type="text" id="st-username" autocomplete="off"></div>
+            <div class="modal-field"><label>E-mail *</label><input type="email" id="st-email" autocomplete="off"></div>
+            <div class="modal-field"><label>Senha inicial * (mín. 8 caracteres)</label><input type="password" id="st-senha" autocomplete="new-password"></div>
+            <div class="modal-hint">A pessoa só enxerga as ocorrências deste setor nesta cidade. A cidade só o administrador altera.</div>
+            <div id="st-erro" style="color:var(--red);font-size:12px;margin-top:8px"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('staff-modal')">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveStaff()">Cadastrar</button>
         </div>
     </div>
 </div>

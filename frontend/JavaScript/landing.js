@@ -19,7 +19,8 @@ const tk = {
 
 // Para onde cada perfil vai depois do login:
 // admin -> admin.html | cidadão -> index.html
-function isAdminUser(u) { return !!u && (u.user_type === 'admin' || u.is_staff === true); }
+// Quem usa o painel (admin.html): administrador, gestor público e equipe técnica.
+function isAdminUser(u) { return !!u && (['admin', 'gestor', 'equipe_tecnica'].includes(u.user_type) || u.is_staff === true); }
 function homeFor(u) { return isAdminUser(u) ? 'admin.html' : 'index.html'; }
 function goToSystem() { window.location.href = homeFor(tk.user()); }
 
