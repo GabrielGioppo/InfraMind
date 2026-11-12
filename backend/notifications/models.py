@@ -15,6 +15,9 @@ class Notificacao(models.Model):
         ('aviso_prazo', 'Aviso de Proximidade de Prazo'),
         ('status_change', 'Mudança de Status'),
         ('recuperacao_senha', 'Recuperação de Senha'),
+        ('nova_ocorrencia', 'Nova Ocorrência para Triagem'),
+        ('encaminhamento', 'Ocorrência Encaminhada ao Setor'),
+        ('designacao', 'Ocorrência Designada'),
         ('geral', 'Geral'),
     ]
     STATUS_CHOICES = [

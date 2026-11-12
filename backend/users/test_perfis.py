@@ -81,12 +81,14 @@ class PermissoesNasOcorrenciasTests(PerfisBase):
         self.assertEqual((self.poste_soro.importance_color, self.poste_soro.status), ('red', 'in_progress'))
 
     def test_equipe_so_altera_o_status(self):
+        self.poste_soro.equipe_responsavel = self.equipe
+        self.poste_soro.save()
         self.client.force_authenticate(self.equipe)
         r = self.client.patch(self._url(self.poste_soro),
-                              {'status': 'resolved', 'importance_color': 'red', 'title': 'Hackeado'}, format='json')
+                              {'status': 'in_progress', 'importance_color': 'red', 'title': 'Hackeado'}, format='json')
         self.assertEqual(r.status_code, 200, r.content)
         self.poste_soro.refresh_from_db()
-        self.assertEqual(self.poste_soro.status, 'resolved')
+        self.assertEqual(self.poste_soro.status, 'in_progress')
         self.assertEqual(self.poste_soro.title, 'Poste Sorocaba')
         self.assertNotEqual(self.poste_soro.importance_color, 'red')
 

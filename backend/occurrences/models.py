@@ -82,6 +82,16 @@ class Occurrence(models.Model):
         User, on_delete=models.SET_NULL, null=True, blank=True, related_name='triagens',
     )
     triagem_obs = models.TextField(blank=True, default='')   # motivo, quando rejeitada
+
+    # Designação: quem responde pela ocorrência depois da triagem.
+    gestor_responsavel = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='ocorrencias_geridas',
+    )
+    equipe_responsavel = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='ocorrencias_atribuidas',
+    )
+    # Encerramento: para marcar como Resolvida exige parecer + foto da resolução (Image.etapa='resolucao').
+    parecer_encerramento = models.TextField(blank=True, default='')
     priority = models.IntegerField(default=0)
     estimated_time = models.IntegerField(null=True, blank=True)
 

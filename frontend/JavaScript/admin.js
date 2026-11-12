@@ -373,6 +373,7 @@ function cardTriada(o) {
             ${rejeitada ? '<span class="badge badge-red">Rejeitada</span>' : impBadge(o.importance_color)}
         </div>
         <div class="tri-meta"><span>${esc(rotuloLocal(o))}</span>${statusBadge(o.status)}${rejeitada ? '' : slaBadge(o)}</div>
+        ${!rejeitada && o.equipe_responsavel_nome ? `<div class="tri-meta"><span>Equipe: @${esc(o.equipe_responsavel_nome)}</span></div>` : ''}
         ${rejeitada && o.triagem_obs ? `<div class="tri-motivo">Motivo: ${esc(o.triagem_obs)}</div>` : ''}
         ${o.triagem_em ? `<div class="tri-meta"><span>${rejeitada ? 'Rejeitada' : 'Triada'} em ${fmtDateTime(o.triagem_em)}${quem}</span></div>` : ''}
         <div class="tri-actions">
@@ -385,7 +386,7 @@ function cardTriada(o) {
 function mensagemDeErro(d) {
     if (!d || typeof d !== 'object') return 'Erro ao salvar.';
     if (d.detail) return d.detail;
-    const nomes = { importance_color:'Importância', prazo_definido:'Prazo', category:'Setor', subcategory:'Subcategoria', observacao:'Motivo' };
+    const nomes = { parecer_encerramento:'Parecer', evidencia:'Foto da resolução', equipe:'Equipe', gestor:'Gestor', status:'Status', importance_color:'Importância', prazo_definido:'Prazo', category:'Setor', subcategory:'Subcategoria', observacao:'Motivo' };
     return Object.entries(d).map(([k, m]) => `${nomes[k] || k}: ${[].concat(m).join(' ')}`).join(' · ');
 }
 
@@ -497,6 +498,10 @@ async function openOccModal(id) {
     document.getElementById('edit-occ-deadline').value = occ.prazo_definido ? occ.prazo_definido.slice(0, 10) : '';
     document.getElementById('edit-occ-deadline-time').value = occ.prazo_definido ? occ.prazo_definido.slice(11, 16) : '';
     document.getElementById('edit-occ-feedback').value = '';
+    document.getElementById('edit-occ-parecer').value = occ.parecer_encerramento || '';
+    document.getElementById('edit-occ-foto-file').value = '';
+    renderFotosResolucao(occ);
+    await prepararDesignacao(occ);
     document.getElementById('edit-occ-deadline-hint').textContent = occ.prazo_definido
         ? `Prazo atual: ${fmtDateTime(occ.prazo_definido)}. Escolha outra data ou horário para reajustar.`
         : (occ.sla_deadline
@@ -506,6 +511,90 @@ async function openOccModal(id) {
 }
 
 let _reopenDetailAfterSave = false;
+
+// ── Designação, foto da resolução e disponibilidade (item 8) ──
+function renderFotosResolucao(occ) {
+    const fotos = (occ.images || []).filter(i => i.etapa === 'resolucao');
+    document.getElementById('edit-occ-fotos-res').innerHTML = fotos.map(i => {
+        const s = esc(imgSrc(i.image || i.url));
+        return `<img src="${s}" alt="Foto da resolução" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid var(--border)">`;
+    }).join('') || '<span style="font-size:12px;color:var(--text3)">Nenhuma foto de resolução ainda.</span>';
+}
+
+async function prepararDesignacao(occ) {
+    const bloco = document.getElementById('edit-atend-designar');
+    const info = document.getElementById('edit-atend-equipe-info');
+    bloco.style.display = 'none'; info.style.display = 'none';
+    if (souEquipe()) {
+        info.style.display = '';
+        document.getElementById('edit-occ-atend-info').textContent = occ.equipe_responsavel === ME.id
+            ? 'Esta ocorrência foi designada para você.' : 'Esta ocorrência não foi designada para você.';
+        return;
+    }
+    if (occ.triagem !== 'triada') return;
+    try {
+        const r = await api(`/api/v1/occurrences/${occ.id}/candidatos/`);
+        if (!r || !r.ok) return;
+        const c = await r.json();
+        const opcoes = (lista, atual, vazio) => `<option value="">${vazio}</option>` + lista.map(p =>
+            `<option value="${p.id}" ${p.id === atual ? 'selected' : ''} ${!p.disponivel && p.id !== atual ? 'disabled' : ''}>@${esc(p.username)}${p.disponivel ? '' : ' (indisponível)'}</option>`).join('');
+        document.getElementById('edit-occ-equipe').innerHTML = opcoes(c.equipe, c.equipe_atual, 'Sem equipe designada');
+        const gw = document.getElementById('edit-occ-gestor-wrap');
+        gw.style.display = souAdmin() ? '' : 'none';
+        if (souAdmin()) document.getElementById('edit-occ-gestor').innerHTML = opcoes(c.gestores, c.gestor_atual, 'Sem gestor designado');
+        bloco.style.display = '';
+    } catch (e) { console.error(e); }
+}
+
+async function designarOcc() {
+    const id = Number(document.getElementById('edit-occ-id').value);
+    const corpo = { equipe: Number(document.getElementById('edit-occ-equipe').value) || null };
+    if (souAdmin()) corpo.gestor = Number(document.getElementById('edit-occ-gestor').value) || null;
+    try {
+        const r = await api(`/api/v1/occurrences/${id}/designar/`, { method:'POST', body: JSON.stringify(corpo) });
+        if (!r) return;
+        if (!r.ok) { toast(mensagemDeErro(await r.json().catch(() => null)), 'error'); return; }
+        toast('Designação salva');
+        await refreshAfterOccChange(id);
+        if (!document.getElementById('occ-detail-modal').classList.contains('open')) return;
+    } catch (e) { toast('Erro de conexão', 'error'); }
+}
+
+async function enviarFotoResolucao() {
+    const input = document.getElementById('edit-occ-foto-file');
+    const arquivo = input.files[0];
+    if (!arquivo) return;
+    const id = Number(document.getElementById('edit-occ-id').value);
+    const fd = new FormData();
+    fd.append('occurrence', id); fd.append('image', arquivo); fd.append('etapa', 'resolucao');
+    try {
+        const r = await fetch(API + '/api/v1/images/', { method:'POST', headers: { Authorization: 'Bearer ' + getToken() }, body: fd });
+        if (!r.ok) { toast(mensagemDeErro(await r.json().catch(() => null)), 'error'); input.value = ''; return; }
+        const o = await (await api(`/api/v1/occurrences/${id}/`)).json();
+        renderFotosResolucao(o);
+        toast('Foto da resolução enviada');
+    } catch (e) { toast('Erro de conexão', 'error'); }
+    input.value = '';
+}
+
+function mostrarDisponibilidade() {
+    if (!souEquipe()) return;
+    const wrap = document.getElementById('disp-wrap');
+    wrap.style.display = 'flex';
+    document.getElementById('disp-toggle').checked = ME.disponivel !== false;
+}
+
+async function alternarDisponibilidade(valor) {
+    try {
+        const r = await api('/api/v1/users/me/', { method:'PATCH', body: JSON.stringify({ disponivel: valor }) });
+        if (!r || !r.ok) throw new Error();
+        ME.disponivel = valor;
+        toast(valor ? 'Você está disponível para novas designações' : 'Você está marcado como indisponível');
+    } catch (e) {
+        document.getElementById('disp-toggle').checked = !valor;
+        toast('Não foi possível atualizar a disponibilidade', 'error');
+    }
+}
 
 // Data + horário opcional. Sem horário, o backend assume 23:59:59.
 function prazoDoFormulario() {
@@ -517,7 +606,8 @@ function prazoDoFormulario() {
 
 async function saveOcc() {
     const id = Number(document.getElementById('edit-occ-id').value);
-    const payload = { status: document.getElementById('edit-occ-status').value };
+    const payload = { status: document.getElementById('edit-occ-status').value,
+                      parecer_encerramento: document.getElementById('edit-occ-parecer').value.trim() };
     if (podeGerir()) {
         payload.importance_color = document.getElementById('edit-occ-importance').value || null;
         payload.prazo_definido = prazoDoFormulario();
@@ -527,7 +617,7 @@ async function saveOcc() {
         const r = await api(`/api/v1/occurrences/${id}/`, { method:'PATCH', body: JSON.stringify(payload) });
         if (!r || !r.ok) {
             let msg = 'Erro ao salvar';
-            try { msg += ': ' + JSON.stringify(await r.json()); } catch (e) {}
+            try { msg = mensagemDeErro(await r.json()); } catch (e) {}
             toast(msg, 'error');
             return;
         }
@@ -581,7 +671,9 @@ async function openOccDetail(id) {
         let hist = [];
         if (rh && rh.ok) { const d = await rh.json(); hist = Array.isArray(d) ? d : (d.results || []); }
 
-        const img = o.images?.length ? imgSrc(o.images[0].image || o.images[0].url) : null;
+        const fotosReg = (o.images || []).filter(i => i.etapa !== 'resolucao');
+        const fotosRes = (o.images || []).filter(i => i.etapa === 'resolucao');
+        const img = fotosReg.length ? imgSrc(fotosReg[0].image || fotosReg[0].url) : null;
         const lat = parseFloat(o.latitude), lng = parseFloat(o.longitude);
         const hasCoords = !isNaN(lat) && !isNaN(lng);
         const reporter = o.user_details?.username ? '@' + o.user_details.username : 'Anônimo';
@@ -628,10 +720,20 @@ async function openOccDetail(id) {
                 <div class="detail-field"><label>Prazo limite</label><span>${o.sla_deadline ? fmtDateTime(o.sla_deadline) : '—'}</span></div>
                 <div class="detail-field" style="grid-column:1/-1"><label>Endereço</label><span>${esc(o.address || '—')}</span></div>
             </div>
+            ${(o.gestor_responsavel_nome || o.equipe_responsavel_nome) ? `<div class="detail-grid">
+                <div class="detail-field"><label>Gestor responsável</label><span>${esc(o.gestor_responsavel_nome ? '@' + o.gestor_responsavel_nome : '—')}</span></div>
+                <div class="detail-field"><label>Equipe técnica</label><span>${esc(o.equipe_responsavel_nome ? '@' + o.equipe_responsavel_nome : '—')}</span></div>
+            </div>` : ''}
             <div class="od-section"><div class="od-section-title">Descrição</div>
                 <div class="od-desc">${esc(o.description || '—')}</div></div>
             ${o.urgency_reason ? `<div class="od-section"><div class="od-section-title">Análise da IA</div>
                 <div class="od-desc">${esc(o.urgency_reason)}</div></div>` : ''}
+            ${(o.parecer_encerramento || fotosRes.length) ? `<div class="od-section"><div class="od-section-title">Resolução</div>
+                ${o.parecer_encerramento ? `<div class="od-desc">${esc(o.parecer_encerramento)}</div>` : ''}
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${fotosRes.map(i => {
+                    const s = imgSrc(i.image || i.url);
+                    return `<a href="${esc(s)}" target="_blank" rel="noopener"><img src="${esc(s)}" alt="Foto da resolução" style="width:110px;height:110px;object-fit:cover;border-radius:6px;border:1px solid var(--border)"></a>`;
+                }).join('')}</div></div>` : ''}
             ${hasCoords ? `<div class="od-section"><div class="od-section-title">Localização</div>
                 <div id="occ-detail-map" class="od-map"></div></div>` : ''}
             <div class="od-section"><div class="od-section-title">Atualizações e feedbacks</div>${notes}</div>
@@ -1195,6 +1297,7 @@ async function init() {
     if (typeof refreshDrawerUserData === 'function') refreshDrawerUserData();
 
     aplicarPerfil();
+    mostrarDisponibilidade();
     loadDashboard();
     if (!souEquipe()) atualizarContadorTriagem();
     loadNotifications();

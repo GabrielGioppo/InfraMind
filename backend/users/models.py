@@ -20,6 +20,8 @@ class User(AbstractUser):
         choices=USER_TYPE_CHOICES,
         default='citizen'
     )
+    # Equipe técnica: pode receber novas designações? (a própria pessoa ou o administrador altera)
+    disponivel = models.BooleanField(default=True)
     # Setor (categoria) pelo qual o gestor / a equipe técnica responde. A cidade vem de cidade/uf.
     setor = models.ForeignKey(
         'categories.Category',

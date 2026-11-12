@@ -453,8 +453,13 @@ function renderOccurrences(list) {
   }
 }
 
+// Fotos do registro (do cidadão) e da resolução (evidência da equipe) ficam separadas.
+const fotosRegistro = o => (o.images || []).filter(i => i.etapa !== 'resolucao');
+const fotosResolucao = o => (o.images || []).filter(i => i.etapa === 'resolucao');
+
 function occCard(o) {
-  const img = o.images?.length ? imgUrl(o.images[0].image || o.images[0].url) : null;
+  const fr = fotosRegistro(o);
+  const img = fr.length ? imgUrl(fr[0].image || fr[0].url) : null;
   const imgHtml = img
     ? `<img src="${img}" class="occ-thumb" onerror="this.parentElement.innerHTML='<div class=occ-thumb-placeholder><svg viewBox=\\'0 0 24 24\\'><path d=\\'M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z\\'/></svg></div>'">`
     : `<div class="occ-thumb-placeholder"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></div>`;
@@ -820,7 +825,8 @@ async function loadDetail(id) {
     document.getElementById('det-title').textContent = o.title;
     document.getElementById('det-meta').textContent = `#${o.id} · Registrada em ${fmtDate(o.created_at)}`;
 
-    const img = o.images?.length ? imgUrl(o.images[0].image || o.images[0].url) : null;
+    const fr = fotosRegistro(o);
+    const img = fr.length ? imgUrl(fr[0].image || fr[0].url) : null;
     document.getElementById('det-hero-wrap').innerHTML = img
       ? `<img src="${img}" class="detail-hero" onerror="this.style.display='none'">`
       : `<div class="detail-hero-placeholder"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></div>`;
@@ -902,6 +908,19 @@ function buildValidationCard(o) {
 function buildFeedbackCard(o) {
   const body = document.getElementById('feedback-body');
   let html = '';
+
+  // Encerramento: parecer da equipe + foto da resolução.
+  const fotosRes = fotosResolucao(o);
+  if (o.parecer_encerramento || fotosRes.length) {
+    html += `<div style="border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:12px;background:var(--surface)">
+      <div style="font-size:.8rem;font-weight:600;margin-bottom:6px">Resolução do atendimento</div>
+      ${o.parecer_encerramento ? `<p style="font-size:.82rem;color:var(--text2);margin:0 0 8px">${esc(o.parecer_encerramento)}</p>` : ''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${fotosRes.map(i => {
+        const src = imgUrl(i.image || i.url);
+        return `<img src="${src}" alt="Foto da resolução" style="width:96px;height:96px;object-fit:cover;border-radius:6px;cursor:pointer" onclick="openLightbox('${src}')" onerror="this.style.display='none'">`;
+      }).join('')}</div>
+    </div>`;
+  }
 
   if (o.feedbacks && o.feedbacks.length) {
     html += '<div style="margin-bottom:12px;">';
@@ -1657,8 +1676,9 @@ function _renderDetailExtras(o) {
     setTimeout(() => _initDetailMap(parseFloat(o.latitude), parseFloat(o.longitude), o.title, o.address), 200);
   }
   const gallery = document.getElementById('det-gallery');
-  if (gallery && o.images && o.images.length > 1) {
-    gallery.innerHTML = o.images.slice(1).map(img => {
+  const extras = fotosRegistro(o);
+  if (gallery && extras.length > 1) {
+    gallery.innerHTML = extras.slice(1).map(img => {
       const src = imgUrl(img.image || img.url);
       return '<img src="' + src + '" onclick="openLightbox(\'' + src + '\')" onerror="this.style.display=\'none\'">';
     }).join('');

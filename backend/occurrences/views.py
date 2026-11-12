@@ -3,7 +3,7 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Case, When, IntegerField
 from rest_framework.views import APIView
@@ -18,6 +18,8 @@ from logs.utils import register_log
 from gemini_api.facade import IAProcessamentoFacade
 from occurrences.visibility import visible_occurrences
 from users.perfis import is_admin as _is_admin, is_equipe, is_gestor, is_municipal
+from users.models import User
+from users.validators import chave_cidade
 
 from gemini_api.client import analyze_occurrence_description_and_photo
 from images.models import Image
@@ -240,6 +242,7 @@ class OccurrenceCreateListView(generics.ListCreateAPIView):
                 print(f"Erro ao salvar imagem principal: {e}")
 
         register_log(request, 'create', 'Occurrence', occ.id, {'title': occ.title})
+        _avisar_gestores_nova(occ)
         res_data = self.get_serializer(occ, context={'request': request}).data
         return Response(
             {
@@ -262,12 +265,34 @@ class OccurrenceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView)
 
     def perform_update(self, serializer):
         occurrence      = self.get_object()
+        user            = self.request.user
         previous_status = occurrence.status
         previous_deadline = occurrence.prazo_definido
+
+        # Equipe técnica só atualiza o que foi designado a ela.
+        if is_equipe(user) and occurrence.equipe_responsavel_id != user.id:
+            raise PermissionDenied('Esta ocorrência não foi designada para você.')
+
+        # Encerramento com evidência: Resolvida exige parecer e foto da resolução.
+        novo_status = serializer.validated_data.get('status')
+        if novo_status == 'resolved' and previous_status != 'resolved':
+            parecer = serializer.validated_data.get('parecer_encerramento', occurrence.parecer_encerramento)
+            erros = {}
+            if not (parecer or '').strip():
+                erros['parecer_encerramento'] = 'Escreva o parecer do atendimento.'
+            if not occurrence.images.filter(etapa='resolucao').exists():
+                erros['evidencia'] = 'Anexe ao menos uma foto da resolução.'
+            if erros:
+                raise ValidationError({'status': 'Para marcar como Resolvida é preciso o parecer e a foto da resolução.', **erros})
+
         updated         = serializer.save()
 
+        update_fields = ['priority']
         updated.priority = calculate_priority(updated)
-        updated.save(update_fields=['priority'])
+        if updated.status == 'resolved' and not updated.resolved_at:
+            updated.resolved_at = timezone.now()
+            update_fields.append('resolved_at')
+        updated.save(update_fields=update_fields)
 
         if previous_deadline != updated.prazo_definido:
             fmt_prazo = lambda d: timezone.localtime(d).strftime('%d/%m/%Y %H:%M') if d else 'sem prazo'
@@ -357,6 +382,8 @@ class OccurrenceTriagemView(APIView):
         if 'subcategory' in dados:
             occ.subcategory = dados['subcategory']
         self._marcar(occ, request.user, 'triada')
+        if is_gestor(request.user) and not occ.gestor_responsavel_id and occ.category_id == request.user.setor_id:
+            occ.gestor_responsavel = request.user
         occ.priority = calculate_priority(occ)
         occ.save()
 
@@ -373,6 +400,10 @@ class OccurrenceTriagemView(APIView):
             change_type='edit', observation=texto,
         )
         register_log(request, 'update', 'Occurrence', occ.id, {'triagem': 'aprovada', 'detalhe': texto})
+        # Avisa os gestores do setor responsável quando a triagem veio de fora dele (admin ou outro setor).
+        if _is_admin(request.user) or occ.category_id != (antes_setor.pk if antes_setor else None):
+            from notifications.services import notificar_encaminhamento
+            notificar_encaminhamento(occ, request.user)
 
     def _rejeitar(self, request, occ, motivo):
         anterior = occ.status
@@ -385,6 +416,119 @@ class OccurrenceTriagemView(APIView):
         )
         register_log(request, 'status_change', 'Occurrence', occ.id,
                      {'triagem': 'rejeitada', 'previous': anterior, 'new': 'closed', 'motivo': motivo})
+
+
+def _avisar_gestores_nova(occ):
+    """Nunca derruba o cadastro da ocorrência se o aviso falhar."""
+    try:
+        from notifications.services import notificar_nova_ocorrencia
+        notificar_nova_ocorrencia(occ)
+    except Exception as e:  # noqa: BLE001
+        print(f"Erro ao avisar gestores: {e}")
+
+
+def _da_area(pessoa, occ) -> bool:
+    """A pessoa é do setor e da cidade da ocorrência?"""
+    return (
+        bool(occ.category_id) and pessoa.setor_id == occ.category_id
+        and bool(occ.city_key) and chave_cidade(pessoa.cidade) == occ.city_key
+        and (pessoa.uf or '').strip().upper() == occ.state
+    )
+
+
+class OccurrenceDesignarView(APIView):
+    """
+    POST /api/v1/occurrences/<id>/designar/ — define quem responde pela ocorrência já triada.
+
+    {"equipe": <id|null>}  equipe técnica do setor/cidade (precisa estar disponível). Admin e gestor.
+    {"gestor": <id|null>}  gestor público do setor/cidade. Só o administrador.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        user = request.user
+        if not (_is_admin(user) or is_gestor(user)):
+            raise PermissionDenied('Só o administrador e o gestor público designam a ocorrência.')
+        try:
+            occ = visible_occurrences(user).get(pk=pk)
+        except Occurrence.DoesNotExist:
+            return Response({'detail': 'Ocorrência não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+        if occ.triagem != 'triada':
+            return Response({'detail': 'Faça a triagem antes de designar.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not ('equipe' in request.data or 'gestor' in request.data):
+            return Response({'detail': 'Informe "equipe" e/ou "gestor".'}, status=status.HTTP_400_BAD_REQUEST)
+
+        mudancas, avisar = [], None
+        if 'equipe' in request.data:
+            nova, erro = self._escolher(request.data.get('equipe'), 'equipe_tecnica', occ, occ.equipe_responsavel_id)
+            if erro:
+                return Response({'equipe': erro}, status=status.HTTP_400_BAD_REQUEST)
+            if nova != occ.equipe_responsavel:
+                occ.equipe_responsavel = nova
+                mudancas.append(f'equipe técnica: {nova.username if nova else "ninguém"}')
+                avisar = nova
+        if 'gestor' in request.data:
+            if not _is_admin(user):
+                raise PermissionDenied('Só o administrador designa o gestor.')
+            novo, erro = self._escolher(request.data.get('gestor'), 'gestor', occ, occ.gestor_responsavel_id)
+            if erro:
+                return Response({'gestor': erro}, status=status.HTTP_400_BAD_REQUEST)
+            if novo != occ.gestor_responsavel:
+                occ.gestor_responsavel = novo
+                mudancas.append(f'gestor: {novo.username if novo else "ninguém"}')
+
+        if mudancas:
+            with transaction.atomic():
+                occ.save()
+                texto = 'Designação — ' + '; '.join(mudancas)
+                OccurrenceHistory.objects.create(
+                    occurrence=occ, user=user, previous_status=occ.status, new_status=occ.status,
+                    change_type='edit', observation=texto)
+                register_log(request, 'update', 'Occurrence', occ.id, {'designacao': texto})
+            if avisar:
+                from notifications.services import notificar_designacao
+                notificar_designacao(occ, avisar, user)
+        occ.refresh_from_db()
+        return Response(get_serializer_class(user)(occ, context={'request': request}).data)
+
+    @staticmethod
+    def _escolher(valor, perfil, occ, atual_id):
+        """Devolve (usuário|None, erro). valor vazio = remover a designação."""
+        if valor in (None, '', 0, '0'):
+            return None, None
+        pessoa = User.objects.filter(pk=valor, user_type=perfil, is_active=True).first()
+        if not pessoa:
+            return None, 'Pessoa não encontrada com esse perfil.'
+        if not _da_area(pessoa, occ):
+            return None, 'Essa pessoa não é do setor e da cidade desta ocorrência.'
+        if perfil == 'equipe_tecnica' and not pessoa.disponivel and pessoa.pk != atual_id:
+            return None, 'Essa pessoa está marcada como indisponível.'
+        return pessoa, None
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def designacao_candidatos(request, pk):
+    """GET /api/v1/occurrences/<id>/candidatos/ — quem pode ser designado (setor + cidade da ocorrência)."""
+    user = request.user
+    if not (_is_admin(user) or is_gestor(user)):
+        raise PermissionDenied('Só o administrador e o gestor público designam a ocorrência.')
+    try:
+        occ = visible_occurrences(user).get(pk=pk)
+    except Occurrence.DoesNotExist:
+        return Response({'detail': 'Ocorrência não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+
+    def lista(perfil):
+        pessoas = User.objects.filter(user_type=perfil, is_active=True, setor_id=occ.category_id) if occ.category_id else []
+        return [{'id': p.id, 'username': p.username, 'nome': (p.get_full_name() or p.username), 'disponivel': p.disponivel}
+                for p in pessoas if _da_area(p, occ)]
+
+    return Response({
+        'equipe': lista('equipe_tecnica'),
+        'gestores': lista('gestor') if _is_admin(user) else [],
+        'equipe_atual': occ.equipe_responsavel_id,
+        'gestor_atual': occ.gestor_responsavel_id,
+    })
 
 
 @api_view(['GET'])
@@ -501,6 +645,7 @@ def create_anonymous_occurrence(request):
             except Exception as e:
                 print(f"Erro ao salvar imagem anônima: {e}")
 
+        _avisar_gestores_nova(occ)
         res_data = AnonOccurrenceSerializer(occ).data
         return Response(
             {

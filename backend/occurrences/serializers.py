@@ -79,7 +79,8 @@ class OccurrenceSerializer(SubcategoriaMixin, SlaFieldsMixin, serializers.ModelS
         model = Occurrence
         exclude = AI_FIELDS
         read_only_fields = ['user', 'validation_count', 'priority', 'is_duplicate', 'importance_color',
-                            'prazo_definido', 'triagem', 'triagem_em', 'triagem_por', 'triagem_obs']
+                            'prazo_definido', 'triagem', 'triagem_em', 'triagem_por', 'triagem_obs',
+                            'gestor_responsavel', 'equipe_responsavel', 'parecer_encerramento']
 
 
 class OccurrenceAdminSerializer(SubcategoriaMixin, SlaFieldsMixin, serializers.ModelSerializer):
@@ -92,25 +93,35 @@ class OccurrenceAdminSerializer(SubcategoriaMixin, SlaFieldsMixin, serializers.M
     feedbacks = FeedbackSerializer(many=True, read_only=True)
 
     triagem_por_nome = serializers.SerializerMethodField()
+    gestor_responsavel_nome = serializers.SerializerMethodField()
+    equipe_responsavel_nome = serializers.SerializerMethodField()
 
     class Meta:
         model = Occurrence
         fields = '__all__'
-        # A triagem só muda pelo endpoint próprio (POST /occurrences/<id>/triagem/).
+        # A triagem e a designação só mudam pelos endpoints próprios
+        # (POST /occurrences/<id>/triagem/ e /designar/).
         read_only_fields = ['user', 'validation_count', 'priority', 'is_duplicate',
-                            'triagem', 'triagem_em', 'triagem_por', 'triagem_obs']
+                            'triagem', 'triagem_em', 'triagem_por', 'triagem_obs',
+                            'gestor_responsavel', 'equipe_responsavel']
+
+    def get_gestor_responsavel_nome(self, obj):
+        return obj.gestor_responsavel.username if obj.gestor_responsavel_id else None
+
+    def get_equipe_responsavel_nome(self, obj):
+        return obj.equipe_responsavel.username if obj.equipe_responsavel_id else None
 
     def get_triagem_por_nome(self, obj):
         return obj.triagem_por.username if obj.triagem_por_id else None
 
 
 class OccurrenceEquipeSerializer(OccurrenceAdminSerializer):
-    """Equipe técnica: vê tudo da sua área, mas só altera o status do atendimento."""
+    """Equipe técnica: vê tudo da sua área, mas só altera o status e o parecer do atendimento."""
 
     def get_fields(self):
         campos = super().get_fields()
         for nome, campo in campos.items():
-            if nome != 'status':
+            if nome not in ('status', 'parecer_encerramento'):
                 campo.read_only = True
         return campos
 

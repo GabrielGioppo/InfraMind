@@ -63,6 +63,9 @@
             Setores
         </div>
     </nav>
+    <label id="disp-wrap" style="display:none;align-items:center;gap:8px;padding:8px 16px;font-size:12px;color:var(--text2);cursor:pointer">
+        <input type="checkbox" id="disp-toggle" onchange="alternarDisponibilidade(this.checked)"> Disponível para novas designações
+    </label>
     <div class="sidebar-footer" id="admin-user-trigger" onclick="toggleUserDrawer()" title="Abrir menu do administrador" style="cursor:pointer;">
         <div class="avatar" id="admin-avatar">AD</div>
         <div class="avatar-info">
@@ -409,6 +412,28 @@
                     <option value="resolved">Resolvida</option>
                     <option value="closed">Fechada</option>
                 </select>
+            </div>
+            <div class="modal-field" id="edit-atend-designar" style="display:none"><label>Designação</label>
+                <div id="edit-occ-gestor-wrap" style="margin-bottom:8px;display:none">
+                    <select id="edit-occ-gestor"></select>
+                    <div class="modal-hint">Gestor público responsável (só o administrador altera).</div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <select id="edit-occ-equipe"></select>
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="designarOcc()">Designar</button>
+                </div>
+                <div class="modal-hint" id="edit-occ-designar-hint">Só aparece depois da triagem. Equipe técnica do mesmo setor e cidade.</div>
+            </div>
+            <div class="modal-field" id="edit-atend-equipe-info" style="display:none"><label>Atendimento</label>
+                <div class="modal-static" id="edit-occ-atend-info"></div>
+            </div>
+            <div class="modal-field"><label>Parecer de encerramento</label>
+                <textarea id="edit-occ-parecer" rows="3" placeholder="O que foi feito para resolver. Obrigatório para marcar como Resolvida."></textarea>
+            </div>
+            <div class="modal-field"><label>Foto da resolução</label>
+                <div id="edit-occ-fotos-res" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"></div>
+                <input type="file" id="edit-occ-foto-file" accept="image/*" onchange="enviarFotoResolucao()">
+                <div class="modal-hint">Para marcar como Resolvida é preciso ao menos uma foto da resolução e o parecer.</div>
             </div>
             <div class="modal-field" data-so-gestao><label>Nível de Importância</label>
                 <select id="edit-occ-importance">
