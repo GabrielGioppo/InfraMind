@@ -318,13 +318,24 @@ As categorias agora são **setores** (ex.: Saneamento básico, Iluminação púb
 - A subcategoria precisa pertencer ao setor escolhido. Informar só a subcategoria já define o setor; trocar só o setor numa edição limpa a subcategoria.
 - Cidadão e visitante veem só as subcategorias ativas. O administrador cria, desativa e apaga setores e subcategorias na aba **Setores** do painel admin.
 
+## Triagem de ocorrências
+
+Toda ocorrência nasce com `triagem = nova`. A triagem é a etapa de entrada e convive com o `status` (que continua acompanhando a execução do atendimento).
+
+- Na aba **Triagem** do painel há duas colunas: **Novos** (à esquerda) e **Já passaram da triagem** (à direita).
+- Em cada cartão de "Novos" o gestor define a **importância**, o **prazo** (data e, se quiser, hora) e confirma o **setor responsável**. Trocar o setor encaminha a ocorrência ao departamento certo (e a limpa da lista do gestor atual). Em seguida **aprova** ou **rejeita** informando o motivo (conteúdo falso, duplicada, fora do escopo). Rejeitar encerra a ocorrência (`status = closed`).
+- Quem tria: gestor público (só o setor e a cidade dele) e administrador. A equipe técnica não faz triagem e só enxerga o que já foi aprovado.
+- Cada triagem grava o histórico da ocorrência (quem, quando, o que foi definido) e um log de auditoria.
+- API: `POST /api/v1/occurrences/<id>/triagem/` com `{"acao": "aprovar", "importance_color": "red", "prazo_definido": "2026-12-01T17:30", "category": 3}` ou `{"acao": "rejeitar", "observacao": "motivo"}`. A lista aceita o filtro `?triagem=nova|triada|rejeitada`.
+- Ocorrências que já existiam antes da triagem: as que já tinham andamento, importância ou prazo viram `triada`; as abertas e sem nenhuma definição continuam `nova`.
+
 ## Perfis de usuário
 
 | Perfil | Vê | Pode fazer |
 |--------|----|------------|
 | Cidadão | Ocorrências da cidade onde mora e as que registrou | Registrar, validar, comentar |
-| Gestor Público | Ocorrências do **setor** e da **cidade** dele (mais as que registrou) | Definir importância, prazo e status; enviar atualização ao cidadão. Não exclui |
-| Equipe Técnica | Ocorrências do setor e da cidade dela | Atualizar só o **status** do atendimento. Não exclui |
+| Gestor Público | Ocorrências do **setor** e da **cidade** dele (mais as que registrou) | Fazer a triagem; definir importância, prazo e status; enviar atualização ao cidadão. Não exclui |
+| Equipe Técnica | Ocorrências do setor e da cidade dela que já foram aprovadas na triagem | Atualizar só o **status** do atendimento. Não exclui |
 | Administrador | Tudo | Tudo, incluindo usuários, logs, suporte e setores |
 
 - Gestor e equipe usam o painel (`admin.html`) com o menu reduzido: Dashboard, Ocorrências e Mapa. As telas de usuários, feedbacks, suporte, logs e setores são só do administrador.
@@ -448,6 +459,7 @@ Use `{{token_admin}}` ou `{{token_user}}` no campo Bearer Token.
 | GET | `/api/v1/users/` | Lista todos os usuários | Token |
 | GET/PUT/DELETE | `/api/v1/users/<id>/` | Detalhe, edição e exclusão | Token |
 | GET/POST | `/api/v1/occurrences/` | Lista e cria ocorrências | Token |
+| POST | `/api/v1/occurrences/<id>/triagem/` | Aprova (importância, prazo, setor) ou rejeita uma ocorrência nova | Admin ou Gestor |
 | GET/PUT/DELETE | `/api/v1/occurrences/<id>/` | Detalhe, edição e exclusão | Token |
 | GET | `/api/v1/occurrences/nearby/<lat>/<lng>/` | Ocorrências próximas | Token |
 | GET | `/api/v1/occurrences/<id>/history/` | Histórico de alterações | Token |

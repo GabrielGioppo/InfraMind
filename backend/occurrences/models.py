@@ -14,6 +14,14 @@ class Occurrence(models.Model):
         ('closed', 'Fechada'),
     ]
 
+    # Triagem: etapa de entrada. O gestor confere a ocorrência, define importância, prazo e
+    # setor responsável. Convive com `status` (que acompanha a execução do atendimento).
+    TRIAGEM_CHOICES = [
+        ('nova', 'Nova'),
+        ('triada', 'Triada'),
+        ('rejeitada', 'Rejeitada'),
+    ]
+
     IMPORTANCE_CHOICES = [
         ('green', 'Normal'),
         ('yellow', 'Um Pouco Importante'),
@@ -68,6 +76,12 @@ class Occurrence(models.Model):
 
     # Status e controle
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+    triagem = models.CharField(max_length=10, choices=TRIAGEM_CHOICES, default='nova', db_index=True)
+    triagem_em = models.DateTimeField(null=True, blank=True)
+    triagem_por = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='triagens',
+    )
+    triagem_obs = models.TextField(blank=True, default='')   # motivo, quando rejeitada
     priority = models.IntegerField(default=0)
     estimated_time = models.IntegerField(null=True, blank=True)
 

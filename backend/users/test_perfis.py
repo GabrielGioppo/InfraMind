@@ -24,7 +24,8 @@ class PerfisBase(APITestCase):
         self.gestor_campinas = _user('g3', user_type='gestor', setor=self.iluminacao, cidade='Campinas', uf='SP')
 
         def occ(titulo, cat, cidade, autor=None):
-            return Occurrence.objects.create(title=titulo, category=cat, city=cidade, state='SP', user=autor or self.cidadao)
+            return Occurrence.objects.create(title=titulo, category=cat, city=cidade, state='SP', user=autor or self.cidadao,
+                                             triagem='triada')
 
         self.poste_soro = occ('Poste Sorocaba', self.iluminacao, 'Sorocaba')
         self.esgoto_soro = occ('Esgoto Sorocaba', self.saneamento, 'Sorocaba')

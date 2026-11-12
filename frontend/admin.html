@@ -26,6 +26,11 @@
             Dashboard
         </div>
         <div class="nav-section">Gestão</div>
+        <div class="nav-item" data-sem-equipe onclick="showPage('triagem')">
+            <svg viewBox="0 0 24 24"><path d="M3 5h8v14H3V5zm10 0h8v14h-8V5zM5 7v10h4V7H5zm10 0v10h4V7h-4z"/></svg>
+            Triagem
+            <span class="badge" id="triagem-count-badge" style="display:none">0</span>
+        </div>
         <div class="nav-item" onclick="showPage('occurrences')">
             <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
             Ocorrências
@@ -143,6 +148,31 @@
                 <thead><tr><th>Título</th><th>Status</th><th>Prioridade</th><th>Prazo</th><th>Data</th></tr></thead>
                 <tbody id="recent-occ-tbody"><tr><td colspan="5" class="loading">Carregando...</td></tr></tbody>
             </table>
+        </div>
+    </div>
+
+    <div id="page-triagem" class="page">
+        <div class="section-header">
+            <span class="section-title">Triagem</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <input class="filter-input" id="tri-search" placeholder="Buscar por título, setor ou cidade..." oninput="renderTriagem()" style="width:260px">
+                <button class="btn btn-ghost btn-sm" onclick="loadTriagem()">
+                    <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                    Atualizar
+                </button>
+            </div>
+        </div>
+        <div class="tri-board">
+            <section class="tri-col">
+                <header class="tri-col-head"><span>Novos</span><span class="tri-count" id="tri-count-novas">0</span></header>
+                <div class="tri-hint">Defina a importância e o prazo, confirme o setor responsável e aprove. Ou rejeite com o motivo.</div>
+                <div class="tri-list" id="tri-novas"><div class="loading">Carregando...</div></div>
+            </section>
+            <section class="tri-col">
+                <header class="tri-col-head"><span>Já passaram da triagem</span><span class="tri-count" id="tri-count-triadas">0</span></header>
+                <div class="tri-hint">Ocorrências aprovadas (em atendimento) ou rejeitadas.</div>
+                <div class="tri-list" id="tri-triadas"></div>
+            </section>
         </div>
     </div>
 

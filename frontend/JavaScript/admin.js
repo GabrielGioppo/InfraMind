@@ -57,6 +57,7 @@ function logout() {
 // equipe técnica: ocorrências do setor/cidade dela (só o status).
 const PERFIL_ROTULO = { admin:'Administrador', gestor:'Gestor Público', equipe_tecnica:'Equipe Técnica', citizen:'Cidadão' };
 const PAGINAS_SO_ADMIN = ['users', 'feedbacks', 'denuncias', 'logs', 'categories'];
+const PAGINAS_SEM_EQUIPE = ['triagem'];   // a equipe técnica não faz triagem
 let ME = null;
 
 const souAdmin    = () => !!ME && (ME.user_type === 'admin' || ME.is_staff === true);
@@ -66,6 +67,7 @@ const podeGerir   = () => souAdmin() || souGestor();   // importância, prazo e 
 
 function aplicarPerfil() {
     if (!souAdmin()) document.querySelectorAll('[data-so-admin]').forEach(el => { el.style.display = 'none'; });
+    if (souEquipe()) document.querySelectorAll('[data-sem-equipe]').forEach(el => { el.style.display = 'none'; });
     const rotulo = document.getElementById('admin-role');
     if (!rotulo) return;
     if (souAdmin()) { rotulo.textContent = 'Administrador'; return; }
@@ -140,8 +142,9 @@ function rowClick(ev, id) {
 }
 
 // ── PAGE ROUTING ──
-const pages = ['dashboard','occurrences','users','feedbacks','denuncias','logs','categories','map'];
+const pages = ['dashboard','triagem','occurrences','users','feedbacks','denuncias','logs','categories','map'];
 function showPage(id) {
+    if (PAGINAS_SEM_EQUIPE.includes(id) && souEquipe()) id = 'dashboard';
     if (PAGINAS_SO_ADMIN.includes(id) && !souAdmin()) { toast('Área restrita ao administrador', 'error'); id = 'dashboard'; }
     pages.forEach(p => {
         document.getElementById('page-'+p).classList.toggle('active', p === id);
@@ -149,9 +152,10 @@ function showPage(id) {
             if (n.getAttribute('onclick') === `showPage('${p}')`) n.classList.toggle('active', p === id);
         });
     });
-    const titles = { dashboard:'Dashboard', occurrences:'Ocorrências', users:'Usuários', feedbacks:'Feedbacks', denuncias:'Suporte', logs:'Logs de Auditoria', categories:'Setores e subcategorias', map:'Mapa de Ocorrências' };
+    const titles = { dashboard:'Dashboard', triagem:'Triagem', occurrences:'Ocorrências', users:'Usuários', feedbacks:'Feedbacks', denuncias:'Suporte', logs:'Logs de Auditoria', categories:'Setores e subcategorias', map:'Mapa de Ocorrências' };
     document.getElementById('page-title').textContent = titles[id] || id;
     if (id === 'dashboard')   loadDashboard();
+    if (id === 'triagem')     loadTriagem();
     if (id === 'occurrences') loadOccurrences();
     if (id === 'users')       loadUsers();
     if (id === 'feedbacks')   loadFeedbacks();
@@ -273,6 +277,140 @@ async function loadOccurrences() {
         occPage = 1;
         renderOcc();
     } catch(e) { toast('Erro ao carregar ocorrências','error'); }
+}
+
+// ============================================================
+// TRIAGEM (colunas: Novos | Já passaram da triagem)
+// ============================================================
+let triOcc = [];
+
+async function loadTriagem() {
+    document.getElementById('tri-novas').innerHTML = '<div class="loading">Carregando...</div>';
+    try {
+        await garantirSetores();
+        const r = await api('/api/v1/occurrences/');
+        if (!r) return;
+        const data = await r.json();
+        triOcc = Array.isArray(data) ? data : (data.results || []);
+        renderTriagem();
+    } catch(e) { toast('Erro ao carregar a triagem', 'error'); }
+}
+
+async function atualizarContadorTriagem() {
+    try {
+        const r = await api('/api/v1/occurrences/?triagem=nova');
+        if (!r || !r.ok) return;
+        const d = await r.json();
+        const n = (Array.isArray(d) ? d : (d.results || [])).length;
+        const b = document.getElementById('triagem-count-badge');
+        if (b) { b.textContent = n; b.style.display = n ? '' : 'none'; }
+    } catch(e) {}
+}
+
+function renderTriagem() {
+    const q = (document.getElementById('tri-search').value || '').toLowerCase();
+    const casa = o => !q || [o.title, o.category_details?.name, o.subcategory_details?.name, o.city, o.address]
+        .some(v => (v || '').toLowerCase().includes(q));
+    const novas = triOcc.filter(o => o.triagem === 'nova' && casa(o));
+    const feitas = triOcc.filter(o => o.triagem !== 'nova' && casa(o))
+        .sort((a, b) => (b.triagem_em || '').localeCompare(a.triagem_em || ''));
+
+    document.getElementById('tri-count-novas').textContent = novas.length;
+    document.getElementById('tri-count-triadas').textContent = feitas.length;
+    const badge = document.getElementById('triagem-count-badge');
+    const totalNovas = triOcc.filter(o => o.triagem === 'nova').length;
+    if (badge) { badge.textContent = totalNovas; badge.style.display = totalNovas ? '' : 'none'; }
+
+    document.getElementById('tri-novas').innerHTML = novas.length
+        ? novas.map(cardNova).join('') : '<div class="tri-empty">Nenhuma ocorrência nova para triar.</div>';
+    document.getElementById('tri-triadas').innerHTML = feitas.length
+        ? feitas.map(cardTriada).join('') : '<div class="tri-empty">Nada por aqui ainda.</div>';
+}
+
+function rotuloLocal(o) {
+    return [o.category_details?.name ? (o.category_details.name + (o.subcategory_details ? ' › ' + o.subcategory_details.name : '')) : 'Sem setor',
+            o.city ? `${o.city}${o.state ? '/' + o.state : ''}` : ''].filter(Boolean).join(' · ');
+}
+
+function cardNova(o) {
+    const urg = o.urgency_level && o.urgency_level !== 'baixa'
+        ? `<span class="badge badge-red" title="Classificação da IA">IA: ${esc(URGENCY_LABEL[o.urgency_level] || o.urgency_level)}</span>` : '';
+    return `<article class="tri-card" id="tri-card-${o.id}">
+        <div class="tri-top">
+            <div class="tri-title" onclick="openOccDetail(${o.id})">#${o.id} · ${esc(o.title)}</div>${urg}
+        </div>
+        <div class="tri-meta"><span>${esc(rotuloLocal(o))}</span><span>${fmt(o.created_at)}</span><span>${o.validation_count || 0} validações</span></div>
+        ${o.description ? `<div class="tri-desc">${esc(o.description)}</div>` : ''}
+        <div class="tri-form">
+            <div><label>Importância *</label>
+                <select id="tri-imp-${o.id}">
+                    <option value="">Escolha...</option>
+                    <option value="green" ${o.importance_color === 'green' ? 'selected' : ''}>🟢 Normal</option>
+                    <option value="yellow" ${o.importance_color === 'yellow' ? 'selected' : ''}>🟡 Médio</option>
+                    <option value="red" ${o.importance_color === 'red' ? 'selected' : ''}>🔴 Importante</option>
+                </select></div>
+            <div><label>Prazo para resolver *</label>
+                <div style="display:flex;gap:6px">
+                    <input type="date" id="tri-dia-${o.id}" value="${o.prazo_definido ? o.prazo_definido.slice(0, 10) : ''}">
+                    <input type="time" id="tri-hora-${o.id}" value="${o.prazo_definido ? o.prazo_definido.slice(11, 16) : ''}" title="Horário limite (opcional)" style="max-width:96px">
+                </div></div>
+            <div class="full"><label>Departamento / setor responsável</label>
+                <select id="tri-setor-${o.id}">${opcoesSetores(o.category)}</select></div>
+        </div>
+        <div class="tri-actions">
+            <button class="btn btn-ghost btn-sm" onclick="rejeitarTriagem(${o.id})">Rejeitar</button>
+            <button class="btn btn-primary btn-sm" onclick="aprovarTriagem(${o.id})">Aprovar triagem</button>
+        </div>
+    </article>`;
+}
+
+function cardTriada(o) {
+    const rejeitada = o.triagem === 'rejeitada';
+    const quem = o.triagem_por_nome ? ` por @${esc(o.triagem_por_nome)}` : '';
+    return `<article class="tri-card ${rejeitada ? 'rejeitada' : ''}">
+        <div class="tri-top">
+            <div class="tri-title" onclick="openOccDetail(${o.id})">#${o.id} · ${esc(o.title)}</div>
+            ${rejeitada ? '<span class="badge badge-red">Rejeitada</span>' : impBadge(o.importance_color)}
+        </div>
+        <div class="tri-meta"><span>${esc(rotuloLocal(o))}</span>${statusBadge(o.status)}${rejeitada ? '' : slaBadge(o)}</div>
+        ${rejeitada && o.triagem_obs ? `<div class="tri-motivo">Motivo: ${esc(o.triagem_obs)}</div>` : ''}
+        ${o.triagem_em ? `<div class="tri-meta"><span>${rejeitada ? 'Rejeitada' : 'Triada'} em ${fmtDateTime(o.triagem_em)}${quem}</span></div>` : ''}
+        <div class="tri-actions">
+            <button class="btn btn-ghost btn-sm" onclick="openOccDetail(${o.id})">Ver</button>
+            ${rejeitada ? '' : `<button class="btn btn-ghost btn-sm" onclick="openOccModal(${o.id})">Gerenciar</button>`}
+        </div>
+    </article>`;
+}
+
+function mensagemDeErro(d) {
+    if (!d || typeof d !== 'object') return 'Erro ao salvar.';
+    if (d.detail) return d.detail;
+    const nomes = { importance_color:'Importância', prazo_definido:'Prazo', category:'Setor', subcategory:'Subcategoria', observacao:'Motivo' };
+    return Object.entries(d).map(([k, m]) => `${nomes[k] || k}: ${[].concat(m).join(' ')}`).join(' · ');
+}
+
+async function aprovarTriagem(id) {
+    const v = nome => document.getElementById(`${nome}-${id}`).value;
+    const dia = v('tri-dia'), hora = v('tri-hora');
+    const corpo = { acao: 'aprovar', importance_color: v('tri-imp') || undefined, category: Number(v('tri-setor')) || undefined };
+    if (dia) corpo.prazo_definido = hora ? `${dia}T${hora}` : dia;
+    await enviarTriagem(id, corpo, 'Triagem aprovada');
+}
+
+async function rejeitarTriagem(id) {
+    const motivo = (prompt('Motivo da rejeição (ex.: conteúdo falso, duplicada, fora do escopo):') || '').trim();
+    if (!motivo) return;
+    await enviarTriagem(id, { acao: 'rejeitar', observacao: motivo }, 'Ocorrência rejeitada');
+}
+
+async function enviarTriagem(id, corpo, msgOk) {
+    try {
+        const r = await api(`/api/v1/occurrences/${id}/triagem/`, { method:'POST', body: JSON.stringify(corpo) });
+        if (!r) return;
+        if (!r.ok) { toast(mensagemDeErro(await r.json().catch(() => null)), 'error'); return; }
+        toast(msgOk);
+        await loadTriagem();
+    } catch(e) { toast('Erro de conexão', 'error'); }
 }
 
 function filterOcc() { occPage = 1; renderOcc(); }
@@ -409,6 +547,7 @@ async function saveOcc() {
 async function refreshAfterOccChange(id) {
     const active = (document.querySelector('.page.active')?.id || '').replace('page-', '');
     if (active === 'occurrences') await loadOccurrences();
+    else if (active === 'triagem') await loadTriagem();
     else if (active === 'dashboard') loadDashboard();
     else if (active === 'map') loadMapPage();
     if (_reopenDetailAfterSave) { _reopenDetailAfterSave = false; openOccDetail(id); }
@@ -1057,6 +1196,7 @@ async function init() {
 
     aplicarPerfil();
     loadDashboard();
+    if (!souEquipe()) atualizarContadorTriagem();
     loadNotifications();
     if (souAdmin()) carregarContadorDenuncias();
 }

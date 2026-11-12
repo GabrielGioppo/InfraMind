@@ -364,3 +364,27 @@ input[type="date"] { color-scheme: dark; }
 .pie-name { flex:1; color:var(--text2, var(--text)); }
 .pie-val { font-family:var(--mono); font-size:12px; }
 .pie-val small { color:var(--text3); }
+
+/* Triagem em colunas */
+.tri-board { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+.tri-col { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); display:flex; flex-direction:column; min-width:0; }
+.tri-col-head { display:flex; align-items:center; justify-content:space-between; padding:14px 16px 4px; font-weight:600; font-size:14px; }
+.tri-count { font-family:var(--mono); font-size:12px; background:var(--bg3); border:1px solid var(--border); border-radius:20px; padding:1px 9px; color:var(--text2); }
+.tri-hint { padding:0 16px 10px; font-size:12px; color:var(--text3); }
+.tri-list { padding:0 12px 12px; display:flex; flex-direction:column; gap:10px; max-height:calc(100vh - 230px); overflow-y:auto; }
+.tri-empty { color:var(--text3); font-size:13px; text-align:center; padding:28px 8px; }
+.tri-card { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:12px; display:flex; flex-direction:column; gap:8px; }
+.tri-card.rejeitada { border-color:rgba(239,68,68,.35); }
+.tri-top { display:flex; justify-content:space-between; gap:8px; align-items:flex-start; }
+.tri-title { font-weight:600; font-size:14px; cursor:pointer; line-height:1.3; }
+.tri-title:hover { color:var(--accent); }
+.tri-meta { font-size:12px; color:var(--text2); display:flex; flex-wrap:wrap; gap:4px 10px; }
+.tri-desc { font-size:12.5px; color:var(--text2); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.tri-form { display:grid; grid-template-columns:1fr 1fr; gap:8px; border-top:1px solid var(--border); padding-top:10px; }
+.tri-form label { display:block; font-size:11px; color:var(--text3); margin-bottom:3px; text-transform:uppercase; letter-spacing:.04em; }
+.tri-form select, .tri-form input { width:100%; box-sizing:border-box; background:var(--bg2); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:7px 9px; font-family:var(--font); font-size:13px; color-scheme:dark; outline:none; }
+.tri-form select:focus, .tri-form input:focus { border-color:var(--accent); }
+.tri-form .full { grid-column:1 / -1; }
+.tri-actions { display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
+.tri-motivo { font-size:12px; color:var(--red); }
+@media (max-width: 900px) { .tri-board { grid-template-columns:1fr; } .tri-list { max-height:none; } .tri-form { grid-template-columns:1fr; } }

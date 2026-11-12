@@ -4,6 +4,7 @@ from . import views
 urlpatterns = [
     path('', views.OccurrenceCreateListView.as_view(), name='occurrence-create-list'),
     path('<int:pk>/', views.OccurrenceRetrieveUpdateDestroyView.as_view(), name='occurrence-detail'),
+    path('<int:pk>/triagem/', views.OccurrenceTriagemView.as_view(), name='occurrence-triagem'),
     path('nearby/<str:lat>/<str:lng>/', views.nearby_occurrences, name='nearby-occurrences'),
     path('geocode/', views.geocode_address, name='geocode-address'),
     path('anonymous/', views.create_anonymous_occurrence, name='occurrence-anonymous-create'),

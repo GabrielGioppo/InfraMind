@@ -4,16 +4,20 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
+from django.db import transaction
 from django.db.models import Case, When, IntegerField
+from rest_framework.views import APIView
 from django.utils import timezone
 
 from occurrences.models import Occurrence
-from occurrences.serializers import OccurrenceSerializer, OccurrenceAdminSerializer, OccurrenceEquipeSerializer
+from occurrences.serializers import (
+    OccurrenceSerializer, OccurrenceAdminSerializer, OccurrenceEquipeSerializer, TriagemSerializer,
+)
 from history.models import OccurrenceHistory
 from logs.utils import register_log
 from gemini_api.facade import IAProcessamentoFacade
 from occurrences.visibility import visible_occurrences
-from users.perfis import is_admin as _is_admin, is_equipe, is_municipal
+from users.perfis import is_admin as _is_admin, is_equipe, is_gestor, is_municipal
 
 from gemini_api.client import analyze_occurrence_description_and_photo
 from images.models import Image
@@ -134,6 +138,7 @@ class OccurrenceCreateListView(generics.ListCreateAPIView):
         date_from       = self.request.query_params.get('date_from')
         date_to         = self.request.query_params.get('date_to')
         urgency_filter  = self.request.query_params.get('urgency')
+        triagem_filter  = self.request.query_params.get('triagem')
 
         if status_filter:
             qs = qs.filter(status=status_filter)
@@ -145,6 +150,8 @@ class OccurrenceCreateListView(generics.ListCreateAPIView):
             qs = qs.filter(created_at__date__lte=date_to)
         if urgency_filter:
             qs = qs.filter(urgency_level=urgency_filter)
+        if triagem_filter:
+            qs = qs.filter(triagem=triagem_filter)
 
         if is_admin:
             qs = qs.annotate(
@@ -295,6 +302,89 @@ class OccurrenceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView)
             raise PermissionDenied('Gestor público e equipe técnica não excluem ocorrências.')
         register_log(self.request, 'delete', 'Occurrence', instance.id, {'title': instance.title})
         instance.delete()
+
+
+class OccurrenceTriagemView(APIView):
+    """
+    POST /api/v1/occurrences/<id>/triagem/ — o gestor (ou o administrador) tria uma ocorrência nova.
+
+    aprovar:  define importância e prazo e, se for o caso, encaminha para o setor certo.
+    rejeitar: encerra a ocorrência com o motivo (ex.: conteúdo falso ou fora do escopo).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        user = request.user
+        if not (_is_admin(user) or is_gestor(user)):
+            raise PermissionDenied('Só o administrador e o gestor público fazem a triagem.')
+        try:
+            occ = visible_occurrences(user).get(pk=pk)
+        except Occurrence.DoesNotExist:
+            return Response({'detail': 'Ocorrência não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+        if occ.triagem != 'nova':
+            return Response({'detail': 'Esta ocorrência já passou pela triagem.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = TriagemSerializer(data=request.data, context={'occurrence': occ, 'request': request})
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        dados = serializer.validated_data
+
+        with transaction.atomic():
+            if dados['acao'] == 'rejeitar':
+                self._rejeitar(request, occ, dados['observacao'].strip())
+            else:
+                self._aprovar(request, occ, dados)
+
+        occ.refresh_from_db()
+        # Se o gestor encaminhou para outro setor, a ocorrência sai da área dele: devolve o resumo mesmo assim.
+        saida = get_serializer_class(user)(occ, context={'request': request}).data
+        return Response(saida, status=status.HTTP_200_OK)
+
+    @staticmethod
+    def _marcar(occ, user, resultado, obs=''):
+        occ.triagem, occ.triagem_em, occ.triagem_por, occ.triagem_obs = resultado, timezone.now(), user, obs
+
+    def _aprovar(self, request, occ, dados):
+        antes_setor = occ.category
+        if 'importance_color' in dados:
+            occ.importance_color = dados['importance_color']
+        if 'prazo_definido' in dados:
+            occ.prazo_definido = dados['prazo_definido']
+        if 'category' in dados:
+            if dados['category'] != occ.category:
+                occ.subcategory = None            # a subcategoria antiga era do setor anterior
+            occ.category = dados['category']
+        if 'subcategory' in dados:
+            occ.subcategory = dados['subcategory']
+        self._marcar(occ, request.user, 'triada')
+        occ.priority = calculate_priority(occ)
+        occ.save()
+
+        rotulos = dict(Occurrence.IMPORTANCE_CHOICES)
+        prazo = timezone.localtime(occ.prazo_definido).strftime('%d/%m/%Y %H:%M')
+        texto = f'Triagem aprovada: importância {rotulos.get(occ.importance_color)}; prazo {prazo}'
+        if occ.category_id != (antes_setor.pk if antes_setor else None):
+            de = antes_setor.name if antes_setor else 'sem setor'
+            texto += f'; encaminhada de {de} para {occ.category.name}'
+        if (dados.get('observacao') or '').strip():
+            texto += f'. Obs.: {dados["observacao"].strip()}'
+        OccurrenceHistory.objects.create(
+            occurrence=occ, user=request.user, previous_status=occ.status, new_status=occ.status,
+            change_type='edit', observation=texto,
+        )
+        register_log(request, 'update', 'Occurrence', occ.id, {'triagem': 'aprovada', 'detalhe': texto})
+
+    def _rejeitar(self, request, occ, motivo):
+        anterior = occ.status
+        self._marcar(occ, request.user, 'rejeitada', motivo)
+        occ.status = 'closed'
+        occ.save()
+        OccurrenceHistory.objects.create(
+            occurrence=occ, user=request.user, previous_status=anterior, new_status='closed',
+            change_type='status', observation=f'Triagem rejeitada: {motivo}',
+        )
+        register_log(request, 'status_change', 'Occurrence', occ.id,
+                     {'triagem': 'rejeitada', 'previous': anterior, 'new': 'closed', 'motivo': motivo})
 
 
 @api_view(['GET'])
