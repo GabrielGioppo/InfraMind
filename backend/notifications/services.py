@@ -115,6 +115,18 @@ def notificar_designacao(occ, pessoa, por) -> list:
                    occ, 'designacao')
 
 
+_ROTULO_STATUS = dict(Occurrence.STATUS_CHOICES)
+
+
+def notificar_status_alterado(occ, anterior, por) -> list:
+    """Mudou o status: avisa quem responde pela ocorrência (menos quem mudou). O cidadão é avisado pela rotina UC-14."""
+    destinatarios = [p for p in _responsaveis(occ) if not por or p.id != por.id]
+    quem = f' por {por.username}' if por else ''
+    return _avisar(destinatarios, f'Status alterado — #{occ.id}',
+                   f'"{occ.title}": {_ROTULO_STATUS.get(anterior, anterior or "—")} → {_ROTULO_STATUS.get(occ.status, occ.status)}{quem}.',
+                   occ, TIPO_STATUS_CHANGE)
+
+
 def _processar_prazo_estourado(factory, admins) -> list:
     """Fluxo principal (passos 2-6) — prazo já ultrapassado."""
     agora = timezone.now()

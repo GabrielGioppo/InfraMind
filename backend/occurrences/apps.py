@@ -6,3 +6,5 @@ class OccurrencesConfig(AppConfig):
 
     def ready(self):
         import occurrences.signals
+        from occurrences import observers
+        observers.registrar()

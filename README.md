@@ -370,6 +370,12 @@ O administrador também acompanha e altera os chamados de suporte (aba **Suporte
 
 ---
 
+## Padrões de projeto (GoF)
+
+- **Factory Method** — `notifications/factory.py`: `EmailNotifFactory` e `PushNotifFactory` criam e enviam as notificações por canal.
+- **Observer** — `occurrences/events.py` e `occurrences/observers.py`. As views só publicam o que aconteceu (`eventos.publicar(...)`): `ocorrencia_criada`, `ocorrencia_triada`, `ocorrencia_designada` e `status_alterado`. O `NotificacaoObserver`, inscrito em `occurrences/apps.py`, transforma cada evento no aviso do sino (gestores, equipe). Para reagir a um evento de outra forma, basta criar um `Observer` e inscrevê-lo em `observers.registrar()`. Um observador com defeito não derruba a ação principal nem os demais.
+- **Strategy** — `occurrences/priority.py`. A prioridade das ocorrências é calculada por uma estratégia intercambiável: `padrao` (validações + dias em aberto + importância, o comportamento original), `por_prazo` (soma peso a prazo estourado ou próximo) e `urgencia_ia` (soma a nota de urgência da IA). A escolha é a variável de ambiente `PRIORITY_STRATEGY` (padrão: `padrao`).
+
 ## Backup e restauração
 
 O script `backend/scripts/backup.py` (RNF09) cria uma pasta `backup_AAAAMMDD_HHMMSS/` com:

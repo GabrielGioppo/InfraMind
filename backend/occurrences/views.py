@@ -17,6 +17,10 @@ from history.models import OccurrenceHistory
 from logs.utils import register_log
 from gemini_api.facade import IAProcessamentoFacade
 from occurrences.visibility import visible_occurrences
+from occurrences.events import (
+    eventos, OCORRENCIA_CRIADA, OCORRENCIA_TRIADA, OCORRENCIA_DESIGNADA, STATUS_ALTERADO,
+)
+from occurrences.priority import calcular_prioridade
 from users.perfis import is_admin as _is_admin, is_equipe, is_gestor, is_municipal
 from users.models import User
 from users.validators import chave_cidade
@@ -38,12 +42,8 @@ def get_serializer_class(user, method='GET'):
 
 
 def calculate_priority(occurrence):
-    score = occurrence.validation_count * 2
-    days_open = (timezone.now() - occurrence.created_at).days
-    score += min(days_open, 10)
-    color_score = {'red': 10, 'yellow': 5, 'green': 0}
-    score += color_score.get(occurrence.importance_color or 'green', 0)
-    return score
+    """Delega à estratégia de prioridade ativa (occurrences/priority.py)."""
+    return calcular_prioridade(occurrence)
 
 
 def _haversine_meters(lat1, lon1, lat2, lon2):
@@ -319,6 +319,7 @@ class OccurrenceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView)
                 self.request, 'status_change', 'Occurrence', updated.id,
                 {'previous': previous_status, 'new': updated.status}
             )
+            eventos.publicar(STATUS_ALTERADO, updated, por=self.request.user, anterior=previous_status)
         else:
             register_log(self.request, 'update', 'Occurrence', updated.id, {'title': updated.title})
 
@@ -400,10 +401,7 @@ class OccurrenceTriagemView(APIView):
             change_type='edit', observation=texto,
         )
         register_log(request, 'update', 'Occurrence', occ.id, {'triagem': 'aprovada', 'detalhe': texto})
-        # Avisa os gestores do setor responsável quando a triagem veio de fora dele (admin ou outro setor).
-        if _is_admin(request.user) or occ.category_id != (antes_setor.pk if antes_setor else None):
-            from notifications.services import notificar_encaminhamento
-            notificar_encaminhamento(occ, request.user)
+        eventos.publicar(OCORRENCIA_TRIADA, occ, por=request.user, setor_anterior_id=antes_setor.pk if antes_setor else None)
 
     def _rejeitar(self, request, occ, motivo):
         anterior = occ.status
@@ -419,12 +417,7 @@ class OccurrenceTriagemView(APIView):
 
 
 def _avisar_gestores_nova(occ):
-    """Nunca derruba o cadastro da ocorrência se o aviso falhar."""
-    try:
-        from notifications.services import notificar_nova_ocorrencia
-        notificar_nova_ocorrencia(occ)
-    except Exception as e:  # noqa: BLE001
-        print(f"Erro ao avisar gestores: {e}")
+    eventos.publicar(OCORRENCIA_CRIADA, occ, por=occ.user)
 
 
 def _da_area(pessoa, occ) -> bool:
@@ -486,8 +479,7 @@ class OccurrenceDesignarView(APIView):
                     change_type='edit', observation=texto)
                 register_log(request, 'update', 'Occurrence', occ.id, {'designacao': texto})
             if avisar:
-                from notifications.services import notificar_designacao
-                notificar_designacao(occ, avisar, user)
+                eventos.publicar(OCORRENCIA_DESIGNADA, occ, por=user, pessoa=avisar)
         occ.refresh_from_db()
         return Response(get_serializer_class(user)(occ, context={'request': request}).data)
 
