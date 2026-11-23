@@ -3,6 +3,7 @@ from rest_framework.test import APIClient
 
 from denuncias.models import Denuncia
 from logs.models import Log
+from notifications.models import Notificacao
 from occurrences.models import Occurrence
 from users.models import User
 
@@ -81,3 +82,32 @@ class DenunciaTests(TestCase):
         d.refresh_from_db()
         self.assertEqual(d.status, 'em_analise')
         self.assertEqual(_api(self.admin).patch(f'{URL}{d.pk}/', {'status': 'xx'}, format='json').status_code, 400)
+
+    def test_nova_denuncia_avisa_os_admins_no_sino(self):
+        outro_admin = _user('adm2', user_type='admin')
+        _api(self.maria).post(URL, {'tipo': 'conteudo_inadequado', 'occurrence': self.occ.pk,
+                                    'descricao': 'Esse conteúdo é ofensivo.'}, format='json')
+        d = Denuncia.objects.get()
+        avisos = Notificacao.objects.filter(titulo=f'Nova denúncia #{d.id}')
+        self.assertEqual({n.user for n in avisos}, {self.admin, outro_admin})
+        n = avisos.get(user=self.admin)
+        self.assertEqual((n.canal, n.tipo, n.read, n.status), ('push', 'geral', False, 'enviada'))
+        self.assertIn('maria', n.mensagem)
+        self.assertIn('Buraco', n.mensagem)
+        # Quem não é admin não recebe nada.
+        self.assertFalse(Notificacao.objects.filter(user__in=[self.maria, self.joao]).exists())
+        # E o aviso aparece na lista do sino do admin.
+        corpo = _api(self.admin).get('/api/v1/notifications/').json()
+        lista = corpo['results'] if isinstance(corpo, dict) else corpo
+        self.assertEqual([x['titulo'] for x in lista], [f'Nova denúncia #{d.id}'])
+
+    def test_admin_que_denuncia_nao_se_avisa(self):
+        _api(self.admin).post(URL, {'tipo': 'bug', 'descricao': 'Teste de bug pelo admin.'}, format='json')
+        self.assertFalse(Notificacao.objects.exists())
+
+    def test_falha_no_aviso_nao_derruba_a_denuncia(self):
+        from unittest import mock
+        with mock.patch('notifications.services._destinatarios_admin', side_effect=RuntimeError('boom')):
+            r = _api(self.maria).post(URL, {'tipo': 'bug', 'descricao': 'O mapa não carrega.'}, format='json')
+        self.assertEqual(r.status_code, 201, r.content)
+        self.assertEqual(Denuncia.objects.count(), 1)

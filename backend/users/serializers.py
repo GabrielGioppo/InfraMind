@@ -110,3 +110,10 @@ class UserRegisterSerializer(UserSerializer):
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError('Já existe um usuário com este e-mail.')
         return value
+
+
+class UserMeSerializer(UserSerializer):
+    """Edição do próprio perfil (`/users/me/`): `user_type` é somente leitura."""
+
+    class Meta(UserSerializer.Meta):
+        read_only_fields = ['is_active', 'user_type']

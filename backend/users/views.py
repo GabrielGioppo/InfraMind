@@ -2,13 +2,14 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import get_user_model
-from users.serializers import UserSerializer
+from users.serializers import UserMeSerializer, UserRegisterSerializer, UserSerializer
 
 User = get_user_model()
 
 class UserCreateView(generics.CreateAPIView):
     queryset = User.objects.all()
-    serializer_class = UserSerializer
+    # Cadastro público: exige CPF/endereço e nunca aceita user_type (sempre cidadão).
+    serializer_class = UserRegisterSerializer
     permission_classes = [AllowAny]
 
     def create(self, request, *args, **kwargs):
@@ -32,7 +33,8 @@ class UserRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
 
 class UserMeView(generics.RetrieveUpdateAPIView):
-    serializer_class = UserSerializer
+    # O próprio usuário edita o perfil, mas não pode mudar o próprio user_type.
+    serializer_class = UserMeSerializer
     permission_classes = [IsAuthenticated]
 
     def get_object(self):

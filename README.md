@@ -2,7 +2,7 @@
 
 **Plataforma Inteligente para Monitoramento e Otimização de Infraestruturas Sustentáveis**
 
-> Projeto Interdisciplinar III — Sistemas de Informação | FHO — Fundação Hermínio Ometto | 5º A / 2026
+> Projeto Interdisciplinar IV — Sistemas de Informação | FHO — Fundação Hermínio Ometto | 6º A / 2026
 
 ---
 
@@ -29,36 +29,51 @@ O sistema está alinhado à **ODS 9 — Indústria, Inovação e Infraestrutura*
 
 ## Funcionalidades
 
-- Cadastro e autenticação de usuários (JWT)
-- Diferenciação de perfis: **Cidadão** e **Administrador**
-- Registro de ocorrências com descrição, categoria, localização geográfica e imagens
+- Cadastro com **CPF e endereço** (CEP preenchido pelo ViaCEP) e autenticação por **JWT**
+- Recuperação de senha por e-mail
+- Perfil do usuário com edição dos dados e foto
+- Perfis **Cidadão** e **Administrador** (Gestor Público e Equipe Técnica estão previstos nos UC-08 e UC-09)
+- Registro de ocorrências com descrição, categoria, localização no mapa (Leaflet / OpenStreetMap) e imagens, inclusive **sem login** (a ocorrência anônima pode ser vinculada à conta depois)
+- Ocorrências por cidade: o cidadão vê as da cidade em que mora
+- **Inteligência Artificial (Google Gemini)**: análise de urgência, sugestão de descrição, análise da foto e da descrição antes de salvar e detecção de duplicatas
 - Validação comunitária de ocorrências por outros usuários
 - Identificação de ocorrências duplicadas por proximidade geográfica
 - Cálculo de prioridade dinâmica (validações + criticidade + tempo)
-- Definição de nível de importância pelo administrador (Verde = Normal / Amarelo = Um pouco importante / Vermelho = Importante)
-- Painel administrativo com indicadores de desempenho e estatísticas
-- Histórico completo de alterações de status
-- Logs técnicos com IP e dispositivo do usuário (audit trail)
-- Feedback dos cidadãos após resolução
-- **Inteligência Artificial via Google Gemini** (análise de urgência, sugestão de descrição e detecção de duplicatas)
+- Nível de importância definido pelo administrador (Verde / Amarelo / Vermelho)
+- **Prazo (SLA)** com data e hora definido pelo administrador, com indicador *no prazo / próximo / estourado*
+- **Notificações** por e-mail e push (padrão Factory Method), com sino no cabeçalho e rotina agendável `processar_prazos` (UC-14)
+- Painel administrativo com indicadores, estatísticas, gestão de usuários, denúncias e logs
+- Histórico completo de alterações de status e de prazo
+- Logs de auditoria com IP e dispositivo (login, alterações e envio de notificações)
+- Feedback dos cidadãos após a resolução
+- Suporte e denúncias de conteúdo, com aviso no sino dos administradores
+- Backup e restauração dos dados
 
 ---
 
 ## Tecnologias
 
 ### Backend
-- **Python 3.10+** + **Django 6.0.4**
+- **Python 3.12+** (exigência do Django 6) + **Django 6.0.4**
 - **Django REST Framework 3.17.1**
 - **Simple JWT 5.5.0** — autenticação via tokens JWT
 - **django-cors-headers 4.9.0** — controle de CORS
-- **PostgreSQL** — banco de dados (via `psycopg2-binary`)
+- **SQLite** (padrão, desenvolvimento) ou **PostgreSQL** (`USE_POSTGRES=True`, via `psycopg[binary]`)
 - **Pillow 11.3.0** — processamento de imagens
-- **python-dotenv** — gerenciamento de variáveis de ambiente
+- **python-dotenv** — variáveis de ambiente
 - **Google Gemini 2.5 Flash** (`google-genai`) — análise inteligente de ocorrências
+- **Nominatim / OpenStreetMap** — geocodificação, acessada pelo backend (padrão Adapter)
 
 ### Frontend
-- **HTML5 / CSS3 / JavaScript** (vanilla)
-- Comunicação com a API via `fetch`
+- **HTML5 / CSS3 / JavaScript** (vanilla), comunicação com a API via `fetch`
+- **Leaflet** + OpenStreetMap — mapas
+- **ViaCEP** — preenchimento do endereço no cadastro
+
+### Padrões de projeto
+- **Singleton** — `GeminiClient` (`gemini_api/client.py`)
+- **Façade** — `IAProcessamentoFacade` (`gemini_api/facade.py`)
+- **Adapter** — `OpenStreetMapAdapter` (`geo/adapter.py`)
+- **Factory Method** — `NotificacaoFactory`, `EmailNotifFactory` e `PushNotifFactory` (`notifications/factory.py`)
 
 ---
 
@@ -68,29 +83,35 @@ O sistema está alinhado à **ODS 9 — Indústria, Inovação e Infraestrutura*
 InfraMind/
 ├── backend/
 │   ├── app/                 # Configurações do Django (settings, urls)
-│   ├── authentication/      # Login por e-mail e tokens JWT
-│   ├── users/               # Cadastro e gerenciamento de usuários
-│   ├── occurrences/         # Registro e gestão de ocorrências
+│   ├── authentication/      # Login (token e por e-mail) e recuperação de senha
+│   ├── users/               # Cadastro (CPF e endereço) e gerenciamento de usuários
+│   ├── occurrences/         # Ocorrências, prazo/SLA (sla.py) e visibilidade por cidade
 │   ├── categories/          # Categorias de problemas
 │   ├── images/              # Upload de imagens
-│   ├── validations/         # Validação comunitária
+│   ├── validations/         # Validação comunitária e análise de IA
 │   ├── feedbacks/           # Feedbacks de resolução
-│   ├── history/             # Histórico de alterações de status
+│   ├── history/             # Histórico de alterações
 │   ├── logs/                # Logs de auditoria
-│   ├── statistics_api/      # Estatísticas e indicadores do painel
-│   ├── gemini_api/          # Integração com Google Gemini
+│   ├── statistics_api/      # Estatísticas e indicadores
+│   ├── gemini_api/          # Google Gemini (Singleton) e Façade de IA
+│   ├── geo/                 # Geocodificação (Adapter para o Nominatim)
+│   ├── notifications/       # Notificações (Factory Method) e comando processar_prazos
 │   ├── denuncias/           # Denúncias de conteúdo e suporte (UC-13)
-│   ├── scripts/             # Scripts de manutenção (backup, agendamento)
+│   ├── scripts/             # Backup e agendamento (backup.py, instalar_cron.sh)
 │   ├── manage.py
 │   ├── .env.example
 │   └── requirements.txt
-└── frontend/
-    ├── index.html
-    ├── app.js
-    ├── styles.css
-    ├── admin.html
-    ├── admin.js
-    └── admin.css
+├── frontend/
+│   ├── landing.html         # Página inicial pública (registro anônimo e login)
+│   ├── index.html           # Portal do cidadão
+│   ├── como-funciona.html   # Página informativa
+│   ├── perfil.html          # Perfil do usuário (dados e foto)
+│   ├── redefinir-senha.html # Redefinição de senha pelo link do e-mail
+│   ├── admin.html           # Painel administrativo
+│   ├── JavaScript/          # landing, index, admin, perfil, cadastro, forgot-password, drawer, como-funciona
+│   ├── CSS/                 # Estilos de cada página
+│   └── Images/
+└── *.pdf                    # TAP, EAP, Diagrama de Rede e Matriz RACI
 ```
 
 ---
@@ -98,9 +119,9 @@ InfraMind/
 ## Como Rodar o Projeto
 
 ### Pré-requisitos
-- Python 3.10+
-- PostgreSQL instalado e rodando
+- Python 3.12+
 - Git
+- PostgreSQL (opcional — por padrão o projeto usa SQLite)
 
 ### 1. Clone o repositório
 
@@ -120,6 +141,7 @@ cp .env.example .env
 Edite o arquivo `.env`:
 
 ```env
+USE_POSTGRES=False
 SECRET_KEY=django-insecure-troque-esta-chave-em-producao
 DEBUG=True
 DB_NAME=inframind_db
@@ -130,9 +152,11 @@ DB_PORT=5432
 GEMINI_API_KEY=sua_chave_gemini_aqui
 ```
 
-### 3. Configure o Banco de Dados
+> Com `USE_POSTGRES=False` (padrão) o banco é um arquivo SQLite (`backend/db.sqlite3`) e as variáveis `DB_*` são ignoradas. Sem `GEMINI_API_KEY` a IA usa o fallback local. E-mail e `FRONTEND_URL` são opcionais; veja as seções abaixo.
 
-Crie o banco de dados no PostgreSQL:
+### 3. Configure o Banco de Dados (somente com PostgreSQL)
+
+Se for usar PostgreSQL, defina `USE_POSTGRES=True` no `.env` e crie o banco:
 
 ```sql
 CREATE DATABASE inframind_db;
@@ -163,36 +187,43 @@ python manage.py createsuperuser
 
 # Inicie o servidor (porta padrão 8000)
 python manage.py runserver
-
-# Ou em uma porta específica
-python manage.py runserver 9000
 ```
 
 O backend estará disponível em: `http://127.0.0.1:8000`
 
+> O superusuário acessa o Django admin (`/admin/`). Para que ele use o painel administrativo do InfraMind (`admin.html`), defina `user_type = admin` no cadastro dele no Django admin.
+
 ### 5. Configure o Frontend
 
-Abra o arquivo `frontend/index.html` com o **Live Server** do VS Code (clique com botão direito → *Open with Live Server*).
+Abra a **pasta raiz do projeto** no VS Code e, em `frontend/landing.html`, clique com o botão direito → *Open with Live Server*.
 
-> Não abra o `index.html` clicando duas vezes — isso causa bloqueio de CORS pelo navegador.
+> Não abra os arquivos `.html` clicando duas vezes — isso causa bloqueio de CORS pelo navegador.
 
-O frontend estará disponível em: `http://127.0.0.1:5500`
+O frontend estará disponível em: `http://127.0.0.1:5500/frontend/landing.html`. Depois do login, o cidadão vai para `index.html` e o administrador para `admin.html`.
 
-> **Atenção:** Se o Live Server abrir em outra porta (ex: 5501), adicione essa porta em `CORS_ALLOWED_ORIGINS` no `backend/app/settings.py`.
+> **Atenção:** se o Live Server abrir em outra porta (ex: 5501), adicione essa porta em `CORS_ALLOWED_ORIGINS` no `backend/app/settings.py`.
 
-### 6. Ajuste a URL da API no Frontend
+### 6. Confira a URL da API no Frontend
 
-No arquivo `frontend/app.js`, linha 4, confirme a porta onde o backend está rodando:
+Cada script em `frontend/JavaScript/` (`index.js`, `landing.js`, `admin.js` e `como-funciona.js`) define a URL do backend na linha 4 (ou 5):
 
 ```js
-const API_BASE = 'http://127.0.0.1:8000'; // altere a porta se necessário
+const API = 'http://127.0.0.1:8000'; // altere a porta se necessário
+```
+
+### 7. Rode os testes
+
+Dentro de `backend/`, com o venv ativado:
+
+```bash
+python manage.py test
 ```
 
 ---
 
 ## Inteligência Artificial — Google Gemini
 
-O InfraMind utiliza o **Google Gemini 2.5 Flash** para enriquecer automaticamente as ocorrências registradas. O módulo `gemini_api/client.py` implementa quatro funções principais:
+O InfraMind utiliza o **Google Gemini 2.5 Flash** para enriquecer automaticamente as ocorrências registradas. O módulo `gemini_api/client.py` implementa cinco funções principais:
 
 | Função | Descrição |
 |--------|-----------|
@@ -200,10 +231,27 @@ O InfraMind utiliza o **Google Gemini 2.5 Flash** para enriquecer automaticament
 | `get_category_ai_description` | Gera uma descrição automática ao criar uma nova categoria |
 | `analyze_occurrence_urgency` | Analisa e pontua a urgência da ocorrência (score 0–100, níveis: low / medium / high / critical) |
 | `detect_duplicate_occurrences` | Verifica se a nova ocorrência é duplicata de alguma existente na mesma área |
+| `analyze_occurrence_description_and_photo` | Compara a foto com a descrição do cidadão **antes de salvar** a ocorrência |
 
-> O timeout de rede do Gemini é de **30 segundos** por padrão. Erros de rede ou timeout acionam o fallback local. Ajuste com `GEMINI_TIMEOUT_SECONDS` no `backend/.env`; valores abaixo de **10 segundos** são elevados a 10, pois o Gemini recusa prazos menores.
+> O timeout de rede do Gemini é de **30 segundos** por padrão (mínimo aceito: 10). Erros de rede ou timeout acionam o fallback local. Ajuste com `GEMINI_TIMEOUT_SECONDS` no `backend/.env`.
 
 > Todas as funções possuem **fallback local** — se a chave do Gemini não estiver configurada, o sistema continua funcionando com análise por palavras-chave (urgência) e similaridade Jaccard (duplicatas).
+
+### Análise da foto e da descrição
+
+Ao registrar uma ocorrência (logada ou anônima), a IA analisa a foto junto com o texto. O resultado fica em `description_analysis_status`, o texto original do cidadão em `original_description` e uma dica opcional em `description_suggestion`:
+
+| Status | Significado |
+|--------|-------------|
+| `MANTIDA` | A descrição combina com a foto e foi mantida |
+| `CORRIGIDA` | A descrição foi ajustada com base na foto |
+| `SUBSTITUIDA` | A descrição não combinava com a foto e foi substituída |
+| `GERADA` | Não havia descrição e a IA a gerou a partir da foto |
+| `FOTO_INSUFICIENTE` | A foto não permite identificar o problema; o app pede uma foto mais nítida |
+| `FALHA` | A IA ficou indisponível ou estourou o tempo; vale a descrição do cidadão |
+| `NA` | Sem análise (por exemplo, ocorrências antigas) |
+
+A ocorrência é sempre salva, mesmo que a análise falhe.
 
 ### Obtendo a chave da API Gemini
 
@@ -261,6 +309,30 @@ O cadastro pede **CPF** (validado pelos dígitos verificadores e único) e **end
 
 ---
 
+## Prazo (SLA) das ocorrências
+
+O administrador define o **prazo para resolver** ao editar a ocorrência no painel: uma data e, opcionalmente, um horário. **Sem horário, o prazo vai até 23:59:59** do dia escolhido. Para remover o prazo, é só limpar os campos.
+
+- O prazo fica em `prazo_definido` (data e hora). Quando não há `prazo_definido`, vale o tempo estimado em horas (`estimated_time`) contado a partir da criação; sem nenhum dos dois, a ocorrência não tem prazo.
+- Cada alteração de prazo entra no histórico da ocorrência (ex.: `Prazo alterado: sem prazo → 21/10/2026 18:00`).
+- A API devolve `sla_deadline` (limite) e `sla_status`: `ok`, `proximo` (80% do prazo já consumido) ou `estourado`. Ocorrências resolvidas, fechadas ou sem prazo vêm com `sla_status` nulo.
+- O painel administrativo mostra a coluna **Prazo** nas tabelas e um alerta vermelho no dashboard quando há ocorrências com prazo estourado.
+- Os horários seguem o fuso `America/Sao_Paulo`.
+
+Exemplo para definir o prazo (Admin):
+
+```bash
+PATCH /api/v1/occurrences/<id>/
+Authorization: Bearer <token_admin>
+Content-Type: application/json
+
+{ "prazo_definido": "2026-10-21T18:00" }
+```
+
+Enviar só a data (`"2026-10-21"`) equivale a `23:59:59` desse dia; `null` remove o prazo.
+
+---
+
 ## E-mail e rotina de prazos (UC-14)
 
 Sem configuração, os e-mails são **simulados**: aparecem no console do servidor. Para enviar de verdade, preencha no `backend/.env` (modelo em `.env.example`). Exemplo com Gmail, usando uma [senha de app](https://myaccount.google.com/apppasswords) (exige verificação em duas etapas):
@@ -294,6 +366,22 @@ bash scripts/instalar_cron.sh --remover      # tira o agendamento
 
 A saída fica em `backend/processar_prazos.log`. No Windows, crie uma tarefa no Agendador de Tarefas que execute `venv\Scripts\python.exe manage.py processar_prazos` dentro de `backend`.
 
+### Notificações e Factory Method
+
+As notificações são criadas pelo padrão **Factory Method** (`notifications/factory.py`): `NotificacaoFactory` define `criar_notificacao()` e `notificar()`, e `EmailNotifFactory` e `PushNotifFactory` fornecem cada canal. O **e-mail** é enviado por SMTP (ou simulado no console); o **push** é simulado no console.
+
+| Tipo | Quando é criada |
+|------|-----------------|
+| `prazo_estourado` | O prazo da ocorrência passou sem ela ser resolvida |
+| `aviso_prazo` | 80% do prazo consumido |
+| `status_change` | O status da ocorrência mudou (avisa o dono) |
+| `recuperacao_senha` | Pedido de recuperação de senha |
+| `geral` | Nova denúncia: avisa no sino todos os administradores (canal push), menos quem a abriu |
+
+- O aviso de **prazo estourado** vai para os administradores e para o dono da ocorrência (sem repetir quem é as duas coisas); o **aviso de 80%** vai só para os administradores. Enquanto Gestor Público e Equipe Técnica não existirem como perfis, quem recebe é todo administrador.
+- Cada envio e cada falha são gravados no log de auditoria (`notification_sent` e `notification_failed`), e a falha não interrompe o fluxo; a rotina reenvia as que falharam.
+- `GET /api/v1/notifications/` lista as notificações do usuário e `POST /api/v1/notifications/<id>/read/` marca como lida. O sino no cabeçalho do portal exibe essas notificações.
+
 ---
 
 ## Recuperação de senha
@@ -305,7 +393,7 @@ Na tela de login, **Esqueci minha senha** pede o e-mail da conta e envia um link
 | `POST /authentication/password-reset/` | `{"email"}` | Envia o link. A resposta é sempre a mesma, exista o e-mail ou não. Limite de 10 pedidos por hora por IP. |
 | `POST /authentication/password-reset/confirm/` | `{"uid", "token", "password"}` | Define a nova senha (passa pelas regras de senha do Django). |
 
-O link aponta para `FRONTEND_URL` (padrão `http://127.0.0.1:5500/frontend/index.html`). Se o frontend rodar em outro endereço, ajuste no `.env`. Com o e-mail simulado, o link aparece no console do servidor.
+O link aponta para `FRONTEND_URL` (padrão `http://127.0.0.1:5500/frontend/index.html`). O `index.html` e o `redefinir-senha.html` leem os parâmetros `reset_uid` e `reset_token` do link. Se o frontend rodar em outro endereço, ajuste `FRONTEND_URL` no `.env`. Com o e-mail simulado, o link aparece no console do servidor.
 
 ---
 
@@ -319,7 +407,7 @@ O menu **Suporte / Denúncia** abre um formulário para relatar um problema téc
 | `POST /api/v1/denuncias/` | Registra `{"tipo", "descricao", "occurrence"}` (a ocorrência só é obrigatória em conteúdo inadequado) |
 | `PATCH /api/v1/denuncias/<id>/` | Só administrador: muda o `status` (`aberta`, `em_analise`, `resolvida`) |
 
-O administrador também acompanha e altera as denúncias pelo Django admin (`/admin/`).
+Cada denúncia nova gera um aviso no sino de todos os administradores (exceto de quem a abriu). O administrador também acompanha e altera as denúncias pelo Django admin (`/admin/`).
 
 ---
 
@@ -389,9 +477,17 @@ Content-Type: application/json
     "password": "Senha123!",
     "email": "user@email.com",
     "first_name": "User",
-    "last_name": "Oliveira"
+    "last_name": "Oliveira",
+    "cpf": "52998224725",
+    "cep": "13500000",
+    "numero": "100",
+    "bairro": "Centro",
+    "cidade": "Rio Claro",
+    "uf": "SP"
 }
 ```
+
+> O cadastro exige CPF válido, CEP, número, bairro, cidade e UF; a senha deve ter ao menos 8 caracteres.
 
 Depois faça login na mesma rota `/authentication/token/` com as credenciais criadas e copie o campo `access`.
 
@@ -416,29 +512,42 @@ Use `{{token_admin}}` ou `{{token_user}}` no campo Bearer Token.
 
 | Método | Endpoint | Descrição | Auth |
 |--------|----------|-----------|------|
-| POST | `/api/v1/users/register/` | Cadastro de novo usuário | Público |
+| POST | `/api/v1/users/register/` | Cadastro de cidadão (exige CPF e endereço) | Público |
 | POST | `/authentication/token/` | Login — obtém token JWT | Público |
 | POST | `/authentication/token/refresh/` | Renova o token de acesso | Público |
 | POST | `/authentication/token/verify/` | Verifica validade do token | Público |
 | POST | `/authentication/login/` | Login alternativo por e-mail | Público |
-| GET | `/api/v1/users/` | Lista todos os usuários | Token |
+| POST | `/authentication/password-reset/` | Envia o link de recuperação de senha | Público |
+| POST | `/authentication/password-reset/confirm/` | Define a nova senha | Público |
+| GET | `/api/v1/users/` | Lista usuários | Token |
 | GET/PUT/DELETE | `/api/v1/users/<id>/` | Detalhe, edição e exclusão | Token |
+| GET/PATCH | `/api/v1/users/me/` | Perfil do próprio usuário (inclui `profile_picture`; `user_type` é somente leitura) | Token |
 | GET/POST | `/api/v1/occurrences/` | Lista e cria ocorrências | Token |
-| GET/PUT/DELETE | `/api/v1/occurrences/<id>/` | Detalhe, edição e exclusão | Token |
+| GET/PUT/PATCH/DELETE | `/api/v1/occurrences/<id>/` | Detalhe, edição e exclusão | Token |
 | GET | `/api/v1/occurrences/nearby/<lat>/<lng>/` | Ocorrências próximas | Token |
+| POST | `/api/v1/occurrences/geocode/` | Endpoint legado: só valida o campo `address` (a geocodificação real está em `/api/v1/geo/`) | Token |
+| POST | `/api/v1/occurrences/anonymous/` | Registra ocorrência sem login | Público |
+| POST | `/api/v1/occurrences/anonymous/claim/` | Vincula ocorrências anônimas à conta | Token |
 | GET | `/api/v1/occurrences/<id>/history/` | Histórico de alterações | Token |
-| POST | `/api/v1/occurrences/ai-analyze/` | Análise de urgência via IA | Token |
-| GET | `/api/v1/occurrences/ai-prioritized/` | Lista priorizada pela IA (Admin) | Token (Admin) |
-| GET/POST | `/api/v1/categories/` | Lista e cria categorias | Token |
-| GET/PUT/DELETE | `/api/v1/categories/<id>/` | Detalhe, edição e exclusão | Token |
+| GET/POST | `/api/v1/categories/` | Lista e cria categorias | Público |
+| GET/PUT/DELETE | `/api/v1/categories/<id>/` | Detalhe, edição e exclusão | Público |
 | GET/POST | `/api/v1/images/` | Lista e faz upload de imagens | Token |
 | GET/PUT/DELETE | `/api/v1/images/<id>/` | Detalhe, edição e exclusão | Token |
+| POST | `/api/v1/images/anonymous/` | Upload de imagem de ocorrência anônima | Público |
 | GET/POST | `/api/v1/validations/` | Lista e cria validações | Token |
 | POST | `/api/v1/validations/occurrence/<id>/` | Valida uma ocorrência específica | Token |
+| POST | `/api/v1/validations/ai-analyze/` | Análise de urgência via IA | Token |
+| GET | `/api/v1/validations/ai-prioritized/` | Lista priorizada pela IA | Token (Admin) |
 | GET/POST | `/api/v1/feedbacks/` | Lista e cria feedbacks | Token |
 | GET/PUT/DELETE | `/api/v1/feedbacks/<id>/` | Detalhe, edição e exclusão | Token |
+| GET | `/api/v1/geo/reverse/` | Geocodificação reversa (coordenadas → endereço) | Público |
+| GET | `/api/v1/geo/search/` | Geocodificação direta (endereço → coordenadas) | Público |
+| GET | `/api/v1/notifications/` | Notificações do usuário | Token |
+| POST | `/api/v1/notifications/<id>/read/` | Marca a notificação como lida | Token |
+| GET/POST | `/api/v1/denuncias/` | Lista e registra denúncias | Token |
+| PATCH | `/api/v1/denuncias/<id>/` | Altera o status da denúncia | Token (Admin) |
 | GET | `/api/v1/logs/` | Lista logs de auditoria | Token (Admin) |
-| GET | `/api/v1/statistics/` | Indicadores e estatísticas do painel | Token (Admin) |
+| GET | `/api/v1/statistics/` | Contagens gerais (usuários, ocorrências e categorias) | Público |
 
 ### Exemplos
 
@@ -452,7 +561,13 @@ Content-Type: application/json
   "password": "SuaSenha123!",
   "email": "user@email.com",
   "first_name": "User",
-  "last_name": "Exemplo"
+  "last_name": "Exemplo",
+  "cpf": "52998224725",
+  "cep": "13500000",
+  "numero": "100",
+  "bairro": "Centro",
+  "cidade": "Rio Claro",
+  "uf": "SP"
 }
 ```
 
@@ -472,6 +587,8 @@ Content-Type: application/json
 }
 ```
 
+Para enviar uma foto na criação, use `multipart/form-data` com o campo `image`; a IA analisa a foto e a descrição antes de salvar.
+
 **Definir nível de importância (Admin):**
 ```bash
 PATCH /api/v1/occurrences/<id>/
@@ -487,26 +604,31 @@ Content-Type: application/json
 
 ## Banco de Dados
 
-O sistema utiliza **PostgreSQL** com as seguintes tabelas:
+Por padrão o sistema usa **SQLite**; com `USE_POSTGRES=True` usa **PostgreSQL**. As migrations (`python manage.py migrate`) criam as tabelas a partir dos modelos:
 
-| Tabela | Descrição |
-|--------|-----------|
-| `Usuario` | Dados e perfis dos usuários (cidadão / administrador) |
-| `Ocorrencia` | Registros de problemas urbanos com geolocalização |
-| `Categoria` | Tipos de problemas (buraco, iluminação, lixo, etc.) |
-| `Imagem` | Evidências fotográficas vinculadas às ocorrências |
-| `Validacao` | Confirmações comunitárias com tipo e comentário |
-| `Feedback` | Avaliações pós-resolução com nota e tempo real de solução |
-| `Historico_Ocorrencia` | Rastreabilidade completa de alterações de status |
-| `Log` | Auditoria técnica com IP e dispositivo do usuário |
+| Modelo (app) | Descrição |
+|--------------|-----------|
+| `User` (`users`) | Usuários e perfis (cidadão / administrador), com CPF, endereço e foto de perfil |
+| `Occurrence` (`occurrences`) | Problemas urbanos com geolocalização, cidade/UF, prazo, urgência e análise da IA |
+| `Category` (`categories`) | Tipos de problemas (buraco, iluminação, lixo, etc.) |
+| `Image` (`images`) | Fotos vinculadas às ocorrências |
+| `Validation` (`validations`) | Confirmações comunitárias |
+| `Feedback` (`feedbacks`) | Avaliações pós-resolução com nota e tempo real de solução |
+| `OccurrenceHistory` (`history`) | Rastreabilidade das alterações de status, prioridade e prazo |
+| `Log` (`logs`) | Auditoria técnica com IP e dispositivo |
+| `Notificacao` (`notifications`) | Notificações por canal (e-mail / push), tipo e status de envio |
+| `Denuncia` (`denuncias`) | Denúncias de conteúdo e relatos de problemas técnicos |
 
 **Relacionamentos principais:**
-- `Usuario` 1:N `Ocorrencia`
-- `Categoria` 1:N `Ocorrencia`
-- `Ocorrencia` 1:N `Imagem`
-- `Usuario` N:N `Ocorrencia` (via `Validacao`)
-- `Ocorrencia` 1:N `Historico_Ocorrencia`
-- `Usuario` 1:N `Log`
+- `User` 1:N `Occurrence`
+- `Category` 1:N `Occurrence`
+- `Occurrence` 1:N `Image`
+- `User` N:N `Occurrence` (via `Validation`)
+- `Occurrence` 1:N `OccurrenceHistory`
+- `Occurrence` N:1 `Occurrence` (`duplicate_of`, ocorrência original)
+- `User` 1:N `Notificacao` (a ocorrência é opcional)
+- `User` 1:N `Denuncia` (a ocorrência é opcional)
+- `User` 1:N `Log`
 
 **Regras de negócio:**
 - Um usuário não pode validar sua própria ocorrência
@@ -514,6 +636,8 @@ O sistema utiliza **PostgreSQL** com as seguintes tabelas:
 - A prioridade é calculada dinamicamente (validações + criticidade da categoria + tempo sem resolução)
 - Ocorrências duplicadas são vinculadas a uma "Ocorrência Pai" e somam validações ao registro principal
 - O tempo real de solução é calculado automaticamente ao marcar status como `resolved`
+- O cidadão só vê ocorrências da própria cidade e as que ele registrou; o administrador vê todas
+- O prazo (`prazo_definido`) tem prioridade sobre o tempo estimado em horas
 
 ---
 
@@ -532,26 +656,30 @@ O campo `importance_color` é definido **exclusivamente pelo administrador** ap�
 ## Segurança
 
 - Senhas criptografadas com **PBKDF2**
-- Autenticação via **JWT** (Bearer Token, expira em 60 min)
-- Controle de acesso por perfil (**RBAC**)
-- Logs de auditoria com IP e metadados do dispositivo
+- Autenticação via **JWT** (Bearer Token; acesso expira em 60 min e o refresh token em 1 dia)
+- Controle de acesso por perfil (**RBAC**): logs, estatísticas administrativas, denúncias (alteração de status) e ocorrências priorizadas pela IA são restritos a administradores
+- CPF e endereço visíveis apenas para o próprio usuário e para administradores
+- Logs de auditoria com IP e metadados do dispositivo (inclui login e envio de notificações)
+- Recuperação de senha com link de uso único e validade de 1 hora, limitada a 10 pedidos por hora por IP
 - Campo `importance_color` restrito a administradores
-- Variáveis sensíveis gerenciadas via `.env` (nunca versionadas)
+- Variáveis sensíveis gerenciadas via `.env` (nunca versionadas); backups fora do Git
 
 ---
 
 ## Links do Projeto
 
 - **Repositório:** [github.com/GabrielGioppo/InfraMind](https://github.com/GabrielGioppo/InfraMind)
-- **Cronograma:** [github.com/users/GabrielGioppo/projects/1](https://github.com/users/GabrielGioppo/projects/1)
+- **Cronograma:** [github.com/users/GabrielGioppo/projects/3](https://github.com/users/GabrielGioppo/projects/3)
+
 ## Documentação
 
 - [📄 TAP – InfraMind](./TAP_InfraMind_Final_.pdf)
 - [📄 EAP – InfraMind](./EAP_InfraMind_.pdf)
 - [📄 Diagrama de Rede PDM – InfraMind](./Diagrama_de_Rede_PDM_InfraMind.pdf)
+- [📄 Matriz RACI – InfraMind](./Matriz%20RACI.pdf)
 
 ---
 
 ## Licença
 
-Projeto acadêmico desenvolvido para o Projeto Interdisciplinar III — Sistemas de Informação — FHO 2026.
+Projeto acadêmico desenvolvido para o Projeto Interdisciplinar IV — Sistemas de Informação — FHO 2026.
