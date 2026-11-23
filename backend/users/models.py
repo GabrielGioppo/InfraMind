@@ -8,19 +8,30 @@ class User(AbstractUser):
     USER_TYPE_CHOICES = [
         ('citizen', 'Cidadão'),
         ('admin', 'Administrador'),
+        ('gestor', 'Gestor Público'),
+        ('equipe_tecnica', 'Equipe Técnica'),
     ]
     
     # Remova os campos que já existem no AbstractUser
     # Não precisa redefinir email, username, password, etc.
     
     user_type = models.CharField(
-        max_length=10,
+        max_length=20,
         choices=USER_TYPE_CHOICES,
         default='citizen'
     )
+    # Equipe técnica: pode receber novas designações? (a própria pessoa ou o administrador altera)
+    disponivel = models.BooleanField(default=True)
+    # Setor (categoria) pelo qual o gestor / a equipe técnica responde. A cidade vem de cidade/uf.
+    setor = models.ForeignKey(
+        'categories.Category',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='responsaveis',
+    )
     date_of_birth = models.DateField(null=True, blank=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
-    cpf = models.CharField(max_length=14, blank=True, null=True)
     profile_picture = models.ImageField(upload_to='profiles/', blank=True, null=True)
     address = models.TextField(blank=True, null=True)
 

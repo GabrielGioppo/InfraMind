@@ -26,6 +26,11 @@
             Dashboard
         </div>
         <div class="nav-section">Gestão</div>
+        <div class="nav-item" data-sem-equipe onclick="showPage('triagem')">
+            <svg viewBox="0 0 24 24"><path d="M3 5h8v14H3V5zm10 0h8v14h-8V5zM5 7v10h4V7H5zm10 0v10h4V7h-4z"/></svg>
+            Triagem
+            <span class="badge" id="triagem-count-badge" style="display:none">0</span>
+        </div>
         <div class="nav-item" onclick="showPage('occurrences')">
             <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
             Ocorrências
@@ -34,35 +39,38 @@
             <svg viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
             Mapa
         </div>
-        <div class="nav-item" onclick="showPage('users')">
+        <div class="nav-item" data-so-admin onclick="showPage('users')">
             <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
             Usuários
         </div>
-        <div class="nav-item" onclick="showPage('feedbacks')">
+        <div class="nav-item" data-so-admin onclick="showPage('feedbacks')">
             <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
             Feedbacks
             <span class="badge" id="feedback-count-badge">—</span>
         </div>
-        <div class="nav-item" onclick="showPage('denuncias')">
+        <div class="nav-item" data-so-admin onclick="showPage('denuncias')">
             <svg viewBox="0 0 24 24"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg>
-            Denúncias
+            Suporte
             <span class="badge" id="denuncia-count-badge" style="display:none">0</span>
         </div>
-        <div class="nav-item" onclick="showPage('logs')">
+        <div class="nav-item" data-so-admin onclick="showPage('logs')">
             <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8l8 5 8-5v10zm-8-7L4 6h16l-8 5z"/></svg>
             Logs
         </div>
-        <div class="nav-section">Configuração</div>
-        <div class="nav-item" onclick="showPage('categories')">
+        <div class="nav-section" data-so-admin>Configuração</div>
+        <div class="nav-item" data-so-admin onclick="showPage('categories')">
             <svg viewBox="0 0 24 24"><path d="M12 2l-5.5 9h11L12 2zm0 3.84L13.93 9h-3.87L12 5.84zM17.5 13c-2.49 0-4.5 2.01-4.5 4.5S15.01 22 17.5 22s4.5-2.01 4.5-4.5S19.99 13 17.5 13zm0 7c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5zM3 21.5h8v-8H3v8zm2-6h4v4H5v-4z"/></svg>
-            Categorias
+            Setores
         </div>
     </nav>
+    <label id="disp-wrap" style="display:none;align-items:center;gap:8px;padding:8px 16px;font-size:12px;color:var(--text2);cursor:pointer">
+        <input type="checkbox" id="disp-toggle" onchange="alternarDisponibilidade(this.checked)"> Disponível para novas designações
+    </label>
     <div class="sidebar-footer" id="admin-user-trigger" onclick="toggleUserDrawer()" title="Abrir menu do administrador" style="cursor:pointer;">
         <div class="avatar" id="admin-avatar">AD</div>
         <div class="avatar-info">
             <div class="avatar-name" id="admin-name">Administrador</div>
-            <div class="avatar-role">Superusuário</div>
+            <div class="avatar-role" id="admin-role">Superusuário</div>
         </div>
         <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:var(--text3);flex-shrink:0;"><path d="M7 10l5 5 5-5z"/></svg>
     </div>
@@ -93,7 +101,7 @@
 
     <div id="page-dashboard" class="page active">
         <div class="stats-grid" id="stats-grid">
-            <div class="stat-card blue">
+            <div class="stat-card blue" data-so-admin>
                 <div class="stat-label"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>Usuários</div>
                 <div class="stat-value" id="s-users">—</div>
                 <div class="stat-delta">Total cadastrado</div>
@@ -124,11 +132,11 @@
             <div>
                 <div class="section-header"><span class="section-title">Ocorrências por status</span></div>
                 <div class="table-wrap" style="padding:20px">
-                    <div class="mini-chart" id="status-chart"></div>
+                    <div class="pie-wrap" id="status-chart"></div>
                 </div>
             </div>
             <div>
-                <div class="section-header"><span class="section-title">Categorias</span></div>
+                <div class="section-header"><span class="section-title">Setores</span></div>
                 <div class="table-wrap" style="padding:20px">
                     <div id="cat-list" style="display:flex;flex-direction:column;gap:8px;"></div>
                 </div>
@@ -143,6 +151,31 @@
                 <thead><tr><th>Título</th><th>Status</th><th>Prioridade</th><th>Prazo</th><th>Data</th></tr></thead>
                 <tbody id="recent-occ-tbody"><tr><td colspan="5" class="loading">Carregando...</td></tr></tbody>
             </table>
+        </div>
+    </div>
+
+    <div id="page-triagem" class="page">
+        <div class="section-header">
+            <span class="section-title">Triagem</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <input class="filter-input" id="tri-search" placeholder="Buscar por título, setor ou cidade..." oninput="renderTriagem()" style="width:260px">
+                <button class="btn btn-ghost btn-sm" onclick="loadTriagem()">
+                    <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                    Atualizar
+                </button>
+            </div>
+        </div>
+        <div class="tri-board">
+            <section class="tri-col">
+                <header class="tri-col-head"><span>Novos</span><span class="tri-count" id="tri-count-novas">0</span></header>
+                <div class="tri-hint">Defina a importância e o prazo, confirme o setor responsável e aprove. Ou rejeite com o motivo.</div>
+                <div class="tri-list" id="tri-novas"><div class="loading">Carregando...</div></div>
+            </section>
+            <section class="tri-col">
+                <header class="tri-col-head"><span>Já passaram da triagem</span><span class="tri-count" id="tri-count-triadas">0</span></header>
+                <div class="tri-hint">Ocorrências aprovadas (em atendimento) ou rejeitadas.</div>
+                <div class="tri-list" id="tri-triadas"></div>
+            </section>
         </div>
     </div>
 
@@ -190,7 +223,13 @@
                     <option value="">Todos os tipos</option>
                     <option value="citizen">Cidadão</option>
                     <option value="admin">Administrador</option>
+                    <option value="gestor">Gestor Público</option>
+                    <option value="equipe_tecnica">Equipe Técnica</option>
                 </select>
+                <button class="btn btn-primary btn-sm" onclick="openStaffModal()">
+                    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                    Novo gestor / equipe
+                </button>
                 <button class="btn btn-ghost btn-sm" onclick="loadUsers()" style="margin-left:auto">
                     <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
                     Atualizar
@@ -217,7 +256,7 @@
 
     <div id="page-denuncias" class="page">
         <div class="section-header">
-            <span class="section-title">Denúncias e Suporte</span>
+            <span class="section-title">Suporte</span>
         </div>
         <div class="table-wrap">
             <div class="table-toolbar">
@@ -265,15 +304,15 @@
 
     <div id="page-categories" class="page">
         <div class="section-header">
-            <span class="section-title">Categorias</span>
+            <span class="section-title">Setores e subcategorias</span>
             <button class="btn btn-primary btn-sm" onclick="openCatModal()">
                 <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-                Nova Categoria
+                Novo setor
             </button>
         </div>
         <div class="table-wrap">
             <table>
-                <thead><tr><th>ID</th><th>Nome</th><th>Descrição</th><th>Status</th><th>Criada em</th><th>Ações</th></tr></thead>
+                <thead><tr><th>ID</th><th>Setor</th><th>Subcategorias</th><th>Status</th><th>Criado em</th><th>Ações</th></tr></thead>
                 <tbody id="cats-tbody"><tr><td colspan="6" class="loading">Carregando...</td></tr></tbody>
             </table>
         </div>
@@ -374,7 +413,29 @@
                     <option value="closed">Fechada</option>
                 </select>
             </div>
-            <div class="modal-field"><label>Nível de Importância</label>
+            <div class="modal-field" id="edit-atend-designar" style="display:none"><label>Designação</label>
+                <div id="edit-occ-gestor-wrap" style="margin-bottom:8px;display:none">
+                    <select id="edit-occ-gestor"></select>
+                    <div class="modal-hint">Gestor público responsável (só o administrador altera).</div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <select id="edit-occ-equipe"></select>
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="designarOcc()">Designar</button>
+                </div>
+                <div class="modal-hint" id="edit-occ-designar-hint">Só aparece depois da triagem. Equipe técnica do mesmo setor e cidade.</div>
+            </div>
+            <div class="modal-field" id="edit-atend-equipe-info" style="display:none"><label>Atendimento</label>
+                <div class="modal-static" id="edit-occ-atend-info"></div>
+            </div>
+            <div class="modal-field"><label>Parecer de encerramento</label>
+                <textarea id="edit-occ-parecer" rows="3" placeholder="O que foi feito para resolver. Obrigatório para marcar como Resolvida."></textarea>
+            </div>
+            <div class="modal-field"><label>Foto da resolução</label>
+                <div id="edit-occ-fotos-res" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"></div>
+                <input type="file" id="edit-occ-foto-file" accept="image/*" onchange="enviarFotoResolucao()">
+                <div class="modal-hint">Para marcar como Resolvida é preciso ao menos uma foto da resolução e o parecer.</div>
+            </div>
+            <div class="modal-field" data-so-gestao><label>Nível de Importância</label>
                 <select id="edit-occ-importance">
                     <option value="">Não definido</option>
                     <option value="green">🟢 Verde — Normal</option>
@@ -382,7 +443,7 @@
                     <option value="red">🔴 Vermelho — Importante</option>
                 </select>
             </div>
-            <div class="modal-field"><label>Prazo para resolver</label>
+            <div class="modal-field" data-so-gestao><label>Prazo para resolver</label>
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                     <input type="date" id="edit-occ-deadline">
                     <input type="time" id="edit-occ-deadline-time" title="Horário limite (opcional)">
@@ -391,7 +452,7 @@
                 <div class="modal-hint" id="edit-occ-deadline-hint"></div>
                 <div class="modal-hint">Sem horário, o prazo vai até 23:59:59 do dia escolhido.</div>
             </div>
-            <div class="modal-field"><label>Atualização para o cidadão (opcional)</label>
+            <div class="modal-field" data-so-gestao><label>Atualização para o cidadão (opcional)</label>
                 <textarea id="edit-occ-feedback" rows="3" placeholder="Ex: Estamos planejando o conserto. Previsão para o dia 02/11."></textarea>
                 <div class="modal-hint">Aparece na ocorrência como “Atualização oficial”. Mudanças de prazo ficam registradas no histórico.</div>
             </div>
@@ -420,12 +481,12 @@
 <div class="modal-backdrop" id="cat-modal">
     <div class="modal">
         <div class="modal-header">
-            <span class="modal-title" id="cat-modal-title">Nova Categoria</span>
+            <span class="modal-title" id="cat-modal-title">Novo setor</span>
             <button class="modal-close" onclick="closeModal('cat-modal')">×</button>
         </div>
         <div class="modal-body">
             <input type="hidden" id="cat-id">
-            <div class="modal-field"><label>Nome *</label><input type="text" id="cat-name" placeholder="Ex: Iluminação Pública"></div>
+            <div class="modal-field"><label>Nome *</label><input type="text" id="cat-name" placeholder="Ex: Iluminação pública"></div>
             <div class="modal-field"><label>Descrição</label><input type="text" id="cat-desc" placeholder="Descrição opcional"></div>
             <div class="modal-field"><label>Status</label>
                 <select id="cat-active">
@@ -437,6 +498,63 @@
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModal('cat-modal')">Cancelar</button>
             <button class="btn btn-primary" onclick="saveCat()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="staff-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">Novo gestor público / equipe técnica</span>
+            <button class="modal-close" onclick="closeModal('staff-modal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-field"><label>Perfil *</label>
+                <select id="st-tipo">
+                    <option value="gestor">Gestor Público (define importância, prazo e status)</option>
+                    <option value="equipe_tecnica">Equipe Técnica (atualiza só o status)</option>
+                </select>
+            </div>
+            <div class="modal-field"><label>Setor *</label><select id="st-setor"></select></div>
+            <div style="display:grid;grid-template-columns:1fr 90px;gap:10px">
+                <div class="modal-field"><label>Cidade *</label><input type="text" id="st-cidade" placeholder="Ex: Sorocaba"></div>
+                <div class="modal-field"><label>UF *</label><input type="text" id="st-uf" maxlength="2" placeholder="SP" style="text-transform:uppercase"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="modal-field"><label>Nome</label><input type="text" id="st-nome"></div>
+                <div class="modal-field"><label>Sobrenome</label><input type="text" id="st-sobrenome"></div>
+            </div>
+            <div class="modal-field"><label>Usuário (login) *</label><input type="text" id="st-username" autocomplete="off"></div>
+            <div class="modal-field"><label>E-mail *</label><input type="email" id="st-email" autocomplete="off"></div>
+            <div class="modal-field"><label>Senha inicial * (mín. 8 caracteres)</label><input type="password" id="st-senha" autocomplete="new-password"></div>
+            <div class="modal-hint">A pessoa só enxerga as ocorrências deste setor nesta cidade. A cidade só o administrador altera.</div>
+            <div id="st-erro" style="color:var(--red);font-size:12px;margin-top:8px"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('staff-modal')">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveStaff()">Cadastrar</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="sub-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title" id="sub-modal-title">Subcategorias</span>
+            <button class="modal-close" onclick="closeModal('sub-modal')">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="sub-cat-id">
+            <div id="sub-list" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto;margin-bottom:14px"></div>
+            <div class="modal-field"><label>Nova subcategoria</label>
+                <div style="display:flex;gap:8px">
+                    <input type="text" id="sub-name" placeholder="Ex: Poste caído" maxlength="120" onkeydown="if(event.key==='Enter'){event.preventDefault();addSub();}">
+                    <button class="btn btn-primary btn-sm" onclick="addSub()">Adicionar</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('sub-modal')">Fechar</button>
         </div>
     </div>
 </div>

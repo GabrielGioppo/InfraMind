@@ -193,9 +193,9 @@ function updateUserUI() {
   }
 }
 
-// Admin não usa o index.html: vai para o painel próprio (admin.html).
+// Administrador, gestor público e equipe técnica não usam o index.html: vão para o painel (admin.html).
 function redirectIfAdmin(u) {
-  if (u && (u.user_type === 'admin' || u.is_staff === true)) {
+  if (u && (['admin', 'gestor', 'equipe_tecnica'].includes(u.user_type) || u.is_staff === true)) {
     window.location.replace('admin.html');
     return true;
   }
@@ -329,10 +329,10 @@ async function loadDashboard() {
       tbody.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg><p>Nenhuma ocorrência registrada ainda</p></div>`;
       return;
     }
-    tbody.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Título</th><th>Categoria</th><th>Status</th><th>Data</th></tr></thead><tbody>` +
+    tbody.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Título</th><th>Setor</th><th>Status</th><th>Data</th></tr></thead><tbody>` +
       recent.map(o=>`<tr onclick="navigateTo('detail',${o.id})" style="cursor:pointer">
         <td class="td-title">${esc(o.title)}</td>
-        <td><span style="color:var(--muted);font-size:.8rem">${esc(o.category_details?.name||'—')}</span></td>
+        <td><span style="color:var(--muted);font-size:.8rem">${esc(catLabel(o))}</span></td>
         <td>${statusBadge(o.status)}</td>
         <td class="td-mono" style="font-size:.78rem">${fmtDate(o.created_at)}</td>
       </tr>`).join('') + `</tbody></table></div>`;
@@ -436,7 +436,7 @@ function renderOccurrences(list) {
       <tr>
         <td class="td-mono">#${o.id}</td>
         <td class="td-title" onclick="navigateTo('detail',${o.id})" style="cursor:pointer;color:var(--blue)">${esc(o.title)}</td>
-        <td style="font-size:.8rem;color:var(--muted)">${esc(o.category_details?.name||'—')}</td>
+        <td style="font-size:.8rem;color:var(--muted)">${esc(catLabel(o))}</td>
         <td>${statusBadge(o.status)}</td>
         <td>${urgencyBadge(o.urgency_level)}</td>
         <td><div class="priority-bar"><div class="priority-fill" style="width:${Math.min(100,(o.priority||0)*2)}%"></div></div></td>
@@ -453,8 +453,13 @@ function renderOccurrences(list) {
   }
 }
 
+// Fotos do registro (do cidadão) e da resolução (evidência da equipe) ficam separadas.
+const fotosRegistro = o => (o.images || []).filter(i => i.etapa !== 'resolucao');
+const fotosResolucao = o => (o.images || []).filter(i => i.etapa === 'resolucao');
+
 function occCard(o) {
-  const img = o.images?.length ? imgUrl(o.images[0].image || o.images[0].url) : null;
+  const fr = fotosRegistro(o);
+  const img = fr.length ? imgUrl(fr[0].image || fr[0].url) : null;
   const imgHtml = img
     ? `<img src="${img}" class="occ-thumb" onerror="this.parentElement.innerHTML='<div class=occ-thumb-placeholder><svg viewBox=\\'0 0 24 24\\'><path d=\\'M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z\\'/></svg></div>'">`
     : `<div class="occ-thumb-placeholder"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></div>`;
@@ -490,9 +495,39 @@ async function loadCategories() {
   STATE.categories = Array.isArray(d) ? d : (d.results || []);
 }
 
+// "Setor › Subcategoria" para listas e detalhes.
+function catLabel(o) {
+  const setor = o.category_details?.name;
+  const sub = o.subcategory_details?.name;
+  if (!setor) return '—';
+  return sub ? `${setor} › ${sub}` : setor;
+}
+
+// Preenche o select de subcategorias conforme o setor escolhido.
+function populateSubSelect(subId, catId, val='') {
+  const sel = document.getElementById(subId);
+  if (!sel) return;
+  const setor = STATE.categories.find(c => String(c.id) === String(catId));
+  const subs = (setor?.subcategories || []).filter(s => s.is_active !== false);
+  sel.innerHTML = setor
+    ? '<option value="">' + (subs.length ? 'Selecione a subcategoria' : 'Sem subcategorias neste setor') + '</option>'
+    : '<option value="">Selecione o setor primeiro</option>';
+  subs.forEach(s => {
+    const o = document.createElement('option');
+    o.value = s.id; o.textContent = s.name;
+    if (String(s.id) === String(val)) o.selected = true;
+    sel.appendChild(o);
+  });
+  sel.disabled = !setor || !subs.length;
+}
+
+function onCatChange(catSelId, subSelId) {
+  populateSubSelect(subSelId, document.getElementById(catSelId).value);
+}
+
 function populateCatSelect(id, val='') {
   const sel = document.getElementById(id);
-  sel.innerHTML = '<option value="">Selecione a categoria</option>';
+  sel.innerHTML = '<option value="">Selecione o setor</option>';
   STATE.categories.forEach(c => {
     const o = document.createElement('option');
     o.value = c.id; o.textContent = c.name;
@@ -507,6 +542,7 @@ function populateCatSelect(id, val='') {
 async function loadCreatePage() {
   if (!STATE.categories.length) await loadCategories();
   populateCatSelect('c-cat');
+  populateSubSelect('c-sub', '');
   document.getElementById('c-title').value = '';
   document.getElementById('c-addr').value = '';
   document.getElementById('c-desc').value = '';
@@ -660,11 +696,12 @@ async function createOccurrence() {
   const titleRaw = document.getElementById('c-title').value.trim();
   const desc     = document.getElementById('c-desc').value.trim();
   const catEl    = document.getElementById('c-cat');
-  const catLabel = catEl.selectedOptions[0]?.text || '';
+  const subEl    = document.getElementById('c-sub');
+  const rotulo   = subEl.value ? subEl.selectedOptions[0].text : (catEl.value ? catEl.selectedOptions[0].text : '');
   const addr     = document.getElementById('c-addr').value.trim();
 
   const title = titleRaw ||
-    (catLabel && catLabel !== 'Selecione...' ? `${catLabel}${addr ? ' — ' + addr : ''}` : addr || 'Ocorrência registrada');
+    (rotulo ? `${rotulo}${addr ? ' — ' + addr : ''}` : addr || 'Ocorrência registrada');
 
   const lat = _createMarker ? _createMarker.getLatLng().lat : null;
   const lng = _createMarker ? _createMarker.getLatLng().lng : null;
@@ -689,6 +726,7 @@ async function createOccurrence() {
       fd.append('title', title);
       fd.append('description', desc);
       if (catEl.value) fd.append('category', catEl.value);
+      if (subEl.value) fd.append('subcategory', subEl.value);
       if (addr) fd.append('address', addr);
       fd.append('status', 'open');
       if (lat) fd.append('latitude', lat);
@@ -701,6 +739,7 @@ async function createOccurrence() {
       const payload = {
         title, description: desc,
         category: catEl.value || null,
+        subcategory: subEl.value || null,
         address:  addr || null,
         status: 'open',
         latitude:  lat,
@@ -786,14 +825,15 @@ async function loadDetail(id) {
     document.getElementById('det-title').textContent = o.title;
     document.getElementById('det-meta').textContent = `#${o.id} · Registrada em ${fmtDate(o.created_at)}`;
 
-    const img = o.images?.length ? imgUrl(o.images[0].image || o.images[0].url) : null;
+    const fr = fotosRegistro(o);
+    const img = fr.length ? imgUrl(fr[0].image || fr[0].url) : null;
     document.getElementById('det-hero-wrap').innerHTML = img
       ? `<img src="${img}" class="detail-hero" onerror="this.style.display='none'">`
       : `<div class="detail-hero-placeholder"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></div>`;
 
     document.getElementById('det-status').innerHTML = statusBadge(o.status);
     document.getElementById('det-reporter').textContent = o.user_details?.username || o.user_details?.first_name || `Usuário #${o.user}`;
-    document.getElementById('det-cat').textContent = o.category_details?.name || '—';
+    document.getElementById('det-cat').textContent = catLabel(o);
     document.getElementById('det-addr').textContent = o.address || '—';
     document.getElementById('det-date').textContent = fmtDateFull(o.created_at);
     document.getElementById('det-valid').textContent = `${o.validation_count||0} validação(ões) comunitária(s)`;
@@ -835,7 +875,7 @@ async function loadDetail(id) {
       sideActions.push(`<button class="btn btn-success btn-sm" onclick="openModal('modal-validate')">👥 Confirmar Problema</button>`);
     }
     if (STATE.user && !isAdmin() && String(o.user) !== String(STATE.user.id)) {
-      sideActions.push(`<button class="btn btn-ghost btn-sm" onclick="openDenuncia(${o.id}, ${JSON.stringify(o.title).replace(/"/g, '&quot;')})" style="color:var(--red)">🚩 Denunciar conteúdo</button>`);
+      sideActions.push(`<button class="btn btn-ghost btn-sm" onclick="openDenuncia(${o.id}, ${JSON.stringify(o.title).replace(/"/g, '&quot;')})" style="color:var(--red)">🚩 Reportar conteúdo</button>`);
     }
     if (isAdmin()) {
       sideActions.push(`<button class="btn btn-ghost btn-sm" onclick="openFeedbackModal()">📝 Enviar Atualização</button>`);
@@ -868,6 +908,19 @@ function buildValidationCard(o) {
 function buildFeedbackCard(o) {
   const body = document.getElementById('feedback-body');
   let html = '';
+
+  // Encerramento: parecer da equipe + foto da resolução.
+  const fotosRes = fotosResolucao(o);
+  if (o.parecer_encerramento || fotosRes.length) {
+    html += `<div style="border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:12px;background:var(--surface)">
+      <div style="font-size:.8rem;font-weight:600;margin-bottom:6px">Resolução do atendimento</div>
+      ${o.parecer_encerramento ? `<p style="font-size:.82rem;color:var(--text2);margin:0 0 8px">${esc(o.parecer_encerramento)}</p>` : ''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${fotosRes.map(i => {
+        const src = imgUrl(i.image || i.url);
+        return `<img src="${src}" alt="Foto da resolução" style="width:96px;height:96px;object-fit:cover;border-radius:6px;cursor:pointer" onclick="openLightbox('${src}')" onerror="this.style.display='none'">`;
+      }).join('')}</div>
+    </div>`;
+  }
 
   if (o.feedbacks && o.feedbacks.length) {
     html += '<div style="margin-bottom:12px;">';
@@ -939,6 +992,7 @@ async function loadEditPage(id) {
       document.getElementById('e-imp').value    = o.importance_color || '';
     }
     populateCatSelect('e-cat', o.category);
+    populateSubSelect('e-sub', o.category, o.subcategory);
     document.getElementById('file-preview-edit').innerHTML = '';
     document.getElementById('e-img').value = '';
     document.getElementById('edit-cancel-btn').onclick = () => navigateTo('detail', id);
@@ -950,6 +1004,7 @@ async function saveEdit() {
   const payload = {
     title:       document.getElementById('e-title').value.trim(),
     category:    document.getElementById('e-cat').value || null,
+    subcategory: document.getElementById('e-sub').value || null,
     address:     document.getElementById('e-addr').value.trim() || null,
     description: document.getElementById('e-desc').value.trim(),
   };
@@ -1123,7 +1178,7 @@ async function loadAdminOccurrences() {
       <tr>
         <td class="td-mono">#${o.id}</td>
         <td class="td-title" onclick="navigateTo('detail',${o.id})" style="cursor:pointer;color:var(--blue)">${esc(o.title)}</td>
-        <td style="font-size:.8rem;color:var(--muted)">${esc(o.category_details?.name||'—')}</td>
+        <td style="font-size:.8rem;color:var(--muted)">${esc(catLabel(o))}</td>
         <td style="font-size:.8rem;color:var(--muted)">${esc(o.user_details?.username||o.user||'—')}</td>
         <td>${statusBadge(o.status)}</td>
         <td>${urgencyBadge(o.urgency_level)}</td>
@@ -1433,7 +1488,7 @@ async function submitDenuncia() {
   const tipo = document.getElementById('den-tipo').value;
   const descricao = document.getElementById('den-desc').value.trim();
   const occ = document.getElementById('den-occ-id').value;
-  if (tipo === 'conteudo_inadequado' && !occ) { toast('Abra a ocorrência e use "Denunciar conteúdo".', 'error'); return; }
+  if (tipo === 'conteudo_inadequado' && !occ) { toast('Abra a ocorrência e use "Reportar conteúdo".', 'error'); return; }
   if (descricao.length < 10) { toast('Descreva com pelo menos 10 caracteres.', 'error'); return; }
   const btn = document.getElementById('den-btn');
   btn.disabled = true;
@@ -1621,8 +1676,9 @@ function _renderDetailExtras(o) {
     setTimeout(() => _initDetailMap(parseFloat(o.latitude), parseFloat(o.longitude), o.title, o.address), 200);
   }
   const gallery = document.getElementById('det-gallery');
-  if (gallery && o.images && o.images.length > 1) {
-    gallery.innerHTML = o.images.slice(1).map(img => {
+  const extras = fotosRegistro(o);
+  if (gallery && extras.length > 1) {
+    gallery.innerHTML = extras.slice(1).map(img => {
       const src = imgUrl(img.image || img.url);
       return '<img src="' + src + '" onclick="openLightbox(\'' + src + '\')" onerror="this.style.display=\'none\'">';
     }).join('');

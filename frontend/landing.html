@@ -462,9 +462,13 @@
         </div>
         <div id="occ-msg"></div>
         <div class="field">
-          <label>Categoria</label>
-          <select id="occ-cat">
+          <label>Setor / categoria</label>
+          <select id="occ-cat" onchange="onOccCatChange()">
             <option value="">Carregando categorias...</option>
+          </select>
+          <label style="margin-top:10px">Subcategoria</label>
+          <select id="occ-sub" disabled>
+            <option value="">Selecione o setor primeiro</option>
           </select>
         </div>
         <!-- ── Localização (3 abas) ── -->

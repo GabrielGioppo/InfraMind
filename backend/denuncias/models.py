@@ -32,6 +32,8 @@ class Denuncia(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        verbose_name = 'chamado de suporte'
+        verbose_name_plural = 'chamados de suporte'
 
     def __str__(self):
         return f'{self.get_tipo_display()} #{self.pk} ({self.get_status_display()})'

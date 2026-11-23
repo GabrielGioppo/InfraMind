@@ -153,6 +153,9 @@ EMAIL_TIMEOUT = 10  # segundos; evita travar a rotina se o servidor não respond
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL') or EMAIL_HOST_USER or 'no-reply@inframind.com'
 
 # Página que recebe o link de redefinição de senha enviado por e-mail.
+# Padrão Strategy: regra de prioridade das ocorrências (padrao | por_prazo | urgencia_ia). Ver occurrences/priority.py
+PRIORITY_STRATEGY = os.getenv('PRIORITY_STRATEGY', 'padrao')
+
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://127.0.0.1:5500/frontend/index.html')
 
 # O link de redefinição de senha vale por 1 hora.

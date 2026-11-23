@@ -19,5 +19,7 @@ def occurrence_pre_save(sender, instance, **kwargs):
     if not instance.pk and not instance.description:
         if len(api_key) > 0:
             category_name = instance.category.name if instance.category else 'Geral'
+            if instance.subcategory:
+                category_name = f'{category_name} — {instance.subcategory.name}'
             ai_suggestion = get_occurrence_ai_suggestion(instance.title, category_name)
             instance.description = ai_suggestion

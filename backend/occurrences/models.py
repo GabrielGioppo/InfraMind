@@ -1,6 +1,6 @@
 from django.db import models
 from users.models import User
-from categories.models import Category
+from categories.models import Category, Subcategory
 from users.validators import chave_cidade
 
 
@@ -12,6 +12,14 @@ class Occurrence(models.Model):
         ('in_progress', 'Em Andamento'),
         ('resolved', 'Resolvida'),
         ('closed', 'Fechada'),
+    ]
+
+    # Triagem: etapa de entrada. O gestor confere a ocorrência, define importância, prazo e
+    # setor responsável. Convive com `status` (que acompanha a execução do atendimento).
+    TRIAGEM_CHOICES = [
+        ('nova', 'Nova'),
+        ('triada', 'Triada'),
+        ('rejeitada', 'Rejeitada'),
     ]
 
     IMPORTANCE_CHOICES = [
@@ -46,6 +54,14 @@ class Occurrence(models.Model):
         blank=True
     )
 
+    subcategory = models.ForeignKey(
+        Subcategory,
+        on_delete=models.SET_NULL,
+        related_name='occurrences',
+        null=True,
+        blank=True,
+    )
+
     # Dados da ocorrência
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True, default='')  # opcional
@@ -60,6 +76,22 @@ class Occurrence(models.Model):
 
     # Status e controle
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+    triagem = models.CharField(max_length=10, choices=TRIAGEM_CHOICES, default='nova', db_index=True)
+    triagem_em = models.DateTimeField(null=True, blank=True)
+    triagem_por = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='triagens',
+    )
+    triagem_obs = models.TextField(blank=True, default='')   # motivo, quando rejeitada
+
+    # Designação: quem responde pela ocorrência depois da triagem.
+    gestor_responsavel = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='ocorrencias_geridas',
+    )
+    equipe_responsavel = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='ocorrencias_atribuidas',
+    )
+    # Encerramento: para marcar como Resolvida exige parecer + foto da resolução (Image.etapa='resolucao').
+    parecer_encerramento = models.TextField(blank=True, default='')
     priority = models.IntegerField(default=0)
     estimated_time = models.IntegerField(null=True, blank=True)
 

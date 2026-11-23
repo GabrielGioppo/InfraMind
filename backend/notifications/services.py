@@ -7,6 +7,7 @@ from notifications.models import Notificacao
 from occurrences.models import Occurrence
 from occurrences.sla import LIMIAR_AVISO_PREVENTIVO, STATUS_ENCERRADOS, prazo_final
 from history.models import OccurrenceHistory
+from users.validators import chave_cidade
 
 User = get_user_model()
 
@@ -14,8 +15,8 @@ TIPO_PRAZO_ESTOURADO = 'prazo_estourado'
 TIPO_AVISO_PRAZO     = 'aviso_prazo'
 TIPO_STATUS_CHANGE   = 'status_change'
 
-# Título dos avisos de denúncia; o painel admin usa o prefixo para abrir a aba Denúncias.
-TITULO_NOVA_DENUNCIA = 'Nova denúncia'
+# Título dos avisos de suporte; o painel admin usa o prefixo para abrir a aba Suporte.
+TITULO_NOVA_DENUNCIA = 'Novo chamado de suporte'
 
 FACTORIES = {
     'email': EmailNotifFactory(),
@@ -53,12 +54,77 @@ def _descrever_prazo(occ) -> str:
 
 def _destinatarios_admin():
     """
-    Equipe Técnica e Gestor Público ainda não existem como papéis
-    próprios no model de usuário (isso é o UC-08/UC-09, pendente) — por
-    ora, todo usuário admin/staff recebe esses avisos. Quando esses
-    papéis existirem, trocar esse filtro pra mirar neles especificamente.
+    Administradores recebem todos os avisos de prazo. O gestor do setor/cidade e a equipe
+    designada também recebem os da ocorrência deles (ver `_responsaveis`).
     """
     return list(User.objects.filter(Q(is_staff=True) | Q(user_type='admin')).distinct())
+
+
+def gestores_da_area(occ) -> list:
+    """Gestores públicos do setor e da cidade da ocorrência."""
+    if not (occ.category_id and occ.city_key and occ.state):
+        return []
+    candidatos = User.objects.filter(
+        user_type='gestor', setor_id=occ.category_id, uf__iexact=occ.state, is_active=True)
+    return [u for u in candidatos if chave_cidade(u.cidade) == occ.city_key]
+
+
+def _responsaveis(occ) -> list:
+    """Quem responde pela ocorrência: gestores da área + gestor e equipe designados."""
+    pessoas = list(gestores_da_area(occ))
+    pessoas += [u for u in (occ.gestor_responsavel, occ.equipe_responsavel) if u]
+    return pessoas
+
+
+def _sem_repetir(pessoas) -> list:
+    return list({u.id: u for u in pessoas}.values())
+
+
+def _avisar(pessoas, titulo, mensagem, occ, tipo) -> list:
+    """Aviso no sino (push) para cada pessoa. Nunca levanta exceção: o aviso não pode derrubar a ação principal."""
+    ids = []
+    for pessoa in _sem_repetir(pessoas):
+        try:
+            ids.append(FACTORIES['push'].notificar(pessoa, titulo, mensagem, occurrence=occ, tipo=tipo).id)
+        except Exception as e:
+            print(f'[notificacoes] Falha ao avisar {pessoa.pk} ({tipo}): {e}')
+    return ids
+
+
+def notificar_nova_ocorrencia(occ) -> list:
+    """Chegou uma ocorrência nova: avisa os gestores do setor e da cidade, que fazem a triagem."""
+    destinatarios = [g for g in gestores_da_area(occ) if g.id != occ.user_id]
+    return _avisar(destinatarios, f'Nova ocorrência para triagem — #{occ.id}',
+                   f'"{occ.title}" ({occ.category.name if occ.category else "sem setor"}) aguarda triagem.',
+                   occ, 'nova_ocorrencia')
+
+
+def notificar_encaminhamento(occ, por) -> list:
+    """A triagem aprovou/encaminhou a ocorrência: avisa os gestores do setor responsável (menos quem triou)."""
+    destinatarios = [g for g in gestores_da_area(occ) if not por or g.id != por.id]
+    return _avisar(destinatarios, f'Ocorrência encaminhada ao seu setor — #{occ.id}',
+                   f'"{occ.title}" foi triada e encaminhada para {occ.category.name if occ.category else "o setor"}.',
+                   occ, 'encaminhamento')
+
+
+def notificar_designacao(occ, pessoa, por) -> list:
+    """Avisa a pessoa que recebeu a ocorrência."""
+    quem = f' por {por.username}' if por else ''
+    return _avisar([pessoa], f'Ocorrência designada para você — #{occ.id}',
+                   f'"{occ.title}" foi designada{quem}. Prazo: {_descrever_prazo(occ) if (occ.prazo_definido or occ.estimated_time) else "não definido"}.',
+                   occ, 'designacao')
+
+
+_ROTULO_STATUS = dict(Occurrence.STATUS_CHOICES)
+
+
+def notificar_status_alterado(occ, anterior, por) -> list:
+    """Mudou o status: avisa quem responde pela ocorrência (menos quem mudou). O cidadão é avisado pela rotina UC-14."""
+    destinatarios = [p for p in _responsaveis(occ) if not por or p.id != por.id]
+    quem = f' por {por.username}' if por else ''
+    return _avisar(destinatarios, f'Status alterado — #{occ.id}',
+                   f'"{occ.title}": {_ROTULO_STATUS.get(anterior, anterior or "—")} → {_ROTULO_STATUS.get(occ.status, occ.status)}{quem}.',
+                   occ, TIPO_STATUS_CHANGE)
 
 
 def _processar_prazo_estourado(factory, admins) -> list:
@@ -80,7 +146,7 @@ def _processar_prazo_estourado(factory, admins) -> list:
             f'Status atual: {occ.get_status_display()}.'
         )
         # Dedup por id: um admin que é dono da ocorrência não recebe duas vezes.
-        destinatarios = list({u.id: u for u in admins + ([occ.user] if occ.user else [])}.values())
+        destinatarios = _sem_repetir(admins + _responsaveis(occ) + ([occ.user] if occ.user else []))
         for destinatario in destinatarios:
             notificacao = factory.notificar(
                 destinatario, titulo, mensagem,
@@ -118,7 +184,7 @@ def _processar_aviso_preventivo(factory, admins) -> list:
             f'A ocorrência "{occ.title}" já consumiu mais de 80% do prazo '
             f'({_descrever_prazo(occ)}) sem ser concluída.'
         )
-        for destinatario in admins:
+        for destinatario in _sem_repetir(admins + _responsaveis(occ)):
             notificacao = factory.notificar(
                 destinatario, titulo, mensagem,
                 occurrence=occ, tipo=TIPO_AVISO_PRAZO,

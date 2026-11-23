@@ -83,21 +83,19 @@ O sistema está alinhado à **ODS 9 — Indústria, Inovação e Infraestrutura*
 InfraMind/
 ├── backend/
 │   ├── app/                 # Configurações do Django (settings, urls)
-│   ├── authentication/      # Login (token e por e-mail) e recuperação de senha
-│   ├── users/               # Cadastro (CPF e endereço) e gerenciamento de usuários
-│   ├── occurrences/         # Ocorrências, prazo/SLA (sla.py) e visibilidade por cidade
-│   ├── categories/          # Categorias de problemas
+│   ├── authentication/      # Login por e-mail e tokens JWT
+│   ├── users/               # Cadastro e gerenciamento de usuários
+│   ├── occurrences/         # Registro e gestão de ocorrências
+│   ├── categories/          # Setores (categorias) e subcategorias de problemas
 │   ├── images/              # Upload de imagens
 │   ├── validations/         # Validação comunitária e análise de IA
 │   ├── feedbacks/           # Feedbacks de resolução
 │   ├── history/             # Histórico de alterações
 │   ├── logs/                # Logs de auditoria
-│   ├── statistics_api/      # Estatísticas e indicadores
-│   ├── gemini_api/          # Google Gemini (Singleton) e Façade de IA
-│   ├── geo/                 # Geocodificação (Adapter para o Nominatim)
-│   ├── notifications/       # Notificações (Factory Method) e comando processar_prazos
-│   ├── denuncias/           # Denúncias de conteúdo e suporte (UC-13)
-│   ├── scripts/             # Backup e agendamento (backup.py, instalar_cron.sh)
+│   ├── statistics_api/      # Estatísticas e indicadores do painel
+│   ├── gemini_api/          # Integração com Google Gemini
+│   ├── denuncias/           # Chamados de suporte e conteúdo reportado (UC-13)
+│   ├── scripts/             # Scripts de manutenção (backup, agendamento)
 │   ├── manage.py
 │   ├── .env.example
 │   └── requirements.txt
@@ -397,9 +395,56 @@ O link aponta para `FRONTEND_URL` (padrão `http://127.0.0.1:5500/frontend/index
 
 ---
 
-## Suporte e denúncias
+## Setores e subcategorias
 
-O menu **Suporte / Denúncia** abre um formulário para relatar um problema técnico (`bug`). Na página de uma ocorrência, **Denunciar conteúdo** registra um `conteudo_inadequado` apontando para ela.
+As categorias agora são **setores** (ex.: Saneamento básico, Iluminação pública) e cada setor tem **subcategorias** (ex.: Esgoto entupido ou vazando, Poste caído). A ocorrência guarda o setor (`category`) e a subcategoria (`subcategory`, opcional). Os setores são a base para encaminhar cada ocorrência ao gestor público e à equipe técnica da área.
+
+- Setores padrão: Saneamento básico, Iluminação pública, Vias e pavimentação, Trânsito e sinalização, Drenagem e alagamentos, Limpeza urbana e resíduos, Áreas verdes e arborização, Defesa civil e riscos, Transporte público, Espaços públicos e equipamentos, Meio ambiente e saúde pública e Outros. Eles são criados pela migration `categories/0005_catalogo_setores`.
+- As 17 categorias antigas foram convertidas em setor + subcategoria, e as ocorrências que as usavam foram movidas junto. Categorias criadas à mão continuam existindo como setores sem subcategorias.
+- A subcategoria precisa pertencer ao setor escolhido. Informar só a subcategoria já define o setor; trocar só o setor numa edição limpa a subcategoria.
+- Cidadão e visitante veem só as subcategorias ativas. O administrador cria, desativa e apaga setores e subcategorias na aba **Setores** do painel admin.
+
+## Triagem de ocorrências
+
+Toda ocorrência nasce com `triagem = nova`. A triagem é a etapa de entrada e convive com o `status` (que continua acompanhando a execução do atendimento).
+
+- Na aba **Triagem** do painel há duas colunas: **Novos** (à esquerda) e **Já passaram da triagem** (à direita).
+- Em cada cartão de "Novos" o gestor define a **importância**, o **prazo** (data e, se quiser, hora) e confirma o **setor responsável**. Trocar o setor encaminha a ocorrência ao departamento certo (e a limpa da lista do gestor atual). Em seguida **aprova** ou **rejeita** informando o motivo (conteúdo falso, duplicada, fora do escopo). Rejeitar encerra a ocorrência (`status = closed`).
+- Quem tria: gestor público (só o setor e a cidade dele) e administrador. A equipe técnica não faz triagem e só enxerga o que já foi aprovado.
+- Cada triagem grava o histórico da ocorrência (quem, quando, o que foi definido) e um log de auditoria.
+- API: `POST /api/v1/occurrences/<id>/triagem/` com `{"acao": "aprovar", "importance_color": "red", "prazo_definido": "2026-12-01T17:30", "category": 3}` ou `{"acao": "rejeitar", "observacao": "motivo"}`. A lista aceita o filtro `?triagem=nova|triada|rejeitada`.
+- Ocorrências que já existiam antes da triagem: as que já tinham andamento, importância ou prazo viram `triada`; as abertas e sem nenhuma definição continuam `nova`.
+
+## Designação e encerramento com evidência
+
+Depois da triagem, a ocorrência tem quem responda por ela:
+
+- **Gestor responsável** — quem fez a triagem (gestor do setor) ou o que o administrador definir.
+- **Equipe técnica responsável** — designada pelo gestor ou pelo administrador, só entre a equipe do **mesmo setor e cidade** e que esteja marcada como **disponível** (a equipe liga/desliga isso na barra lateral do painel; campo `disponivel` em `/users/me/`).
+- A equipe técnica só atualiza as ocorrências **designadas a ela**.
+- **Resolvida exige evidência**: parecer de encerramento (`parecer_encerramento`) e ao menos uma foto da resolução (imagem enviada com `etapa=resolucao`). Sem isso a API recusa a mudança de status. O cidadão vê o parecer e a foto da resolução na página da ocorrência.
+- Avisos (sino de notificações): gestores do setor/cidade são avisados de **nova ocorrência**; o gestor do setor de destino, de **encaminhamento**; a equipe, de **designação**. Os avisos de prazo (UC-14) também chegam ao gestor e à equipe responsáveis.
+
+API: `POST /api/v1/occurrences/<id>/designar/` com `{"equipe": 7, "gestor": 3}` (`gestor` só administrador; `null` remove) e `GET /api/v1/occurrences/<id>/candidatos/`.
+
+## Perfis de usuário
+
+| Perfil | Vê | Pode fazer |
+|--------|----|------------|
+| Cidadão | Ocorrências da cidade onde mora e as que registrou | Registrar, validar, comentar |
+| Gestor Público | Ocorrências do **setor** e da **cidade** dele (mais as que registrou) | Fazer a triagem; definir importância, prazo e status; enviar atualização ao cidadão. Não exclui |
+| Equipe Técnica | Ocorrências do setor e da cidade dela que já foram aprovadas na triagem | Atualizar só o **status** do atendimento. Não exclui |
+| Administrador | Tudo | Tudo, incluindo usuários, logs, suporte e setores |
+
+- Gestor e equipe usam o painel (`admin.html`) com o menu reduzido: Dashboard, Ocorrências e Mapa. As telas de usuários, feedbacks, suporte, logs e setores são só do administrador.
+- O administrador cadastra gestor e equipe em **Usuários › Novo gestor / equipe** (ou `POST /api/v1/users/staff/`), informando perfil, setor, cidade, UF, usuário, e-mail e senha. O setor também pode ser trocado depois, no detalhe do usuário.
+- A cidade e o setor de gestor e equipe só o administrador altera; a pessoa não consegue mudar a própria cidade em `/users/me/`.
+- Gestor ou equipe sem setor, ou sem cidade, só enxergam as ocorrências que eles mesmos registraram.
+- Só o próprio usuário ou o administrador altera ou apaga um usuário, e só o administrador muda `user_type` e `setor` (ninguém se promove sozinho).
+
+## Suporte
+
+O menu **Suporte** abre um formulário para relatar um problema técnico (`bug`). Na página de uma ocorrência, **Reportar conteúdo** registra um `conteudo_inadequado` apontando para ela.
 
 | Endpoint | O que faz |
 |----------|-----------|
@@ -407,9 +452,15 @@ O menu **Suporte / Denúncia** abre um formulário para relatar um problema téc
 | `POST /api/v1/denuncias/` | Registra `{"tipo", "descricao", "occurrence"}` (a ocorrência só é obrigatória em conteúdo inadequado) |
 | `PATCH /api/v1/denuncias/<id>/` | Só administrador: muda o `status` (`aberta`, `em_analise`, `resolvida`) |
 
-Cada denúncia nova gera um aviso no sino de todos os administradores (exceto de quem a abriu). O administrador também acompanha e altera as denúncias pelo Django admin (`/admin/`).
+O administrador também acompanha e altera os chamados de suporte (aba **Suporte** do painel admin) pelo Django admin (`/admin/`).
 
 ---
+
+## Padrões de projeto (GoF)
+
+- **Factory Method** — `notifications/factory.py`: `EmailNotifFactory` e `PushNotifFactory` criam e enviam as notificações por canal.
+- **Observer** — `occurrences/events.py` e `occurrences/observers.py`. As views só publicam o que aconteceu (`eventos.publicar(...)`): `ocorrencia_criada`, `ocorrencia_triada`, `ocorrencia_designada` e `status_alterado`. O `NotificacaoObserver`, inscrito em `occurrences/apps.py`, transforma cada evento no aviso do sino (gestores, equipe). Para reagir a um evento de outra forma, basta criar um `Observer` e inscrevê-lo em `observers.registrar()`. Um observador com defeito não derruba a ação principal nem os demais.
+- **Strategy** — `occurrences/priority.py`. A prioridade das ocorrências é calculada por uma estratégia intercambiável: `padrao` (validações + dias em aberto + importância, o comportamento original), `por_prazo` (soma peso a prazo estourado ou próximo) e `urgencia_ia` (soma a nota de urgência da IA). A escolha é a variável de ambiente `PRIORITY_STRATEGY` (padrão: `padrao`).
 
 ## Backup e restauração
 
@@ -523,14 +574,22 @@ Use `{{token_admin}}` ou `{{token_user}}` no campo Bearer Token.
 | GET/PUT/DELETE | `/api/v1/users/<id>/` | Detalhe, edição e exclusão | Token |
 | GET/PATCH | `/api/v1/users/me/` | Perfil do próprio usuário (inclui `profile_picture`; `user_type` é somente leitura) | Token |
 | GET/POST | `/api/v1/occurrences/` | Lista e cria ocorrências | Token |
-| GET/PUT/PATCH/DELETE | `/api/v1/occurrences/<id>/` | Detalhe, edição e exclusão | Token |
+| POST | `/api/v1/occurrences/<id>/triagem/` | Aprova (importância, prazo, setor) ou rejeita uma ocorrência nova | Admin ou Gestor |
+| POST | `/api/v1/occurrences/<id>/designar/` | Designa equipe técnica (e gestor, só admin) da ocorrência já triada | Admin ou Gestor |
+| GET | `/api/v1/occurrences/<id>/candidatos/` | Equipe/gestores do setor e cidade que podem ser designados | Admin ou Gestor |
+| GET/PUT/DELETE | `/api/v1/occurrences/<id>/` | Detalhe, edição e exclusão | Token |
 | GET | `/api/v1/occurrences/nearby/<lat>/<lng>/` | Ocorrências próximas | Token |
 | POST | `/api/v1/occurrences/geocode/` | Endpoint legado: só valida o campo `address` (a geocodificação real está em `/api/v1/geo/`) | Token |
 | POST | `/api/v1/occurrences/anonymous/` | Registra ocorrência sem login | Público |
 | POST | `/api/v1/occurrences/anonymous/claim/` | Vincula ocorrências anônimas à conta | Token |
 | GET | `/api/v1/occurrences/<id>/history/` | Histórico de alterações | Token |
-| GET/POST | `/api/v1/categories/` | Lista e cria categorias | Público |
-| GET/PUT/DELETE | `/api/v1/categories/<id>/` | Detalhe, edição e exclusão | Público |
+| POST | `/api/v1/occurrences/ai-analyze/` | Análise de urgência via IA | Token |
+| GET | `/api/v1/occurrences/ai-prioritized/` | Lista priorizada pela IA (Admin) | Token (Admin) |
+| GET/POST | `/api/v1/categories/` | Lista os setores (com as subcategorias) e cria setor | Leitura pública; escrita só admin |
+| POST | `/api/v1/users/staff/` | Cadastra gestor público ou equipe técnica | Admin |
+| GET/PUT/DELETE | `/api/v1/categories/<id>/` | Detalhe, edição e exclusão de setor | Leitura pública; escrita só admin |
+| GET/POST | `/api/v1/categories/subcategories/` | Lista (filtro `?category=<id>`) e cria subcategoria | Leitura pública; escrita só admin |
+| GET/PATCH/DELETE | `/api/v1/categories/subcategories/<id>/` | Detalhe, edição e exclusão de subcategoria | Leitura pública; escrita só admin |
 | GET/POST | `/api/v1/images/` | Lista e faz upload de imagens | Token |
 | GET/PUT/DELETE | `/api/v1/images/<id>/` | Detalhe, edição e exclusão | Token |
 | POST | `/api/v1/images/anonymous/` | Upload de imagem de ocorrência anônima | Público |

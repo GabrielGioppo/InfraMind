@@ -242,7 +242,8 @@ async function loadUserProfile() {
 
 function renderUserDataToUI(u) {
   const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username;
-  const isAdmin = u.user_type === 'admin' || u.is_staff;
+  const isAdmin = ['admin', 'gestor', 'equipe_tecnica'].includes(u.user_type) || u.is_staff;   // usa o painel
+  const ROTULOS = { admin: 'Administrador', gestor: 'Gestor Público', equipe_tecnica: 'Equipe Técnica' };
 
   // Header e Barra Superior
   document.getElementById('top-user-name').textContent = fullName;
@@ -260,7 +261,7 @@ function renderUserDataToUI(u) {
   const backBtn = document.getElementById('btn-back-system');
   const drawerSystemLink = document.getElementById('drawer-system-link');
   if (isAdmin) {
-    if (backBtn) { backBtn.href = 'admin.html'; document.getElementById('back-btn-text').textContent = 'Voltar ao Admin'; }
+    if (backBtn) { backBtn.href = 'admin.html'; document.getElementById('back-btn-text').textContent = 'Voltar ao Painel'; }
     if (drawerSystemLink) { drawerSystemLink.href = 'admin.html'; }
   } else {
     if (backBtn) { backBtn.href = 'index.html'; document.getElementById('back-btn-text').textContent = 'Voltar ao Sistema'; }
@@ -272,7 +273,7 @@ function renderUserDataToUI(u) {
   document.getElementById('side-user-username').textContent = `@${u.username}`;
   
   const badgeEl = document.getElementById('side-user-badge');
-  badgeEl.textContent = isAdmin ? 'Administrador' : 'Cidadão';
+  badgeEl.textContent = isAdmin ? (ROTULOS[u.user_type] || 'Administrador') : 'Cidadão';
   badgeEl.className = `profile-badge ${isAdmin ? 'admin' : 'citizen'}`;
 
   // Avatar grande

@@ -17,6 +17,11 @@ class Image(models.Model):
         blank=True,
         related_name='images'
     )
+    ETAPA_CHOICES = [
+        ('registro', 'Registro da ocorrência'),
+        ('resolucao', 'Evidência da resolução'),
+    ]
+    etapa = models.CharField(max_length=10, choices=ETAPA_CHOICES, default='registro')
     image = models.ImageField(upload_to='occurrences/%Y/%m/%d/')
     caption = models.CharField(max_length=200, blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)

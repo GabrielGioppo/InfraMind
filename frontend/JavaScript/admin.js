@@ -52,6 +52,30 @@ function logout() {
     window.location.href = 'landing.html';
 }
 
+// ── Perfis do painel ──────────────────────────────────────────
+// admin: tudo | gestor: ocorrências do setor/cidade dele (importância, prazo, status) |
+// equipe técnica: ocorrências do setor/cidade dela (só o status).
+const PERFIL_ROTULO = { admin:'Administrador', gestor:'Gestor Público', equipe_tecnica:'Equipe Técnica', citizen:'Cidadão' };
+const PAGINAS_SO_ADMIN = ['users', 'feedbacks', 'denuncias', 'logs', 'categories'];
+const PAGINAS_SEM_EQUIPE = ['triagem'];   // a equipe técnica não faz triagem
+let ME = null;
+
+const souAdmin    = () => !!ME && (ME.user_type === 'admin' || ME.is_staff === true);
+const souGestor   = () => !!ME && ME.user_type === 'gestor';
+const souEquipe   = () => !!ME && ME.user_type === 'equipe_tecnica';
+const podeGerir   = () => souAdmin() || souGestor();   // importância, prazo e mensagem ao cidadão
+
+function aplicarPerfil() {
+    if (!souAdmin()) document.querySelectorAll('[data-so-admin]').forEach(el => { el.style.display = 'none'; });
+    if (souEquipe()) document.querySelectorAll('[data-sem-equipe]').forEach(el => { el.style.display = 'none'; });
+    const rotulo = document.getElementById('admin-role');
+    if (!rotulo) return;
+    if (souAdmin()) { rotulo.textContent = 'Administrador'; return; }
+    const local = [ME.setor_nome, ME.cidade && ME.uf ? `${ME.cidade}/${ME.uf}` : ''].filter(Boolean).join(' · ');
+    rotulo.textContent = PERFIL_ROTULO[ME.user_type] + (local ? ' — ' + local : '');
+    rotulo.title = rotulo.textContent;
+}
+
 function toast(msg, type = 'success') {
     const el = document.createElement('div');
     el.className = 'toast ' + type;
@@ -118,17 +142,20 @@ function rowClick(ev, id) {
 }
 
 // ── PAGE ROUTING ──
-const pages = ['dashboard','occurrences','users','feedbacks','denuncias','logs','categories','map'];
+const pages = ['dashboard','triagem','occurrences','users','feedbacks','denuncias','logs','categories','map'];
 function showPage(id) {
+    if (PAGINAS_SEM_EQUIPE.includes(id) && souEquipe()) id = 'dashboard';
+    if (PAGINAS_SO_ADMIN.includes(id) && !souAdmin()) { toast('Área restrita ao administrador', 'error'); id = 'dashboard'; }
     pages.forEach(p => {
         document.getElementById('page-'+p).classList.toggle('active', p === id);
         document.querySelectorAll('.nav-item').forEach(n => {
             if (n.getAttribute('onclick') === `showPage('${p}')`) n.classList.toggle('active', p === id);
         });
     });
-    const titles = { dashboard:'Dashboard', occurrences:'Ocorrências', users:'Usuários', feedbacks:'Feedbacks', denuncias:'Denúncias', logs:'Logs de Auditoria', categories:'Categorias', map:'Mapa de Ocorrências' };
+    const titles = { dashboard:'Dashboard', triagem:'Triagem', occurrences:'Ocorrências', users:'Usuários', feedbacks:'Feedbacks', denuncias:'Suporte', logs:'Logs de Auditoria', categories:'Setores e subcategorias', map:'Mapa de Ocorrências' };
     document.getElementById('page-title').textContent = titles[id] || id;
     if (id === 'dashboard')   loadDashboard();
+    if (id === 'triagem')     loadTriagem();
     if (id === 'occurrences') loadOccurrences();
     if (id === 'users')       loadUsers();
     if (id === 'feedbacks')   loadFeedbacks();
@@ -147,12 +174,36 @@ document.querySelectorAll('.modal-backdrop').forEach(b => b.addEventListener('cl
 let allOcc = [], allUsers = [], allCats = [], allLogs = [], allFeedbacks = [];
 
 // ── DASHBOARD ──
+// Gráfico de pizza das ocorrências por status: conic-gradient + legenda (sem biblioteca).
+function renderStatusPie(grupos, rotulos, cores) {
+    const el = document.getElementById('status-chart');
+    const total = Object.values(grupos).reduce((a, b) => a + b, 0);
+    const legenda = Object.entries(grupos).map(([k, v]) => {
+        const pct = total ? Math.round((v / total) * 100) : 0;
+        return `<li><span class="pie-dot" style="background:${cores[k]}"></span>
+            <span class="pie-name">${rotulos[k]}</span>
+            <span class="pie-val">${v} <small>(${pct}%)</small></span></li>`;
+    }).join('');
+    let fundo = 'var(--bg3)';
+    if (total) {
+        let acc = 0;
+        fundo = 'conic-gradient(' + Object.entries(grupos).filter(([, v]) => v > 0).map(([k, v]) => {
+            const ini = (acc / total) * 100; acc += v;
+            return `${cores[k]} ${ini}% ${(acc / total) * 100}%`;
+        }).join(', ') + ')';
+    }
+    el.innerHTML = `<div class="pie" style="background:${fundo}" role="img"
+            aria-label="Ocorrências por status"><div class="pie-hole"><b>${total}</b><span>total</span></div></div>
+        <ul class="pie-legend">${legenda}</ul>`;
+}
+
 async function loadDashboard() {
     try {
+        const admin = souAdmin();
         const [rStats, rOcc, rUsers] = await Promise.all([
-            api('/api/v1/statistics/'),
+            admin ? api('/api/v1/statistics/') : Promise.resolve({ json: async () => ({}) }),
             api('/api/v1/occurrences/'),
-            api('/api/v1/users/')
+            admin ? api('/api/v1/users/') : Promise.resolve({ json: async () => [] })
         ]);
         if (!rStats || !rOcc || !rUsers) return;
 
@@ -162,8 +213,9 @@ async function loadDashboard() {
         const occs = Array.isArray(occData) ? occData : (occData.results || []);
         const users = Array.isArray(userData) ? userData : (userData.results || []);
 
-        document.getElementById('s-users').textContent = stats.total_usuarios ?? users.length;
-        document.getElementById('s-occ').textContent = stats.total_ocorrencias ?? occs.length;
+        // Gestor e equipe veem só o que é da área deles; os totais do sistema são do administrador.
+        if (admin) document.getElementById('s-users').textContent = stats.total_usuarios ?? users.length;
+        document.getElementById('s-occ').textContent = admin ? (stats.total_ocorrencias ?? occs.length) : occs.length;
         const resolved = occs.filter(o => o.status === 'resolved' || o.status === 'closed').length;
         const open = occs.filter(o => o.status === 'open').length;
         document.getElementById('s-resolved').textContent = resolved;
@@ -177,19 +229,12 @@ async function loadDashboard() {
                 `${atrasadas} ocorrência${atrasadas > 1 ? 's' : ''} com prazo (SLA) estourado${atrasadas > 1 ? 's' : ''}.`;
         }
 
-        // mini chart
+        // gráfico de pizza (ocorrências por status)
         const statusGroups = { open:0, in_progress:0, resolved:0, closed:0 };
         occs.forEach(o => { if (statusGroups[o.status] !== undefined) statusGroups[o.status]++; });
-        const maxVal = Math.max(...Object.values(statusGroups), 1);
         const labels = { open:'Aberta', in_progress:'Andamento', resolved:'Resolvida', closed:'Fechada' };
         const colors = { open:'var(--accent)', in_progress:'var(--yellow)', resolved:'var(--green)', closed:'var(--text3)' };
-        document.getElementById('status-chart').innerHTML = Object.entries(statusGroups).map(([k,v]) =>
-            `<div class="bar-col">
-                <div class="bar" style="height:${Math.round((v/maxVal)*44)}px;background:${colors[k]}"></div>
-                <div class="bar-lbl">${v}</div>
-                <div class="bar-lbl">${labels[k]}</div>
-            </div>`
-        ).join('');
+        renderStatusPie(statusGroups, labels, colors);
 
         // cats
         const rCats = await api('/api/v1/categories/');
@@ -234,6 +279,141 @@ async function loadOccurrences() {
     } catch(e) { toast('Erro ao carregar ocorrências','error'); }
 }
 
+// ============================================================
+// TRIAGEM (colunas: Novos | Já passaram da triagem)
+// ============================================================
+let triOcc = [];
+
+async function loadTriagem() {
+    document.getElementById('tri-novas').innerHTML = '<div class="loading">Carregando...</div>';
+    try {
+        await garantirSetores();
+        const r = await api('/api/v1/occurrences/');
+        if (!r) return;
+        const data = await r.json();
+        triOcc = Array.isArray(data) ? data : (data.results || []);
+        renderTriagem();
+    } catch(e) { toast('Erro ao carregar a triagem', 'error'); }
+}
+
+async function atualizarContadorTriagem() {
+    try {
+        const r = await api('/api/v1/occurrences/?triagem=nova');
+        if (!r || !r.ok) return;
+        const d = await r.json();
+        const n = (Array.isArray(d) ? d : (d.results || [])).length;
+        const b = document.getElementById('triagem-count-badge');
+        if (b) { b.textContent = n; b.style.display = n ? '' : 'none'; }
+    } catch(e) {}
+}
+
+function renderTriagem() {
+    const q = (document.getElementById('tri-search').value || '').toLowerCase();
+    const casa = o => !q || [o.title, o.category_details?.name, o.subcategory_details?.name, o.city, o.address]
+        .some(v => (v || '').toLowerCase().includes(q));
+    const novas = triOcc.filter(o => o.triagem === 'nova' && casa(o));
+    const feitas = triOcc.filter(o => o.triagem !== 'nova' && casa(o))
+        .sort((a, b) => (b.triagem_em || '').localeCompare(a.triagem_em || ''));
+
+    document.getElementById('tri-count-novas').textContent = novas.length;
+    document.getElementById('tri-count-triadas').textContent = feitas.length;
+    const badge = document.getElementById('triagem-count-badge');
+    const totalNovas = triOcc.filter(o => o.triagem === 'nova').length;
+    if (badge) { badge.textContent = totalNovas; badge.style.display = totalNovas ? '' : 'none'; }
+
+    document.getElementById('tri-novas').innerHTML = novas.length
+        ? novas.map(cardNova).join('') : '<div class="tri-empty">Nenhuma ocorrência nova para triar.</div>';
+    document.getElementById('tri-triadas').innerHTML = feitas.length
+        ? feitas.map(cardTriada).join('') : '<div class="tri-empty">Nada por aqui ainda.</div>';
+}
+
+function rotuloLocal(o) {
+    return [o.category_details?.name ? (o.category_details.name + (o.subcategory_details ? ' › ' + o.subcategory_details.name : '')) : 'Sem setor',
+            o.city ? `${o.city}${o.state ? '/' + o.state : ''}` : ''].filter(Boolean).join(' · ');
+}
+
+function cardNova(o) {
+    const urg = o.urgency_level && o.urgency_level !== 'baixa'
+        ? `<span class="badge badge-red" title="Classificação da IA">IA: ${esc(URGENCY_LABEL[o.urgency_level] || o.urgency_level)}</span>` : '';
+    return `<article class="tri-card" id="tri-card-${o.id}">
+        <div class="tri-top">
+            <div class="tri-title" onclick="openOccDetail(${o.id})">#${o.id} · ${esc(o.title)}</div>${urg}
+        </div>
+        <div class="tri-meta"><span>${esc(rotuloLocal(o))}</span><span>${fmt(o.created_at)}</span><span>${o.validation_count || 0} validações</span></div>
+        ${o.description ? `<div class="tri-desc">${esc(o.description)}</div>` : ''}
+        <div class="tri-form">
+            <div><label>Importância *</label>
+                <select id="tri-imp-${o.id}">
+                    <option value="">Escolha...</option>
+                    <option value="green" ${o.importance_color === 'green' ? 'selected' : ''}>🟢 Normal</option>
+                    <option value="yellow" ${o.importance_color === 'yellow' ? 'selected' : ''}>🟡 Médio</option>
+                    <option value="red" ${o.importance_color === 'red' ? 'selected' : ''}>🔴 Importante</option>
+                </select></div>
+            <div><label>Prazo para resolver *</label>
+                <div style="display:flex;gap:6px">
+                    <input type="date" id="tri-dia-${o.id}" value="${o.prazo_definido ? o.prazo_definido.slice(0, 10) : ''}">
+                    <input type="time" id="tri-hora-${o.id}" value="${o.prazo_definido ? o.prazo_definido.slice(11, 16) : ''}" title="Horário limite (opcional)" style="max-width:96px">
+                </div></div>
+            <div class="full"><label>Departamento / setor responsável</label>
+                <select id="tri-setor-${o.id}">${opcoesSetores(o.category)}</select></div>
+        </div>
+        <div class="tri-actions">
+            <button class="btn btn-ghost btn-sm" onclick="rejeitarTriagem(${o.id})">Rejeitar</button>
+            <button class="btn btn-primary btn-sm" onclick="aprovarTriagem(${o.id})">Aprovar triagem</button>
+        </div>
+    </article>`;
+}
+
+function cardTriada(o) {
+    const rejeitada = o.triagem === 'rejeitada';
+    const quem = o.triagem_por_nome ? ` por @${esc(o.triagem_por_nome)}` : '';
+    return `<article class="tri-card ${rejeitada ? 'rejeitada' : ''}">
+        <div class="tri-top">
+            <div class="tri-title" onclick="openOccDetail(${o.id})">#${o.id} · ${esc(o.title)}</div>
+            ${rejeitada ? '<span class="badge badge-red">Rejeitada</span>' : impBadge(o.importance_color)}
+        </div>
+        <div class="tri-meta"><span>${esc(rotuloLocal(o))}</span>${statusBadge(o.status)}${rejeitada ? '' : slaBadge(o)}</div>
+        ${!rejeitada && o.equipe_responsavel_nome ? `<div class="tri-meta"><span>Equipe: @${esc(o.equipe_responsavel_nome)}</span></div>` : ''}
+        ${rejeitada && o.triagem_obs ? `<div class="tri-motivo">Motivo: ${esc(o.triagem_obs)}</div>` : ''}
+        ${o.triagem_em ? `<div class="tri-meta"><span>${rejeitada ? 'Rejeitada' : 'Triada'} em ${fmtDateTime(o.triagem_em)}${quem}</span></div>` : ''}
+        <div class="tri-actions">
+            <button class="btn btn-ghost btn-sm" onclick="openOccDetail(${o.id})">Ver</button>
+            ${rejeitada ? '' : `<button class="btn btn-ghost btn-sm" onclick="openOccModal(${o.id})">Gerenciar</button>`}
+        </div>
+    </article>`;
+}
+
+function mensagemDeErro(d) {
+    if (!d || typeof d !== 'object') return 'Erro ao salvar.';
+    if (d.detail) return d.detail;
+    const nomes = { parecer_encerramento:'Parecer', evidencia:'Foto da resolução', equipe:'Equipe', gestor:'Gestor', status:'Status', importance_color:'Importância', prazo_definido:'Prazo', category:'Setor', subcategory:'Subcategoria', observacao:'Motivo' };
+    return Object.entries(d).map(([k, m]) => `${nomes[k] || k}: ${[].concat(m).join(' ')}`).join(' · ');
+}
+
+async function aprovarTriagem(id) {
+    const v = nome => document.getElementById(`${nome}-${id}`).value;
+    const dia = v('tri-dia'), hora = v('tri-hora');
+    const corpo = { acao: 'aprovar', importance_color: v('tri-imp') || undefined, category: Number(v('tri-setor')) || undefined };
+    if (dia) corpo.prazo_definido = hora ? `${dia}T${hora}` : dia;
+    await enviarTriagem(id, corpo, 'Triagem aprovada');
+}
+
+async function rejeitarTriagem(id) {
+    const motivo = (prompt('Motivo da rejeição (ex.: conteúdo falso, duplicada, fora do escopo):') || '').trim();
+    if (!motivo) return;
+    await enviarTriagem(id, { acao: 'rejeitar', observacao: motivo }, 'Ocorrência rejeitada');
+}
+
+async function enviarTriagem(id, corpo, msgOk) {
+    try {
+        const r = await api(`/api/v1/occurrences/${id}/triagem/`, { method:'POST', body: JSON.stringify(corpo) });
+        if (!r) return;
+        if (!r.ok) { toast(mensagemDeErro(await r.json().catch(() => null)), 'error'); return; }
+        toast(msgOk);
+        await loadTriagem();
+    } catch(e) { toast('Erro de conexão', 'error'); }
+}
+
 function filterOcc() { occPage = 1; renderOcc(); }
 
 function renderOcc() {
@@ -256,7 +436,7 @@ function renderOcc() {
             <td>${statusBadge(o.status)}</td>
             <td>
                 <div class="imp-selector">
-                    ${['green','yellow','red'].map(c=>`<div class="imp-btn ${c}-btn${o.importance_color===c?' selected':''}" title="${c}" onclick="quickSetImportance(${o.id},'${c}',this)"></div>`).join('')}
+                    ${['green','yellow','red'].map(c=>`<div class="imp-btn ${c}-btn${o.importance_color===c?' selected':''}" title="${c}" ${podeGerir() ? `onclick="quickSetImportance(${o.id},'${c}',this)"` : 'style="pointer-events:none;cursor:default"'}></div>`).join('')}
                 </div>
             </td>
             <td>${slaBadge(o)}</td>
@@ -266,7 +446,7 @@ function renderOcc() {
                 <div style="display:flex;gap:6px">
                     <button class="btn btn-ghost btn-sm" onclick="openOccDetail(${o.id})">Ver</button>
                     <button class="btn btn-ghost btn-sm" onclick="openOccModal(${o.id})">Editar</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteOcc(${o.id})">Del</button>
+                    ${souAdmin() ? `<button class="btn btn-danger btn-sm" onclick="deleteOcc(${o.id})">Del</button>` : ''}
                 </div>
             </td>
         </tr>`).join('')
@@ -308,6 +488,8 @@ async function openOccModal(id) {
     _reopenDetailAfterSave = document.getElementById('occ-detail-modal').classList.contains('open');
     closeModal('occ-detail-modal');
 
+    // Equipe técnica só atualiza o status: esconde importância, prazo e mensagem.
+    document.querySelectorAll('#occ-modal [data-so-gestao]').forEach(el => { el.style.display = podeGerir() ? '' : 'none'; });
     document.getElementById('edit-occ-id').value = id;
     document.getElementById('edit-occ-name').textContent = `#${occ.id} · ${occ.title}`;
     document.getElementById('edit-occ-status').value = occ.status || 'open';
@@ -316,6 +498,10 @@ async function openOccModal(id) {
     document.getElementById('edit-occ-deadline').value = occ.prazo_definido ? occ.prazo_definido.slice(0, 10) : '';
     document.getElementById('edit-occ-deadline-time').value = occ.prazo_definido ? occ.prazo_definido.slice(11, 16) : '';
     document.getElementById('edit-occ-feedback').value = '';
+    document.getElementById('edit-occ-parecer').value = occ.parecer_encerramento || '';
+    document.getElementById('edit-occ-foto-file').value = '';
+    renderFotosResolucao(occ);
+    await prepararDesignacao(occ);
     document.getElementById('edit-occ-deadline-hint').textContent = occ.prazo_definido
         ? `Prazo atual: ${fmtDateTime(occ.prazo_definido)}. Escolha outra data ou horário para reajustar.`
         : (occ.sla_deadline
@@ -325,6 +511,90 @@ async function openOccModal(id) {
 }
 
 let _reopenDetailAfterSave = false;
+
+// ── Designação, foto da resolução e disponibilidade (item 8) ──
+function renderFotosResolucao(occ) {
+    const fotos = (occ.images || []).filter(i => i.etapa === 'resolucao');
+    document.getElementById('edit-occ-fotos-res').innerHTML = fotos.map(i => {
+        const s = esc(imgSrc(i.image || i.url));
+        return `<img src="${s}" alt="Foto da resolução" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid var(--border)">`;
+    }).join('') || '<span style="font-size:12px;color:var(--text3)">Nenhuma foto de resolução ainda.</span>';
+}
+
+async function prepararDesignacao(occ) {
+    const bloco = document.getElementById('edit-atend-designar');
+    const info = document.getElementById('edit-atend-equipe-info');
+    bloco.style.display = 'none'; info.style.display = 'none';
+    if (souEquipe()) {
+        info.style.display = '';
+        document.getElementById('edit-occ-atend-info').textContent = occ.equipe_responsavel === ME.id
+            ? 'Esta ocorrência foi designada para você.' : 'Esta ocorrência não foi designada para você.';
+        return;
+    }
+    if (occ.triagem !== 'triada') return;
+    try {
+        const r = await api(`/api/v1/occurrences/${occ.id}/candidatos/`);
+        if (!r || !r.ok) return;
+        const c = await r.json();
+        const opcoes = (lista, atual, vazio) => `<option value="">${vazio}</option>` + lista.map(p =>
+            `<option value="${p.id}" ${p.id === atual ? 'selected' : ''} ${!p.disponivel && p.id !== atual ? 'disabled' : ''}>@${esc(p.username)}${p.disponivel ? '' : ' (indisponível)'}</option>`).join('');
+        document.getElementById('edit-occ-equipe').innerHTML = opcoes(c.equipe, c.equipe_atual, 'Sem equipe designada');
+        const gw = document.getElementById('edit-occ-gestor-wrap');
+        gw.style.display = souAdmin() ? '' : 'none';
+        if (souAdmin()) document.getElementById('edit-occ-gestor').innerHTML = opcoes(c.gestores, c.gestor_atual, 'Sem gestor designado');
+        bloco.style.display = '';
+    } catch (e) { console.error(e); }
+}
+
+async function designarOcc() {
+    const id = Number(document.getElementById('edit-occ-id').value);
+    const corpo = { equipe: Number(document.getElementById('edit-occ-equipe').value) || null };
+    if (souAdmin()) corpo.gestor = Number(document.getElementById('edit-occ-gestor').value) || null;
+    try {
+        const r = await api(`/api/v1/occurrences/${id}/designar/`, { method:'POST', body: JSON.stringify(corpo) });
+        if (!r) return;
+        if (!r.ok) { toast(mensagemDeErro(await r.json().catch(() => null)), 'error'); return; }
+        toast('Designação salva');
+        await refreshAfterOccChange(id);
+        if (!document.getElementById('occ-detail-modal').classList.contains('open')) return;
+    } catch (e) { toast('Erro de conexão', 'error'); }
+}
+
+async function enviarFotoResolucao() {
+    const input = document.getElementById('edit-occ-foto-file');
+    const arquivo = input.files[0];
+    if (!arquivo) return;
+    const id = Number(document.getElementById('edit-occ-id').value);
+    const fd = new FormData();
+    fd.append('occurrence', id); fd.append('image', arquivo); fd.append('etapa', 'resolucao');
+    try {
+        const r = await fetch(API + '/api/v1/images/', { method:'POST', headers: { Authorization: 'Bearer ' + getToken() }, body: fd });
+        if (!r.ok) { toast(mensagemDeErro(await r.json().catch(() => null)), 'error'); input.value = ''; return; }
+        const o = await (await api(`/api/v1/occurrences/${id}/`)).json();
+        renderFotosResolucao(o);
+        toast('Foto da resolução enviada');
+    } catch (e) { toast('Erro de conexão', 'error'); }
+    input.value = '';
+}
+
+function mostrarDisponibilidade() {
+    if (!souEquipe()) return;
+    const wrap = document.getElementById('disp-wrap');
+    wrap.style.display = 'flex';
+    document.getElementById('disp-toggle').checked = ME.disponivel !== false;
+}
+
+async function alternarDisponibilidade(valor) {
+    try {
+        const r = await api('/api/v1/users/me/', { method:'PATCH', body: JSON.stringify({ disponivel: valor }) });
+        if (!r || !r.ok) throw new Error();
+        ME.disponivel = valor;
+        toast(valor ? 'Você está disponível para novas designações' : 'Você está marcado como indisponível');
+    } catch (e) {
+        document.getElementById('disp-toggle').checked = !valor;
+        toast('Não foi possível atualizar a disponibilidade', 'error');
+    }
+}
 
 // Data + horário opcional. Sem horário, o backend assume 23:59:59.
 function prazoDoFormulario() {
@@ -336,17 +606,18 @@ function prazoDoFormulario() {
 
 async function saveOcc() {
     const id = Number(document.getElementById('edit-occ-id').value);
-    const payload = {
-        status: document.getElementById('edit-occ-status').value,
-        importance_color: document.getElementById('edit-occ-importance').value || null,
-        prazo_definido: prazoDoFormulario(),
-    };
-    const comment = document.getElementById('edit-occ-feedback').value.trim();
+    const payload = { status: document.getElementById('edit-occ-status').value,
+                      parecer_encerramento: document.getElementById('edit-occ-parecer').value.trim() };
+    if (podeGerir()) {
+        payload.importance_color = document.getElementById('edit-occ-importance').value || null;
+        payload.prazo_definido = prazoDoFormulario();
+    }
+    const comment = podeGerir() ? document.getElementById('edit-occ-feedback').value.trim() : '';
     try {
         const r = await api(`/api/v1/occurrences/${id}/`, { method:'PATCH', body: JSON.stringify(payload) });
         if (!r || !r.ok) {
             let msg = 'Erro ao salvar';
-            try { msg += ': ' + JSON.stringify(await r.json()); } catch (e) {}
+            try { msg = mensagemDeErro(await r.json()); } catch (e) {}
             toast(msg, 'error');
             return;
         }
@@ -366,6 +637,7 @@ async function saveOcc() {
 async function refreshAfterOccChange(id) {
     const active = (document.querySelector('.page.active')?.id || '').replace('page-', '');
     if (active === 'occurrences') await loadOccurrences();
+    else if (active === 'triagem') await loadTriagem();
     else if (active === 'dashboard') loadDashboard();
     else if (active === 'map') loadMapPage();
     if (_reopenDetailAfterSave) { _reopenDetailAfterSave = false; openOccDetail(id); }
@@ -399,7 +671,9 @@ async function openOccDetail(id) {
         let hist = [];
         if (rh && rh.ok) { const d = await rh.json(); hist = Array.isArray(d) ? d : (d.results || []); }
 
-        const img = o.images?.length ? imgSrc(o.images[0].image || o.images[0].url) : null;
+        const fotosReg = (o.images || []).filter(i => i.etapa !== 'resolucao');
+        const fotosRes = (o.images || []).filter(i => i.etapa === 'resolucao');
+        const img = fotosReg.length ? imgSrc(fotosReg[0].image || fotosReg[0].url) : null;
         const lat = parseFloat(o.latitude), lng = parseFloat(o.longitude);
         const hasCoords = !isNaN(lat) && !isNaN(lng);
         const reporter = o.user_details?.username ? '@' + o.user_details.username : 'Anônimo';
@@ -439,16 +713,27 @@ async function openOccDetail(id) {
                 <div class="detail-field"><label>Importância</label>${impBadge(o.importance_color)}</div>
                 <div class="detail-field"><label>Prazo</label>${slaBadge(o)}</div>
                 <div class="detail-field"><label>Urgência (IA)</label><span>${esc(urg)}</span></div>
-                <div class="detail-field"><label>Categoria</label><span>${esc(o.category_details?.name || '—')}</span></div>
+                <div class="detail-field"><label>Setor</label><span>${esc(o.category_details?.name || '—')}</span></div>
+                <div class="detail-field"><label>Subcategoria</label><span>${esc(o.subcategory_details?.name || '—')}</span></div>
                 <div class="detail-field"><label>Cidadão</label><span>${esc(reporter)}</span></div>
                 <div class="detail-field"><label>Validações</label><span>${o.validation_count || 0} confirmação(ões)</span></div>
                 <div class="detail-field"><label>Prazo limite</label><span>${o.sla_deadline ? fmtDateTime(o.sla_deadline) : '—'}</span></div>
                 <div class="detail-field" style="grid-column:1/-1"><label>Endereço</label><span>${esc(o.address || '—')}</span></div>
             </div>
+            ${(o.gestor_responsavel_nome || o.equipe_responsavel_nome) ? `<div class="detail-grid">
+                <div class="detail-field"><label>Gestor responsável</label><span>${esc(o.gestor_responsavel_nome ? '@' + o.gestor_responsavel_nome : '—')}</span></div>
+                <div class="detail-field"><label>Equipe técnica</label><span>${esc(o.equipe_responsavel_nome ? '@' + o.equipe_responsavel_nome : '—')}</span></div>
+            </div>` : ''}
             <div class="od-section"><div class="od-section-title">Descrição</div>
                 <div class="od-desc">${esc(o.description || '—')}</div></div>
             ${o.urgency_reason ? `<div class="od-section"><div class="od-section-title">Análise da IA</div>
                 <div class="od-desc">${esc(o.urgency_reason)}</div></div>` : ''}
+            ${(o.parecer_encerramento || fotosRes.length) ? `<div class="od-section"><div class="od-section-title">Resolução</div>
+                ${o.parecer_encerramento ? `<div class="od-desc">${esc(o.parecer_encerramento)}</div>` : ''}
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${fotosRes.map(i => {
+                    const s = imgSrc(i.image || i.url);
+                    return `<a href="${esc(s)}" target="_blank" rel="noopener"><img src="${esc(s)}" alt="Foto da resolução" style="width:110px;height:110px;object-fit:cover;border-radius:6px;border:1px solid var(--border)"></a>`;
+                }).join('')}</div></div>` : ''}
             ${hasCoords ? `<div class="od-section"><div class="od-section-title">Localização</div>
                 <div id="occ-detail-map" class="od-map"></div></div>` : ''}
             <div class="od-section"><div class="od-section-title">Atualizações e feedbacks</div>${notes}</div>
@@ -524,7 +809,7 @@ function renderUsers() {
                 </div>
             </td>
             <td style="font-size:12px;color:var(--text2)">${u.email||'—'}</td>
-            <td><span class="badge ${u.user_type==='admin'?'badge-admin':'badge-citizen'}">${u.user_type==='admin'?'Admin':'Cidadão'}</span></td>
+            <td>${tipoBadge(u)}${localDoUsuario(u) ? `<div style="font-size:11px;color:var(--text3);margin-top:3px">${esc(localDoUsuario(u))}</div>` : ''}</td>
             <td><span class="badge ${u.is_active?'badge-active':'badge-inactive'}">${u.is_active?'Ativo':'Inativo'}</span></td>
             <td style="font-size:12px;color:var(--text2)">${fmt(u.created_at)}</td>
             <td>
@@ -543,6 +828,75 @@ function renderUsers() {
         </div>`;
 }
 
+function tipoBadge(u, extenso = false) {
+    const cls = { admin:'badge-admin', gestor:'badge-prog', equipe_tecnica:'badge-prog' }[u.user_type] || 'badge-citizen';
+    const curto = { admin:'Admin', gestor:'Gestor', equipe_tecnica:'Equipe', citizen:'Cidadão' };
+    const rotulo = extenso ? (PERFIL_ROTULO[u.user_type] || 'Cidadão') : (curto[u.user_type] || 'Cidadão');
+    return `<span class="badge ${cls}">${rotulo}</span>`;
+}
+
+function localDoUsuario(u) {
+    if (u.user_type !== 'gestor' && u.user_type !== 'equipe_tecnica') return '';
+    return [u.setor_nome, u.cidade && u.uf ? `${u.cidade}/${u.uf}` : ''].filter(Boolean).join(' · ');
+}
+
+function opcoesSetores(selecionado) {
+    return allCats.map(c => `<option value="${c.id}" ${String(c.id) === String(selecionado) ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+}
+
+async function garantirSetores() {
+    if (allCats.length) return;
+    const r = await api('/api/v1/categories/');
+    if (!r) return;
+    const d = await r.json();
+    allCats = Array.isArray(d) ? d : (d.results || []);
+}
+
+async function salvarSetorDoUsuario(id) {
+    const setor = Number(document.getElementById('user-setor-edit').value);
+    try {
+        const r = await api(`/api/v1/users/${id}/`, { method:'PATCH', body: JSON.stringify({ setor }) });
+        if (!r || !r.ok) { toast('Erro ao salvar o setor', 'error'); return; }
+        toast('Setor atualizado');
+        closeModal('user-modal');
+        loadUsers();
+    } catch(e) { toast('Erro de conexão','error'); }
+}
+
+// ── Cadastro de gestor público / equipe técnica ──
+async function openStaffModal() {
+    await garantirSetores();
+    document.getElementById('st-setor').innerHTML = opcoesSetores('');
+    ['st-cidade','st-uf','st-nome','st-sobrenome','st-username','st-email','st-senha'].forEach(i => { document.getElementById(i).value = ''; });
+    document.getElementById('st-tipo').value = 'gestor';
+    document.getElementById('st-erro').textContent = '';
+    openModal('staff-modal');
+}
+
+async function saveStaff() {
+    const v = id => document.getElementById(id).value.trim();
+    const payload = {
+        user_type: v('st-tipo'), setor: Number(document.getElementById('st-setor').value) || null,
+        cidade: v('st-cidade'), uf: v('st-uf').toUpperCase(),
+        first_name: v('st-nome'), last_name: v('st-sobrenome'),
+        username: v('st-username'), email: v('st-email'), password: document.getElementById('st-senha').value,
+    };
+    const erro = document.getElementById('st-erro');
+    erro.textContent = '';
+    try {
+        const r = await api('/api/v1/users/staff/', { method:'POST', body: JSON.stringify(payload) });
+        if (!r) return;
+        if (!r.ok) {
+            const d = await r.json().catch(() => ({}));
+            erro.textContent = Object.entries(d).map(([k, m]) => `${k}: ${[].concat(m).join(' ')}`).join(' · ') || 'Erro ao cadastrar.';
+            return;
+        }
+        closeModal('staff-modal');
+        toast('Usuário cadastrado');
+        loadUsers();
+    } catch(e) { toast('Erro de conexão','error'); }
+}
+
 function openUserModal(id) {
     const u = allUsers.find(x => x.id === id);
     if (!u) return;
@@ -552,7 +906,15 @@ function openUserModal(id) {
             <div class="detail-field"><label>Username</label><span>@${u.username}</span></div>
             <div class="detail-field"><label>E-mail</label><span>${u.email||'—'}</span></div>
             <div class="detail-field"><label>Telefone</label><span>${u.phone||'—'}</span></div>
-            <div class="detail-field"><label>Tipo</label><span class="badge ${u.user_type==='admin'?'badge-admin':'badge-citizen'}">${u.user_type==='admin'?'Administrador':'Cidadão'}</span></div>
+            <div class="detail-field"><label>Tipo</label>${tipoBadge(u, true)}</div>
+            ${(u.user_type === 'gestor' || u.user_type === 'equipe_tecnica') ? `
+            <div class="detail-field"><label>Cidade</label><span>${esc(u.cidade || '—')}${u.uf ? '/' + esc(u.uf) : ''}</span></div>
+            <div class="detail-field" style="grid-column:1/-1"><label>Setor</label>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <select id="user-setor-edit" style="flex:1">${opcoesSetores(u.setor)}</select>
+                    <button class="btn btn-primary btn-sm" onclick="salvarSetorDoUsuario(${u.id})">Salvar setor</button>
+                </div>
+            </div>` : ''}
             <div class="detail-field"><label>Status</label><span class="badge ${u.is_active?'badge-active':'badge-inactive'}">${u.is_active?'Ativo':'Inativo'}</span></div>
             <div class="detail-field"><label>Cadastro</label><span>${fmt(u.created_at)}</span></div>
             <div class="detail-field" style="grid-column:1/-1"><label>Endereço</label><span>${u.address||'—'}</span></div>
@@ -619,10 +981,10 @@ async function loadDenuncias() {
         atualizarBadgeDenuncias();
         denPage = 1;
         renderDenuncias();
-    } catch(e) { toast('Erro ao carregar denúncias', 'error'); }
+    } catch(e) { toast('Erro ao carregar os chamados de suporte', 'error'); }
 }
 
-// Contador do menu: só denúncias ainda abertas (aguardando ação).
+// Contador do menu: só chamados de suporte ainda abertos (aguardando ação).
 function atualizarBadgeDenuncias() {
     const abertas = allDenuncias.filter(d => d.status === 'aberta').length;
     const b = document.getElementById('denuncia-count-badge');
@@ -646,7 +1008,7 @@ function renderDenuncias() {
     const tbody = document.getElementById('den-tbody');
     const pag = document.getElementById('den-pagination');
     if (!lista.length) {
-        tbody.innerHTML = `<tr><td colspan="7" class="empty-state">${allDenuncias.length ? 'Nenhuma denúncia com esses filtros' : 'Nenhuma denúncia registrada'}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="empty-state">${allDenuncias.length ? 'Nenhum chamado com esses filtros' : 'Nenhum chamado registrado'}</td></tr>`;
         pag.innerHTML = '';
         return;
     }
@@ -673,7 +1035,7 @@ function renderDenuncias() {
         </tr>`;
     }).join('');
 
-    pag.innerHTML = `<span class="pagination-info">${lista.length} denúncias — pág. ${denPage}/${paginas}</span>
+    pag.innerHTML = `<span class="pagination-info">${lista.length} chamados — pág. ${denPage}/${paginas}</span>
         <div class="pagination-btns">
             <button class="pg-btn" onclick="denPage=Math.max(1,denPage-1);renderDenuncias()">‹</button>
             ${Array.from({length:Math.min(paginas,5)},(_,i)=>`<button class="pg-btn${i+1===denPage?' active':''}" onclick="denPage=${i+1};renderDenuncias()">${i+1}</button>`).join('')}
@@ -693,7 +1055,7 @@ async function mudarStatusDenuncia(id, select) {
         if (d) { d.status = novo; d.status_display = DEN_STATUS[novo][1]; }
         select.dataset.atual = novo;
         atualizarBadgeDenuncias();
-        toast(`Denúncia #${id}: ${DEN_STATUS[novo][1]}`);
+        toast(`Suporte #${id}: ${DEN_STATUS[novo][1]}`);
     } catch {
         select.value = anterior;   // não deixa a tela mostrando um status que o servidor não gravou
         toast('Não foi possível alterar o status', 'error');
@@ -763,25 +1125,97 @@ async function loadCategories() {
 
 function renderCats() {
     document.getElementById('cats-tbody').innerHTML = allCats.length
-        ? allCats.map(c => `<tr>
+        ? allCats.map(c => {
+            const subs = c.subcategories || [];
+            const chips = subs.length
+                ? subs.map(s => `<span class="badge ${s.is_active ? 'badge-active' : 'badge-inactive'}" style="margin:2px 4px 2px 0">${esc(s.name)}</span>`).join('')
+                : '<span style="color:var(--text3)">Nenhuma</span>';
+            return `<tr>
             <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">#${c.id}</td>
-            <td style="font-weight:500">${c.name}</td>
-            <td style="color:var(--text2);font-size:13px">${c.description||'—'}</td>
-            <td><span class="badge ${c.is_active?'badge-active':'badge-inactive'}">${c.is_active?'Ativa':'Inativa'}</span></td>
+            <td style="font-weight:500">${esc(c.name)}<div style="color:var(--text3);font-size:12px;font-weight:400">${esc(c.description||'')}</div></td>
+            <td style="max-width:420px;white-space:normal">${chips}</td>
+            <td><span class="badge ${c.is_active?'badge-active':'badge-inactive'}">${c.is_active?'Ativo':'Inativo'}</span></td>
             <td style="font-size:12px;color:var(--text2)">${fmt(c.created_at)}</td>
             <td>
                 <div style="display:flex;gap:6px">
+                    <button class="btn btn-ghost btn-sm" onclick="openSubModal(${c.id})">Subcategorias</button>
                     <button class="btn btn-ghost btn-sm" onclick="openCatModal(${c.id})">Editar</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteCat(${c.id})">Del</button>
                 </div>
             </td>
-        </tr>`).join('')
-        : '<tr><td colspan="6" class="empty-state">Nenhuma categoria</td></tr>';
+        </tr>`;
+        }).join('')
+        : '<tr><td colspan="6" class="empty-state">Nenhum setor</td></tr>';
+}
+
+// ── Subcategorias de um setor ──
+function openSubModal(catId) {
+    document.getElementById('sub-cat-id').value = catId;
+    document.getElementById('sub-name').value = '';
+    renderSubList();
+    openModal('sub-modal');
+}
+
+function renderSubList() {
+    const cat = allCats.find(c => c.id === Number(document.getElementById('sub-cat-id').value));
+    if (!cat) return;
+    document.getElementById('sub-modal-title').textContent = `Subcategorias — ${cat.name}`;
+    const subs = cat.subcategories || [];
+    document.getElementById('sub-list').innerHTML = subs.length ? subs.map(s => `
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px">
+            <span style="flex:1;${s.is_active ? '' : 'opacity:.55;text-decoration:line-through'}">${esc(s.name)}</span>
+            <button class="btn btn-ghost btn-sm" onclick="toggleSub(${s.id}, ${!s.is_active})">${s.is_active ? 'Desativar' : 'Ativar'}</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteSub(${s.id})">Del</button>
+        </div>`).join('')
+        : '<div style="color:var(--text3);font-size:13px">Este setor ainda não tem subcategorias.</div>';
+}
+
+async function recarregarSetores() {
+    const r = await api('/api/v1/categories/');
+    if (!r) return;
+    const data = await r.json();
+    allCats = Array.isArray(data) ? data : (data.results || []);
+    renderCats();
+    renderSubList();
+}
+
+async function addSub() {
+    const catId = Number(document.getElementById('sub-cat-id').value);
+    const name = document.getElementById('sub-name').value.trim();
+    if (!name) { toast('Informe o nome da subcategoria','error'); return; }
+    try {
+        const r = await api('/api/v1/categories/subcategories/', { method:'POST', body: JSON.stringify({ category: catId, name }) });
+        if (!r || !r.ok) {
+            const d = r ? await r.json().catch(() => ({})) : {};
+            toast((d.name && d.name[0]) || (d.non_field_errors && d.non_field_errors[0]) || 'Erro ao salvar subcategoria','error');
+            return;
+        }
+        document.getElementById('sub-name').value = '';
+        toast('Subcategoria criada');
+        await recarregarSetores();
+    } catch(e) { toast('Erro de conexão','error'); }
+}
+
+async function toggleSub(id, ativa) {
+    try {
+        const r = await api(`/api/v1/categories/subcategories/${id}/`, { method:'PATCH', body: JSON.stringify({ is_active: ativa }) });
+        if (!r || !r.ok) { toast('Erro ao atualizar','error'); return; }
+        await recarregarSetores();
+    } catch(e) { toast('Erro de conexão','error'); }
+}
+
+async function deleteSub(id) {
+    if (!confirm('Excluir esta subcategoria? As ocorrências que a usam ficam só com o setor.')) return;
+    try {
+        await api(`/api/v1/categories/subcategories/${id}/`, { method:'DELETE' });
+        toast('Subcategoria removida');
+        await recarregarSetores();
+    } catch(e) { toast('Erro ao excluir','error'); }
 }
 
 function openCatModal(id) {
     const cat = id ? allCats.find(c => c.id === id) : null;
-    document.getElementById('cat-modal-title').textContent = cat ? 'Editar Categoria' : 'Nova Categoria';
+    document.getElementById('cat-modal-title').textContent = cat ? 'Editar setor' : 'Novo setor';
     document.getElementById('cat-id').value = id || '';
     document.getElementById('cat-name').value = cat ? cat.name : '';
     document.getElementById('cat-desc').value = cat ? (cat.description||'') : '';
@@ -801,18 +1235,18 @@ async function saveCat() {
         const r = id
             ? await api(`/api/v1/categories/${id}/`, { method:'PUT', body: JSON.stringify(payload) })
             : await api('/api/v1/categories/', { method:'POST', body: JSON.stringify(payload) });
-        if (!r || !r.ok) { toast('Erro ao salvar categoria','error'); return; }
+        if (!r || !r.ok) { toast('Erro ao salvar o setor','error'); return; }
         closeModal('cat-modal');
-        toast(id ? 'Categoria atualizada' : 'Categoria criada');
+        toast(id ? 'Setor atualizado' : 'Setor criado');
         loadCategories();
     } catch(e) { toast('Erro de conexão','error'); }
 }
 
 async function deleteCat(id) {
-    if (!confirm('Excluir esta categoria?')) return;
+    if (!confirm('Excluir este setor e suas subcategorias?')) return;
     try {
         await api(`/api/v1/categories/${id}/`, { method:'DELETE' });
-        toast('Categoria removida');
+        toast('Setor removido');
         loadCategories();
     } catch(e) { toast('Erro ao excluir','error'); }
 }
@@ -836,41 +1270,38 @@ function mostrarErroApi() {
 async function init() {
     if (!getToken()) { window.location.href = 'landing.html'; return; }
 
-    // Valida o token e o perfil: só administradores acessam este painel.
-    let me = null;
-    let loaded = false;
+    // Perfil de quem está logado (/users/me/): só administrador, gestor público e equipe técnica entram aqui.
     try {
-        const payload = JSON.parse(atob(getToken().split('.')[1]));
-        const r = await api('/api/v1/users/');
-        if (r) {
-            const data = await r.json();
-            const users = Array.isArray(data) ? data : (data.results || []);
-            const me = users.find(u => u.id === uid);
-            if (me) {
-                const name = (me.first_name && me.last_name) ? `${me.first_name} ${me.last_name}` : me.username;
-                document.getElementById('admin-name').textContent = name;
-                
-                const av1 = document.getElementById('admin-avatar');
-                const av2 = document.getElementById('admin-topbar-avatar');
-                if (me.profile_picture) {
-                    const src = me.profile_picture.startsWith('http') ? me.profile_picture : `${API}${me.profile_picture}`;
-                    const imgHtml = `<img src="${src}" alt="${name}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
-                    if (av1) av1.innerHTML = imgHtml;
-                    if (av2) av2.innerHTML = imgHtml;
-                } else {
-                    const initials = name.slice(0,2).toUpperCase();
-                    if (av1) av1.textContent = initials;
-                    if (av2) av2.textContent = initials;
-                }
-
-                localStorage.setItem('im_user', JSON.stringify(me));
-                if (typeof refreshDrawerUserData === 'function') refreshDrawerUserData();
-            }
-        }
+        const r = await api('/api/v1/users/me/');
+        if (!r) return;
+        if (r.ok) ME = await r.json();
     } catch(e) {}
+    if (!ME) { toast('Não foi possível carregar o seu perfil', 'error'); return; }
+    if (!(souAdmin() || souGestor() || souEquipe())) { window.location.replace('index.html'); return; }
+
+    const name = (ME.first_name && ME.last_name) ? `${ME.first_name} ${ME.last_name}` : ME.username;
+    document.getElementById('admin-name').textContent = name;
+    const av1 = document.getElementById('admin-avatar');
+    const av2 = document.getElementById('admin-topbar-avatar');
+    if (ME.profile_picture) {
+        const src = ME.profile_picture.startsWith('http') ? ME.profile_picture : `${API}${ME.profile_picture}`;
+        const imgHtml = `<img src="${esc(src)}" alt="${esc(name)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+        if (av1) av1.innerHTML = imgHtml;
+        if (av2) av2.innerHTML = imgHtml;
+    } else {
+        const initials = name.slice(0,2).toUpperCase();
+        if (av1) av1.textContent = initials;
+        if (av2) av2.textContent = initials;
+    }
+    localStorage.setItem('im_user', JSON.stringify(ME));
+    if (typeof refreshDrawerUserData === 'function') refreshDrawerUserData();
+
+    aplicarPerfil();
+    mostrarDisponibilidade();
     loadDashboard();
+    if (!souEquipe()) atualizarContadorTriagem();
     loadNotifications();
-    carregarContadorDenuncias();
+    if (souAdmin()) carregarContadorDenuncias();
 }
 
 // Preenche o contador do menu sem precisar abrir a aba.
@@ -929,8 +1360,8 @@ async function markNotifRead(id) {
         await api(`/api/v1/notifications/${id}/read/`, { method: 'POST' });
         loadNotifications();
     } catch(e) {}
-    // Aviso de denúncia nova: leva direto para a aba Denúncias.
-    if (n && /^Nova denúncia/.test(n.titulo || '')) {
+    // Aviso de chamado novo: leva direto para a aba Suporte (aceita também o título antigo).
+    if (n && /^(Novo chamado de suporte|Nova denúncia)/.test(n.titulo || '')) {
         document.getElementById('notif-panel').classList.remove('show');
         showPage('denuncias');
     }
