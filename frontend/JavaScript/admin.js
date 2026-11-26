@@ -492,8 +492,8 @@ async function openOccModal(id) {
     document.querySelectorAll('#occ-modal [data-so-gestao]').forEach(el => { el.style.display = podeGerir() ? '' : 'none'; });
     document.getElementById('edit-occ-id').value = id;
     document.getElementById('edit-occ-name').textContent = `#${occ.id} · ${occ.title}`;
-    document.getElementById('edit-occ-status').value = occ.status || 'open';
-    document.getElementById('edit-occ-importance').value = occ.importance_color || '';
+    setChip('edit-occ-status', occ.status || 'open');
+    setChip('edit-occ-importance', occ.importance_color || '');
     // prazo_definido chega em ISO no fuso do projeto (ex.: 2026-10-21T18:00:00-03:00).
     document.getElementById('edit-occ-deadline').value = occ.prazo_definido ? occ.prazo_definido.slice(0, 10) : '';
     document.getElementById('edit-occ-deadline-time').value = occ.prazo_definido ? occ.prazo_definido.slice(11, 16) : '';
@@ -511,6 +511,15 @@ async function openOccModal(id) {
 }
 
 let _reopenDetailAfterSave = false;
+
+// Grupo de opções (estilo checkbox, uma por vez): lê e grava o valor marcado.
+function getChip(id) {
+    const marcado = document.querySelector(`#${id} input:checked`);
+    return marcado ? marcado.value : '';
+}
+function setChip(id, valor) {
+    document.querySelectorAll(`#${id} input`).forEach(i => { i.checked = (i.value === (valor || '')); });
+}
 
 // ── Designação, foto da resolução e disponibilidade (item 8) ──
 function renderFotosResolucao(occ) {
@@ -606,10 +615,10 @@ function prazoDoFormulario() {
 
 async function saveOcc() {
     const id = Number(document.getElementById('edit-occ-id').value);
-    const payload = { status: document.getElementById('edit-occ-status').value,
+    const payload = { status: getChip('edit-occ-status'),
                       parecer_encerramento: document.getElementById('edit-occ-parecer').value.trim() };
     if (podeGerir()) {
-        payload.importance_color = document.getElementById('edit-occ-importance').value || null;
+        payload.importance_color = getChip('edit-occ-importance') || null;
         payload.prazo_definido = prazoDoFormulario();
     }
     const comment = podeGerir() ? document.getElementById('edit-occ-feedback').value.trim() : '';
@@ -704,7 +713,7 @@ async function openOccDetail(id) {
             </div>`;
         }).join('') || '<div style="color:var(--text3);font-size:13px">Sem alterações registradas.</div>';
 
-        body.innerHTML = `
+        body.innerHTML = `<div class="od-layout"><div class="od-col">
             ${img ? `<img class="od-hero" src="${img}" alt="" onerror="this.style.display='none'">` : ''}
             <div style="font-size:16px;font-weight:600;margin-bottom:4px">${esc(o.title)}</div>
             <div style="font-size:12px;color:var(--text3);margin-bottom:16px">Registrada em ${fmtDateTime(o.created_at)}</div>
@@ -724,6 +733,7 @@ async function openOccDetail(id) {
                 <div class="detail-field"><label>Gestor responsável</label><span>${esc(o.gestor_responsavel_nome ? '@' + o.gestor_responsavel_nome : '—')}</span></div>
                 <div class="detail-field"><label>Equipe técnica</label><span>${esc(o.equipe_responsavel_nome ? '@' + o.equipe_responsavel_nome : '—')}</span></div>
             </div>` : ''}
+            </div><div class="od-col">
             <div class="od-section"><div class="od-section-title">Descrição</div>
                 <div class="od-desc">${esc(o.description || '—')}</div></div>
             ${o.urgency_reason ? `<div class="od-section"><div class="od-section-title">Análise da IA</div>
@@ -736,8 +746,10 @@ async function openOccDetail(id) {
                 }).join('')}</div></div>` : ''}
             ${hasCoords ? `<div class="od-section"><div class="od-section-title">Localização</div>
                 <div id="occ-detail-map" class="od-map"></div></div>` : ''}
+            </div><div class="od-col">
             <div class="od-section"><div class="od-section-title">Atualizações e feedbacks</div>${notes}</div>
             <div class="od-section"><div class="od-section-title">Histórico</div><div class="od-tl">${timeline}</div></div>
+            </div></div>
         `;
 
         if (hasCoords) {

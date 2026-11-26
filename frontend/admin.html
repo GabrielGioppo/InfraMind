@@ -395,24 +395,39 @@
 
 <!-- Gerenciar ocorrência: status, importância, prazo e atualização para o cidadão -->
 <div class="modal-backdrop" id="occ-modal">
-    <div class="modal">
+    <div class="modal modal-xl">
         <div class="modal-header">
             <span class="modal-title">Gerenciar Ocorrência</span>
             <button class="modal-close" onclick="closeModal('occ-modal')">×</button>
         </div>
         <div class="modal-body">
             <input type="hidden" id="edit-occ-id">
+            <div class="edit-cols">
+                <div class="edit-col">
             <div class="modal-field"><label>Ocorrência</label>
                 <div class="modal-static" id="edit-occ-name"></div>
             </div>
             <div class="modal-field"><label>Status</label>
-                <select id="edit-occ-status">
-                    <option value="open">Aberta</option>
-                    <option value="in_progress">Em Andamento</option>
-                    <option value="resolved">Resolvida</option>
-                    <option value="closed">Fechada</option>
-                </select>
+                <div class="chip-group" id="edit-occ-status" role="radiogroup"><label class="chip c-open"><input type="radio" name="edit-status" value="open"><span>Aberta</span></label><label class="chip c-prog"><input type="radio" name="edit-status" value="in_progress"><span>Em andamento</span></label><label class="chip c-ok"><input type="radio" name="edit-status" value="resolved"><span>Resolvida</span></label><label class="chip c-off"><input type="radio" name="edit-status" value="closed"><span>Fechada</span></label></div>
             </div>
+            <div class="modal-field" data-so-gestao><label>Nível de Importância</label>
+                <div class="chip-group" id="edit-occ-importance" role="radiogroup"><label class="chip c-off"><input type="radio" name="edit-imp" value=""><span>Não definido</span></label><label class="chip c-green"><input type="radio" name="edit-imp" value="green"><span>Normal</span></label><label class="chip c-yellow"><input type="radio" name="edit-imp" value="yellow"><span>Médio</span></label><label class="chip c-red"><input type="radio" name="edit-imp" value="red"><span>Importante</span></label></div>
+            </div>
+            <div class="modal-field" data-so-gestao><label>Prazo para resolver</label>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <input type="date" id="edit-occ-deadline">
+                    <input type="time" id="edit-occ-deadline-time" title="Horário limite (opcional)">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('edit-occ-deadline').value='';document.getElementById('edit-occ-deadline-time').value=''">Limpar</button>
+                </div>
+                <div class="modal-hint" id="edit-occ-deadline-hint"></div>
+                <div class="modal-hint">Sem horário, o prazo vai até 23:59:59 do dia escolhido.</div>
+            </div>
+            <div class="modal-field" data-so-gestao><label>Atualização para o cidadão (opcional)</label>
+                <textarea id="edit-occ-feedback" rows="3" placeholder="Ex: Estamos planejando o conserto. Previsão para o dia 02/11."></textarea>
+                <div class="modal-hint">Aparece na ocorrência como “Atualização oficial”. Mudanças de prazo ficam registradas no histórico.</div>
+            </div>
+                </div>
+                <div class="edit-col">
             <div class="modal-field" id="edit-atend-designar" style="display:none"><label>Designação</label>
                 <div id="edit-occ-gestor-wrap" style="margin-bottom:8px;display:none">
                     <select id="edit-occ-gestor"></select>
@@ -435,26 +450,7 @@
                 <input type="file" id="edit-occ-foto-file" accept="image/*" onchange="enviarFotoResolucao()">
                 <div class="modal-hint">Para marcar como Resolvida é preciso ao menos uma foto da resolução e o parecer.</div>
             </div>
-            <div class="modal-field" data-so-gestao><label>Nível de Importância</label>
-                <select id="edit-occ-importance">
-                    <option value="">Não definido</option>
-                    <option value="green">🟢 Verde — Normal</option>
-                    <option value="yellow">🟡 Amarelo — Médio</option>
-                    <option value="red">🔴 Vermelho — Importante</option>
-                </select>
-            </div>
-            <div class="modal-field" data-so-gestao><label>Prazo para resolver</label>
-                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                    <input type="date" id="edit-occ-deadline">
-                    <input type="time" id="edit-occ-deadline-time" title="Horário limite (opcional)">
-                    <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('edit-occ-deadline').value='';document.getElementById('edit-occ-deadline-time').value=''">Limpar</button>
                 </div>
-                <div class="modal-hint" id="edit-occ-deadline-hint"></div>
-                <div class="modal-hint">Sem horário, o prazo vai até 23:59:59 do dia escolhido.</div>
-            </div>
-            <div class="modal-field" data-so-gestao><label>Atualização para o cidadão (opcional)</label>
-                <textarea id="edit-occ-feedback" rows="3" placeholder="Ex: Estamos planejando o conserto. Previsão para o dia 02/11."></textarea>
-                <div class="modal-hint">Aparece na ocorrência como “Atualização oficial”. Mudanças de prazo ficam registradas no histórico.</div>
             </div>
         </div>
         <div class="modal-footer">

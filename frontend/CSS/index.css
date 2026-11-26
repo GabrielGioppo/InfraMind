@@ -793,3 +793,7 @@ input:-webkit-autofill:active {
   .auth-box { padding: 28px 20px; }
   .field-row-2 { grid-template-columns: 1fr; gap: 0; }
 }
+
+/* ── Layout do cidadão: dashboard e lista ocupam a largura toda; nova ocorrência centralizada ── */
+#page-dashboard, #page-occurrences { max-width: none; }
+#page-create { max-width: 780px; margin: 0 auto; }

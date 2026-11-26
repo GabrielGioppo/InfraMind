@@ -40,7 +40,7 @@ function doGlobalLogout() {
 // ── Wrapper para requisições autenticadas ──────────────
 async function authFetch(path, options = {}) {
   const token = getAccessToken();
-  const headers = { ...(options.headers || {}) };
+  const headers = { ...(options.headers || {}) }; 
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
