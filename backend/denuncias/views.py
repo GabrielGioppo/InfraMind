@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from denuncias.models import Denuncia
 from denuncias.serializers import DenunciaSerializer, DenunciaStatusSerializer
 from logs.utils import register_log
-from notifications.services import notificar_nova_denuncia
+from notifications.services import notificar_nova_denuncia, notificar_status_denuncia
 from occurrences.visibility import is_admin
 
 
@@ -52,3 +52,5 @@ class DenunciaStatusView(generics.UpdateAPIView):
         denuncia = serializer.save()
         register_log(self.request, 'update', 'Denuncia', denuncia.id,
                      {'status_anterior': anterior, 'status_novo': denuncia.status})
+        if anterior != denuncia.status:
+            notificar_status_denuncia(denuncia, anterior, self.request.user)

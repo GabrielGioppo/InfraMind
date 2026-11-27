@@ -101,3 +101,91 @@ class StatusAlteradoAvisaResponsaveisTests(PerfisBase):
         self.client.force_authenticate(self.gestor)
         self.client.patch(f'/api/v1/occurrences/{self.poste_soro.pk}/', {'importance_color': 'red'}, format='json')
         self.assertFalse(Notificacao.objects.filter(titulo__startswith='Status alterado').exists())
+
+
+class AvisosAoCidadaoTests(PerfisBase):
+    """Toda mudança feita por admin, gestor ou equipe chega no sino de quem registrou a ocorrência."""
+
+    def setUp(self):
+        super().setUp()
+        self.poste_soro.user = self.cidadao
+        self.poste_soro.equipe_responsavel = self.equipe
+        self.poste_soro.save()
+        self.url = f'/api/v1/occurrences/{self.poste_soro.pk}/'
+
+    def avisos(self):
+        return Notificacao.objects.filter(user=self.cidadao, titulo__startswith='Atualização na sua ocorrência')
+
+    def test_gestor_muda_prazo_e_importancia(self):
+        self.client.force_authenticate(self.gestor)
+        r = self.client.patch(self.url, {'importance_color': 'yellow', 'prazo_definido': '2099-01-01T10:00:00Z'}, format='json')
+        self.assertEqual(r.status_code, 200, r.content)
+        msg = self.avisos().get().mensagem
+        self.assertIn('importância', msg)
+        self.assertIn('prazo', msg)
+
+    def test_equipe_muda_status_avisa_cidadao(self):
+        self.client.force_authenticate(self.equipe)
+        self.client.patch(self.url, {'status': 'in_progress'}, format='json')
+        self.assertIn('Em Andamento', self.avisos().get().mensagem)
+
+    def test_admin_muda_status_avisa_cidadao(self):
+        self.client.force_authenticate(self.admin)
+        self.client.patch(self.url, {'status': 'in_progress'}, format='json')
+        self.assertEqual(self.avisos().count(), 1)
+
+    def test_cidadao_nao_e_avisado_da_propria_mudanca(self):
+        self.client.force_authenticate(self.cidadao)
+        self.client.patch(self.url, {'title': 'Novo título'}, format='json')
+        self.assertFalse(self.avisos().exists())
+
+    def test_sem_mudanca_nao_avisa(self):
+        self.client.force_authenticate(self.gestor)
+        self.client.patch(self.url, {'importance_color': self.poste_soro.importance_color}, format='json')
+        self.assertFalse(self.avisos().exists())
+
+    def test_designacao_e_triagem_avisam_cidadao(self):
+        self.poste_soro.equipe_responsavel = None
+        self.poste_soro.save()
+        self.client.force_authenticate(self.gestor)
+        self.client.post(f'{self.url}designar/', {'equipe': self.equipe.pk}, format='json')
+        self.assertTrue(Notificacao.objects.filter(user=self.cidadao, titulo__startswith='Equipe designada').exists())
+        self.esgoto_soro.user = self.cidadao
+        self.esgoto_soro.triagem = 'nova'
+        self.esgoto_soro.save()
+        self.client.force_authenticate(self.admin)
+        self.client.post(f'/api/v1/occurrences/{self.esgoto_soro.pk}/triagem/',
+                         {'acao': 'rejeitar', 'observacao': 'Fora da área'}, format='json')
+        self.assertTrue(Notificacao.objects.filter(user=self.cidadao, titulo__startswith='Sua ocorrência não foi aceita').exists())
+
+    def test_atualizacao_oficial_avisa_cidadao_e_comentario_avisa_responsaveis(self):
+        from feedbacks.models import Feedback
+        from occurrences.events import eventos, FEEDBACK_REGISTRADO
+        f = Feedback.objects.create(user=self.gestor, occurrence=self.poste_soro, comment='Previsão: dia 02')
+        eventos.publicar(FEEDBACK_REGISTRADO, self.poste_soro, por=self.gestor, feedback=f)
+        self.assertTrue(Notificacao.objects.filter(user=self.cidadao, titulo__startswith='Atualização oficial').exists())
+        c = Feedback.objects.create(user=self.cidadao, occurrence=self.poste_soro, comment='Obrigado', rating=5)
+        eventos.publicar(FEEDBACK_REGISTRADO, self.poste_soro, por=self.cidadao, feedback=c)
+        self.assertTrue(Notificacao.objects.filter(user=self.gestor, titulo__startswith='Novo comentário').exists())
+
+    def test_rotina_push_nao_duplica_aviso_de_status(self):
+        from notifications.services import processar_prazos_e_notificar
+        self.client.force_authenticate(self.equipe)
+        self.client.patch(self.url, {'status': 'in_progress'}, format='json')
+        antes = Notificacao.objects.filter(user=self.cidadao).count()
+        processar_prazos_e_notificar('push')
+        self.assertEqual(Notificacao.objects.filter(user=self.cidadao).count(), antes)
+
+    def test_admin_recebe_nova_ocorrencia(self):
+        from notifications.services import notificar_nova_ocorrencia
+        notificar_nova_ocorrencia(self.poste_soro)
+        self.assertTrue(Notificacao.objects.filter(user=self.admin, tipo='nova_ocorrencia').exists())
+
+    def test_reenviar_o_mesmo_prazo_nao_vira_mudanca(self):
+        from datetime import timedelta
+        self.poste_soro.prazo_definido = timezone.now().replace(second=42, microsecond=7) + timedelta(days=3)
+        self.poste_soro.save()
+        self.client.force_authenticate(self.gestor)
+        mesmo_minuto = timezone.localtime(self.poste_soro.prazo_definido).replace(second=0, microsecond=0)
+        self.client.patch(self.url, {'prazo_definido': mesmo_minuto.isoformat()}, format='json')
+        self.assertFalse(self.avisos().exists())

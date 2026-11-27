@@ -38,7 +38,9 @@ class FeedbackCreateListView(generics.ListCreateAPIView):
         return base.order_by('-created_at')
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        feedback = serializer.save(user=self.request.user)
+        from occurrences.events import eventos, FEEDBACK_REGISTRADO
+        eventos.publicar(FEEDBACK_REGISTRADO, feedback.occurrence, por=self.request.user, feedback=feedback)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

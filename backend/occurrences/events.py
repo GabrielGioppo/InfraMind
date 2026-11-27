@@ -4,6 +4,9 @@ OCORRENCIA_CRIADA = 'ocorrencia_criada'
 OCORRENCIA_TRIADA = 'ocorrencia_triada'
 OCORRENCIA_DESIGNADA = 'ocorrencia_designada'
 STATUS_ALTERADO = 'status_alterado'
+OCORRENCIA_ATUALIZADA = 'ocorrencia_atualizada'   # dados['mudancas']: lista de textos já legíveis
+TRIAGEM_REJEITADA = 'triagem_rejeitada'            # dados['motivo']
+FEEDBACK_REGISTRADO = 'feedback_registrado'        # dados['feedback']
 
 
 @dataclass

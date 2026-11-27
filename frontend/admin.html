@@ -411,7 +411,13 @@
                 <div class="chip-group" id="edit-occ-status" role="radiogroup"><label class="chip c-open"><input type="radio" name="edit-status" value="open"><span>Aberta</span></label><label class="chip c-prog"><input type="radio" name="edit-status" value="in_progress"><span>Em andamento</span></label><label class="chip c-ok"><input type="radio" name="edit-status" value="resolved"><span>Resolvida</span></label><label class="chip c-off"><input type="radio" name="edit-status" value="closed"><span>Fechada</span></label></div>
             </div>
             <div class="modal-field" data-so-gestao><label>Nível de Importância</label>
-                <div class="chip-group" id="edit-occ-importance" role="radiogroup"><label class="chip c-off"><input type="radio" name="edit-imp" value=""><span>Não definido</span></label><label class="chip c-green"><input type="radio" name="edit-imp" value="green"><span>Normal</span></label><label class="chip c-yellow"><input type="radio" name="edit-imp" value="yellow"><span>Médio</span></label><label class="chip c-red"><input type="radio" name="edit-imp" value="red"><span>Importante</span></label></div>
+                <div class="imp-selector imp-edit" id="edit-occ-importance" role="radiogroup">
+                    <div class="imp-btn green-btn" data-value="green" title="Normal" onclick="pickImp(this)"></div>
+                    <div class="imp-btn yellow-btn" data-value="yellow" title="Médio" onclick="pickImp(this)"></div>
+                    <div class="imp-btn red-btn" data-value="red" title="Importante" onclick="pickImp(this)"></div>
+                    <span class="imp-label" id="edit-occ-imp-label">Não definido</span>
+                </div>
+                <div class="modal-hint">Verde = Normal, amarelo = Médio, vermelho = Importante. Clique de novo para limpar.</div>
             </div>
             <div class="modal-field" data-so-gestao><label>Prazo para resolver</label>
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">

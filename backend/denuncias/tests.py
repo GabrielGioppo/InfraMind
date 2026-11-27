@@ -111,3 +111,42 @@ class DenunciaTests(TestCase):
             r = _api(self.maria).post(URL, {'tipo': 'bug', 'descricao': 'O mapa não carrega.'}, format='json')
         self.assertEqual(r.status_code, 201, r.content)
         self.assertEqual(Denuncia.objects.count(), 1)
+
+
+class StatusDoSuporteAvisaOAutorTests(TestCase):
+    def setUp(self):
+        self.maria = _user('maria')
+        self.admin = _user('adm', user_type='admin')
+        self.d = Denuncia.objects.create(user=self.maria, tipo='bug', descricao='O mapa não carrega no celular.')
+
+    def avisos(self):
+        return Notificacao.objects.filter(user=self.maria, titulo__startswith='Atualização no seu chamado')
+
+    def test_mudanca_de_status_avisa_quem_abriu(self):
+        r = _api(self.admin).patch(f'{URL}{self.d.id}/', {'status': 'em_analise'}, format='json')
+        self.assertEqual(r.status_code, 200, r.content)
+        n = self.avisos().get()
+        self.assertIn('Aberta → Em análise', n.mensagem)
+        self.assertEqual(n.canal, 'push')
+        _api(self.admin).patch(f'{URL}{self.d.id}/', {'status': 'resolvida'}, format='json')
+        self.assertEqual(self.avisos().count(), 2)
+
+    def test_mesmo_status_nao_avisa(self):
+        _api(self.admin).patch(f'{URL}{self.d.id}/', {'status': 'aberta'}, format='json')
+        self.assertFalse(self.avisos().exists())
+
+    def test_autor_removido_nao_quebra(self):
+        self.d.user = None
+        self.d.save()
+        r = _api(self.admin).patch(f'{URL}{self.d.id}/', {'status': 'resolvida'}, format='json')
+        self.assertEqual(r.status_code, 200)
+
+    def test_admin_que_abriu_o_proprio_chamado_nao_se_avisa(self):
+        d = Denuncia.objects.create(user=self.admin, tipo='bug', descricao='Erro ao salvar a página.')
+        _api(self.admin).patch(f'{URL}{d.id}/', {'status': 'resolvida'}, format='json')
+        self.assertFalse(Notificacao.objects.filter(user=self.admin, titulo__startswith='Atualização no seu chamado').exists())
+
+    def test_cidadao_continua_sem_poder_mudar_o_status(self):
+        r = _api(self.maria).patch(f'{URL}{self.d.id}/', {'status': 'resolvida'}, format='json')
+        self.assertEqual(r.status_code, 403)
+        self.assertFalse(self.avisos().exists())

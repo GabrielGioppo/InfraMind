@@ -92,8 +92,8 @@ def _avisar(pessoas, titulo, mensagem, occ, tipo) -> list:
 
 
 def notificar_nova_ocorrencia(occ) -> list:
-    """Chegou uma ocorrência nova: avisa os gestores do setor e da cidade, que fazem a triagem."""
-    destinatarios = [g for g in gestores_da_area(occ) if g.id != occ.user_id]
+    """Chegou uma ocorrência nova: avisa os administradores e os gestores do setor e da cidade, que fazem a triagem."""
+    destinatarios = [g for g in gestores_da_area(occ) + _destinatarios_admin() if g.id != occ.user_id]
     return _avisar(destinatarios, f'Nova ocorrência para triagem — #{occ.id}',
                    f'"{occ.title}" ({occ.category.name if occ.category else "sem setor"}) aguarda triagem.',
                    occ, 'nova_ocorrencia')
@@ -116,6 +116,25 @@ def notificar_designacao(occ, pessoa, por) -> list:
 
 
 _ROTULO_STATUS = dict(Occurrence.STATUS_CHOICES)
+
+
+def notificar_cidadao(occ, por, titulo, mensagem) -> list:
+    """Avisa o cidadão que registrou a ocorrência. Não avisa quem é anônimo nem quem fez a própria mudança."""
+    if not occ.user_id or (por and por.id == occ.user_id):
+        return []
+    return _avisar([occ.user], titulo, mensagem, occ, TIPO_STATUS_CHANGE)
+
+
+def notificar_feedback(feedback, por) -> list:
+    """Atualização oficial de quem atende -> cidadão; comentário/nota do cidadão -> quem responde pela ocorrência."""
+    occ = feedback.occurrence
+    autor = por or feedback.user
+    if autor.id == occ.user_id:
+        destinatarios = [p for p in _responsaveis(occ) + _destinatarios_admin() if p.id != autor.id]
+        return _avisar(destinatarios, f'Novo comentário do cidadão — #{occ.id}',
+                       f'"{occ.title}": {feedback.comment[:140]}', occ, 'geral')
+    return notificar_cidadao(occ, autor, f'Atualização oficial — #{occ.id}',
+                             f'"{occ.title}": {feedback.comment[:140]}')
 
 
 def notificar_status_alterado(occ, anterior, por) -> list:
@@ -207,7 +226,8 @@ def _processar_mudancas_status(factory) -> list:
 
     for hist in pendentes:
         occ = hist.occurrence
-        if occ.user:
+        # No sino o cidadão já foi avisado na hora (observer); não repete o aviso.
+        if occ.user and not isinstance(factory, PushNotifFactory):
             titulo = f'Atualização na sua ocorrência #{occ.id}'
             mensagem = (
                 f'A ocorrência "{occ.title}" mudou de status: '
@@ -244,6 +264,27 @@ def processar_prazos_e_notificar(canal: str = 'email') -> dict:
         'status_change':    len(status_change),
         'total':            len(prazo_estourado) + len(aviso_preventivo) + len(status_change),
     }
+
+
+def notificar_status_denuncia(denuncia, anterior, por=None) -> list:
+    """
+    O administrador mudou o status de um chamado de suporte/denúncia: avisa no sino quem o abriu.
+    Não avisa se o autor foi removido ou se foi ele mesmo quem mudou. Nunca levanta exceção.
+    """
+    try:
+        if not denuncia.user_id or (por and por.id == denuncia.user_id):
+            return []
+        rotulos = dict(denuncia.STATUS_CHOICES)
+        n = FACTORIES['push'].notificar(
+            denuncia.user, f'Atualização no seu chamado de suporte #{denuncia.id}',
+            f'Seu chamado ({denuncia.get_tipo_display()}) mudou de status: '
+            f'{rotulos.get(anterior, anterior or "—")} → {denuncia.get_status_display()}.',
+            occurrence=denuncia.occurrence, tipo=TIPO_STATUS_CHANGE,
+        )
+        return [n.id]
+    except Exception as e:
+        print(f'[notificar_status_denuncia] Falha ao avisar o autor: {e}')
+        return []
 
 
 def notificar_nova_denuncia(denuncia) -> list:

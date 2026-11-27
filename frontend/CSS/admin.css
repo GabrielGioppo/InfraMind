@@ -420,3 +420,10 @@ input[type="date"] { color-scheme: dark; }
 .chip.c-off span    { --c:#8b93a7; }
 .od-col .detail-grid + .detail-grid { margin-top:12px; }
 .od-col .detail-grid { row-gap:14px; }
+
+/* Importância no modal de gerenciar: as três bolinhas da tabela, um pouco maiores */
+.imp-edit { align-items:center; gap:12px; }
+.imp-edit .imp-btn { width:32px; height:32px; }
+.imp-edit .imp-btn:hover { transform:scale(1.1); }
+.imp-edit .imp-btn.selected { transform:scale(1.2); }
+.imp-label { font-size:13px; color:var(--text2); margin-left:4px; }

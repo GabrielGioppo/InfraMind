@@ -514,11 +514,24 @@ let _reopenDetailAfterSave = false;
 
 // Grupo de opções (estilo checkbox, uma por vez): lê e grava o valor marcado.
 function getChip(id) {
+    const bolinha = document.querySelector(`#${id} .imp-btn.selected`);
+    if (bolinha) return bolinha.dataset.value;
     const marcado = document.querySelector(`#${id} input:checked`);
     return marcado ? marcado.value : '';
 }
 function setChip(id, valor) {
     document.querySelectorAll(`#${id} input`).forEach(i => { i.checked = (i.value === (valor || '')); });
+    if (id === 'edit-occ-importance') marcarImp(valor || '');
+}
+
+// Importância: três bolinhas (mesmo visual da tabela). Clicar na marcada de novo limpa.
+const ROTULO_IMP = { green:'Normal', yellow:'Médio', red:'Importante' };
+function marcarImp(valor) {
+    document.querySelectorAll('#edit-occ-importance .imp-btn').forEach(b => b.classList.toggle('selected', b.dataset.value === valor));
+    document.getElementById('edit-occ-imp-label').textContent = ROTULO_IMP[valor] || 'Não definido';
+}
+function pickImp(el) {
+    marcarImp(el.classList.contains('selected') ? '' : el.dataset.value);
 }
 
 // ── Designação, foto da resolução e disponibilidade (item 8) ──
@@ -1313,6 +1326,7 @@ async function init() {
     loadDashboard();
     if (!souEquipe()) atualizarContadorTriagem();
     loadNotifications();
+    if (!window._notifTimer) window._notifTimer = setInterval(loadNotifications, 60000);
     if (souAdmin()) carregarContadorDenuncias();
 }
 
@@ -1355,8 +1369,8 @@ function renderNotifPanel(notifs) {
     }
     panel.innerHTML = notifs.slice(0, 20).map(n => `
         <div class="notif-item ${n.read ? '' : 'unread'}" onclick="markNotifRead(${n.id})">
-            <div class="notif-item-title">${n.titulo}</div>
-            <div class="notif-item-msg">${n.mensagem}</div>
+            <div class="notif-item-title">${esc(n.titulo)}</div>
+            <div class="notif-item-msg">${esc(n.mensagem)}</div>
         </div>
     `).join('');
 }

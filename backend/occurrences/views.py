@@ -19,6 +19,7 @@ from gemini_api.facade import IAProcessamentoFacade
 from occurrences.visibility import visible_occurrences
 from occurrences.events import (
     eventos, OCORRENCIA_CRIADA, OCORRENCIA_TRIADA, OCORRENCIA_DESIGNADA, STATUS_ALTERADO,
+    OCORRENCIA_ATUALIZADA, TRIAGEM_REJEITADA,
 )
 from occurrences.priority import calcular_prioridade
 from users.perfis import is_admin as _is_admin, is_equipe, is_gestor, is_municipal
@@ -268,6 +269,9 @@ class OccurrenceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView)
         user            = self.request.user
         previous_status = occurrence.status
         previous_deadline = occurrence.prazo_definido
+        snap = {c: getattr(occurrence, c) for c in ('importance_color', 'category_id', 'parecer_encerramento', 'title', 'description', 'address')}
+        setor_antes = occurrence.category.name if occurrence.category_id else '—'
+        fmt_prazo = lambda d: timezone.localtime(d).strftime('%d/%m/%Y %H:%M') if d else 'sem prazo'
 
         # Equipe técnica só atualiza o que foi designado a ela.
         if is_equipe(user) and occurrence.equipe_responsavel_id != user.id:
@@ -294,8 +298,7 @@ class OccurrenceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView)
             update_fields.append('resolved_at')
         updated.save(update_fields=update_fields)
 
-        if previous_deadline != updated.prazo_definido:
-            fmt_prazo = lambda d: timezone.localtime(d).strftime('%d/%m/%Y %H:%M') if d else 'sem prazo'
+        if fmt_prazo(previous_deadline) != fmt_prazo(updated.prazo_definido):
             antes  = fmt_prazo(previous_deadline)
             depois = fmt_prazo(updated.prazo_definido)
             OccurrenceHistory.objects.create(
@@ -320,6 +323,25 @@ class OccurrenceRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView)
                 {'previous': previous_status, 'new': updated.status}
             )
             eventos.publicar(STATUS_ALTERADO, updated, por=self.request.user, anterior=previous_status)
+
+        # Resumo legível das mudanças, para avisar o cidadão que registrou a ocorrência.
+        mudancas = []
+        rot_status = dict(Occurrence.STATUS_CHOICES)
+        rot_imp = {'green': 'Normal', 'yellow': 'Médio', 'red': 'Importante', None: 'não definida', '': 'não definida'}
+        if previous_status != updated.status:
+            mudancas.append(f'status: {rot_status.get(previous_status)} → {rot_status.get(updated.status)}')
+        if fmt_prazo(previous_deadline) != fmt_prazo(updated.prazo_definido):
+            mudancas.append(f'prazo: {fmt_prazo(previous_deadline)} → {fmt_prazo(updated.prazo_definido)}')
+        if snap['importance_color'] != updated.importance_color:
+            mudancas.append(f'importância: {rot_imp.get(snap["importance_color"])} → {rot_imp.get(updated.importance_color)}')
+        if snap['category_id'] != updated.category_id:
+            mudancas.append(f'setor: {setor_antes} → {updated.category.name if updated.category_id else "—"}')
+        if updated.status == 'resolved' and snap['parecer_encerramento'] != updated.parecer_encerramento:
+            mudancas.append(f'parecer: {updated.parecer_encerramento[:140]}')
+        if any(snap[c] != getattr(updated, c) for c in ('title', 'description', 'address')):
+            mudancas.append('dados da ocorrência foram revisados')
+        if mudancas:
+            eventos.publicar(OCORRENCIA_ATUALIZADA, updated, por=self.request.user, mudancas=mudancas)
         else:
             register_log(self.request, 'update', 'Occurrence', updated.id, {'title': updated.title})
 
@@ -414,6 +436,7 @@ class OccurrenceTriagemView(APIView):
         )
         register_log(request, 'status_change', 'Occurrence', occ.id,
                      {'triagem': 'rejeitada', 'previous': anterior, 'new': 'closed', 'motivo': motivo})
+        eventos.publicar(TRIAGEM_REJEITADA, occ, por=request.user, motivo=motivo)
 
 
 def _avisar_gestores_nova(occ):
