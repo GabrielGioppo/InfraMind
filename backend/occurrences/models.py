@@ -177,6 +177,8 @@ class Occurrence(models.Model):
     )
 
 
+    audio_file = models.FileField(upload_to='occurrence_audios/', blank=True, null=True, help_text='Áudio gravado pelo usuário (OGG, MP3, etc.)')
+
     # Datas
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

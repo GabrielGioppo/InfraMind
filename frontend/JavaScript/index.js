@@ -285,6 +285,7 @@ document.addEventListener('click', e => {
 const PAGES = ['dashboard','occurrences','create','detail','edit','admin'];
 
 function navigateTo(page, id=null) {
+  if (page !== 'create') resetarTranscricao();
   PAGES.forEach(p => document.getElementById(`page-${p}`).classList.add('hidden'));
   document.getElementById(`page-${page}`).classList.remove('hidden');
 
@@ -490,7 +491,8 @@ function occCard(o) {
 // CATEGORIES
 // ════════════════════════════════════
 async function loadCategories() {
-  const r = await api('/api/v1/categories/');
+  const r = await fetch(`${API}/api/v1/categories/`);
+  if (!r.ok) throw new Error('Falha ao carregar categorias');
   const d = await r.json();
   STATE.categories = Array.isArray(d) ? d : (d.results || []);
 }
@@ -539,10 +541,13 @@ function populateCatSelect(id, val='') {
 // ════════════════════════════════════
 // CREATE OCCURRENCE
 // ════════════════════════════════════
+const resetarTranscricao = criarControleTranscricao(
+  document.getElementById('c-desc-audio'),
+  `${API}/api/v1/transcriptions/`,
+);
+
 async function loadCreatePage() {
-  if (!STATE.categories.length) await loadCategories();
-  populateCatSelect('c-cat');
-  populateSubSelect('c-sub', '');
+  resetarTranscricao();
   document.getElementById('c-title').value = '';
   document.getElementById('c-addr').value = '';
   document.getElementById('c-desc').value = '';
@@ -556,6 +561,13 @@ async function loadCreatePage() {
   const coordLabel = document.getElementById('c-coords-label');
   if (coordLabel) { coordLabel.style.display = 'none'; coordLabel.textContent = ''; }
   setTimeout(() => initCreateMapDefault(), 150);
+  try {
+    if (!STATE.categories.length) await loadCategories();
+    populateCatSelect('c-cat');
+    populateSubSelect('c-sub', '');
+  } catch {
+    document.getElementById('c-cat').innerHTML = '<option value="">Erro ao carregar categorias</option>';
+  }
 }
 
 function initCreateMapDefault() {
@@ -693,6 +705,10 @@ function hideAILoadingProgress(callback) {
 }
 
 async function createOccurrence() {
+  if (document.getElementById('c-desc-audio').getAttribute('aria-busy') === 'true') {
+    toast('Conclua a gravação ou aguarde a transcrição antes de enviar.', 'info');
+    return;
+  }
   const titleRaw = document.getElementById('c-title').value.trim();
   const desc     = document.getElementById('c-desc').value.trim();
   const catEl    = document.getElementById('c-cat');

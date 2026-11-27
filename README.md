@@ -742,3 +742,27 @@ O campo `importance_color` é definido **exclusivamente pelo administrador** ap�
 ## Licença
 
 Projeto acadêmico desenvolvido para o Projeto Interdisciplinar IV — Sistemas de Informação — FHO 2026.
+
+### Transcrição de áudio nas ocorrências
+
+Na landing page, clique em **Registrar uma Ocorrência**. A descrição e os
+controles de áudio ficam visíveis também para visitantes sem conta. Grave pelo
+microfone ou anexe um áudio de até 60 segundos e 10 MB. Revise o texto antes de
+enviar a ocorrência anônima. No painel do cidadão, os controles também aparecem
+junto à descrição em **Adicionar informações extras**.
+O microfone funciona em localhost ou HTTPS. Use **Cancelar áudio** para interromper
+a gravação ou descartar a resposta de uma transcrição em andamento. Cancelar a
+requisição no navegador não interrompe uma inferência que já começou no servidor.
+A API aceita até 10 pedidos por hora por IP e processa um áudio por vez por processo.
+Durante a gravação ou transcrição, aguarde ou cancele antes de enviar o formulário.
+
+A API transcreve em português com Faster Whisper em CPU. O primeiro uso baixa o
+modelo multilíngue `small` (cerca de 484 MB) e pode demorar. O modelo fica em
+`backend/venv/whisper-models`. Para selecionar outro modelo, defina
+`WHISPER_MODEL` em `backend/.env`. Para preparar o modelo antes de usar a
+interface, rode, a partir da raiz do projeto:
+
+```bash
+cd backend
+venv/bin/python -c "import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'app.settings'); from transcriptions.utils import _load_model; _load_model()"
+```

@@ -177,10 +177,13 @@ function animateCount(id, target) {
 // MODAL UTILS
 // ══════════════════════════════════════════
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  if (id === 'modal-occ') resetarTranscricao();
+}
 
 document.querySelectorAll('.modal-overlay').forEach(o => {
-  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+  o.addEventListener('click', e => { if (e.target === o) closeModal(o.id); });
 });
 
 // ══════════════════════════════════════════
@@ -429,7 +432,13 @@ function doLogout() {
 // ══════════════════════════════════════════
 // OCCURRENCE MODAL
 // ══════════════════════════════════════════
+const resetarTranscricao = criarControleTranscricao(
+  document.getElementById('occ-desc-audio'),
+  `${API}/api/v1/transcriptions/`,
+);
+
 async function openOccModal() {
+  resetarTranscricao();
   const banner = document.getElementById('occ-anon-info');
   if (banner) banner.style.display = tk.get() ? 'none' : 'flex';
   document.getElementById('occ-msg').innerHTML = '';
@@ -441,6 +450,18 @@ async function openOccModal() {
   resetLocWidget();
   openModal('modal-occ');
   await loadCategoriesForOcc();
+  if (tk.get()) {
+    try {
+      const response = await apiFetch('/api/v1/users/me/');
+      if (response.status === 401) {
+        tk.clear();
+        updateNavbar(null);
+        if (banner) banner.style.display = 'flex';
+      }
+    } catch {
+      // Uma falha de rede não invalida uma sessão existente.
+    }
+  }
 }
 
 // Subcategorias do setor escolhido na landing.
@@ -462,7 +483,8 @@ function onOccCatChange() {
 async function loadCategoriesForOcc() {
   const sel = document.getElementById('occ-cat');
   try {
-    const r = await apiFetch('/api/v1/categories/');
+    const r = await fetch(`${API}/api/v1/categories/`);
+    if (!r.ok) throw new Error('Falha ao carregar categorias');
     const d = await r.json();
     const cats = Array.isArray(d) ? d : (d.results || []);
     window._occCats = cats;
@@ -504,6 +526,10 @@ function removePhoto() {
 }
 
 async function submitOcc() {
+  if (document.getElementById('occ-desc-audio').getAttribute('aria-busy') === 'true') {
+    toast('Conclua a gravação ou aguarde a transcrição antes de enviar.', 'info');
+    return;
+  }
   const cat   = document.getElementById('occ-cat').value;
   const msgEl = document.getElementById('occ-msg');
   msgEl.innerHTML = '';

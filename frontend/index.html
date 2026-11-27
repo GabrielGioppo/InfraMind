@@ -9,9 +9,11 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <link rel="stylesheet" href="CSS/index.css">
   <link rel="stylesheet" href="CSS/drawer.css">
+  <link rel="stylesheet" href="CSS/transcricao.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="JavaScript/cadastro.js" defer></script>
   <script src="JavaScript/drawer.js" defer></script>
+  <script src="JavaScript/transcricao.js" defer></script>
   <script src="JavaScript/index.js" defer></script>
 </head>
 <body>
@@ -349,6 +351,12 @@
               <div class="field" style="margin-bottom:0">
                 <label>Descrição Técnica</label>
                 <textarea id="c-desc" rows="4" placeholder="Descreva o problema: tamanho, risco, quanto tempo está assim..."></textarea>
+                <div id="c-desc-audio" data-transcricao="c-desc" style="margin-top:10px">
+                  <button type="button" class="btn btn-ghost" data-gravar>Gravar áudio</button>
+                  <label for="c-desc-arquivo">Ou anexe um áudio de até 60 segundos</label>
+                  <input id="c-desc-arquivo" type="file" accept="audio/*,.webm,.ogg,.m4a">
+                  <div class="field-hint" role="status"></div>
+                </div>
               </div>
             </div>
           </details>

@@ -9,7 +9,9 @@
     <link rel="stylesheet" href="CSS/landing.css">
     <script src="JavaScript/cadastro.js" defer></script>
     <link rel="stylesheet" href="CSS/drawer.css">
+  <link rel="stylesheet" href="CSS/transcricao.css">
     <script src="JavaScript/drawer.js" defer></script>
+    <script src="JavaScript/transcricao.js" defer></script>
     <script src="JavaScript/landing.js" defer></script>
   </head>
   <body>
@@ -518,6 +520,16 @@
         <input type="hidden" id="occ-lat">
         <input type="hidden" id="occ-lng">
 
+        <div class="field" style="margin-bottom:16px">
+          <label for="occ-desc">Descrição da ocorrência</label>
+          <textarea id="occ-desc" rows="3" placeholder="Descreva o problema: tamanho, risco, quanto tempo está assim..."></textarea>
+          <div id="occ-desc-audio" data-transcricao="occ-desc" style="margin-top:10px">
+            <button type="button" class="btn btn-ghost" data-gravar>Gravar áudio</button>
+            <label for="occ-desc-arquivo">Ou anexe um áudio de até 60 segundos</label>
+            <input id="occ-desc-arquivo" type="file" accept="audio/*,.webm,.ogg,.m4a">
+            <div class="field-hint" role="status"></div>
+          </div>
+        </div>
         <!-- ── Informações extras (expansível) ── -->
         <details class="occ-extras" id="occ-extras">
           <summary class="occ-extras-toggle">
@@ -530,10 +542,6 @@
               <label>Título personalizado</label>
               <input type="text" id="occ-title" placeholder="Ex: Buraco na Av. Principal, esquina com Rua 7">
               <div class="field-hint">Se deixar em branco, um título será gerado automaticamente.</div>
-            </div>
-            <div class="field" style="margin-bottom:0">
-              <label>Descrição detalhada</label>
-              <textarea id="occ-desc" rows="3" placeholder="Descreva o problema: tamanho, risco, quanto tempo está assim..."></textarea>
             </div>
             <div class="field" style="margin-bottom:0;margin-top:12px;">
               <label>Foto do problema</label>

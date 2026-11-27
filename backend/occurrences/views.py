@@ -564,10 +564,12 @@ def geocode_address(request):
 # OCORRÊNCIAS ANÔNIMAS
 # ──────────────────────────────────────────────────────────────
 from rest_framework.permissions import AllowAny
+from rest_framework.decorators import authentication_classes
 from occurrences.serializers import AnonOccurrenceSerializer
 
 
 @api_view(['POST'])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def create_anonymous_occurrence(request):
     """

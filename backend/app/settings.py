@@ -3,9 +3,12 @@ from datetime import timedelta
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
-
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# O recarregador herda o ambiente anterior. Releia o .env local ao reiniciar.
+load_dotenv(BASE_DIR / '.env', override=True)
+
+WHISPER_MODEL = os.getenv('WHISPER_MODEL') or 'small'
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-troque-em-producao')
 

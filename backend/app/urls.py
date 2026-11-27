@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 from authentication.views import LoggedTokenObtainPairView
+from transcriptions.views import transcribe_audio
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 
 urlpatterns = [
@@ -17,6 +18,7 @@ urlpatterns = [
 
     
     path('api/v1/users/', include('users.urls')),
+    path('api/v1/transcriptions/', transcribe_audio, name='transcribe-audio'),
     path('api/v1/categories/', include('categories.urls')),
     path('api/v1/occurrences/', include('occurrences.urls')),
     path('api/v1/occurrences/', include('history.urls')),
