@@ -1,10 +1,3 @@
-"""
-Padrão Observer — eventos do ciclo de vida da ocorrência.
-
-As views só *publicam* o que aconteceu (`eventos.publicar(...)`); quem quiser reagir (avisar
-gestores, equipe, etc.) se *inscreve* como observador. Assim a view não conhece nenhum
-destinatário, e novas reações entram sem alterá-la. Veja `occurrences/observers.py`.
-"""
 from dataclasses import dataclass, field
 
 OCORRENCIA_CRIADA = 'ocorrencia_criada'
@@ -17,19 +10,17 @@ STATUS_ALTERADO = 'status_alterado'
 class Evento:
     nome: str
     ocorrencia: object
-    por: object = None                      # quem causou o evento (pode ser None: anônimo)
+    por: object = None                    
     dados: dict = field(default_factory=dict)
 
 
 class Observer:
-    """Interface: recebe cada evento em que está inscrito."""
 
     def atualizar(self, evento: Evento) -> None:
         raise NotImplementedError
 
 
 class Eventos:
-    """O 'Subject': guarda os observadores por evento e os avisa em ordem de inscrição."""
 
     def __init__(self):
         self._observadores: dict[str, list[Observer]] = {}
@@ -48,7 +39,7 @@ class Eventos:
         for observador in list(self._observadores.get(nome, [])):
             try:
                 observador.atualizar(evento)
-            except Exception as e:  # um observador com defeito não derruba a ação principal nem os outros
+            except Exception as e:  
                 print(f'[eventos] {type(observador).__name__} falhou em {nome}: {e}')
 
 

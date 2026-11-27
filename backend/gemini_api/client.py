@@ -12,14 +12,7 @@ GEMINI_MIN_TIMEOUT_SECONDS = 10
 
 
 class GeminiClient:
-    """
-    Singleton — ponto único de acesso ao cliente da API Google Gemini.
-
-    Evita reinstanciar a conexão/configuração da API a cada chamada de IA
-    (transcrição, análise de imagem, urgência, duplicidade etc.), reaproveitando
-    a mesma instância durante todo o ciclo de vida do processo Django.
-    """
-
+   
     _instance = None
 
     def __init__(self):

@@ -1,4 +1,3 @@
-"""Observadores dos eventos da ocorrência (padrão Observer — ver `events.py`)."""
 from occurrences.events import (
     OCORRENCIA_CRIADA, OCORRENCIA_DESIGNADA, OCORRENCIA_TRIADA, STATUS_ALTERADO, Observer, eventos,
 )
@@ -6,7 +5,6 @@ from users.perfis import is_admin
 
 
 class NotificacaoObserver(Observer):
-    """Traduz cada evento no aviso do sino correspondente (notifications/services.py)."""
 
     def atualizar(self, evento):
         from notifications import services

@@ -1,40 +1,21 @@
-"""
-Adapter (Padrão Estrutural) — geo/adapter.py
-
-Padroniza a obtenção de coordenadas/endereços vindos de fontes externas
-diferentes (hoje: OpenStreetMap/Nominatim) atrás de uma interface única
-(TargetGeoInterface), pra que o resto do sistema não precise conhecer o
-formato de resposta específico de cada provedor de mapas. Se o provedor
-for trocado no futuro (ex: Google Maps), basta criar um novo adapter
-implementando a mesma interface — nenhuma outra parte do sistema muda.
-"""
-
 import json
 import urllib.request
 import urllib.parse
 from abc import ABC, abstractmethod
 
-
 class TargetGeoInterface(ABC):
-    """Interface que qualquer adapter de geolocalização deve implementar."""
 
     @abstractmethod
     def obter_coordenadas(self, endereco: str) -> dict:
-        """Geocodificação direta: endereço → coordenadas."""
+    
         raise NotImplementedError
 
     @abstractmethod
     def obter_endereco(self, latitude: float, longitude: float) -> dict:
-        """Geocodificação reversa: coordenadas → endereço."""
+        
         raise NotImplementedError
 
-
 class OpenStreetMapAdapter(TargetGeoInterface):
-    """
-    Adapta a API do OpenStreetMap (Nominatim) pro formato padrão usado
-    pelo InfraMind: {'latitude', 'longitude', 'endereco_formatado'} (a geocodificação
-    reversa também devolve 'cidade' e 'uf').
-    """
 
     BASE_URL   = 'https://nominatim.openstreetmap.org'
     USER_AGENT = 'InfraMind/1.0 (projeto academico FHO)'

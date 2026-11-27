@@ -1,14 +1,3 @@
-"""
-Padrão Strategy — cálculo da prioridade da ocorrência.
-
-Cada regra é uma estratégia com a mesma interface (`calcular(occ) -> int`). Quem precisa da
-prioridade chama `calcular_prioridade(occ)` e não sabe qual regra está valendo; trocar a regra é
-mudar `PRIORITY_STRATEGY` (variável de ambiente / settings), sem tocar nas views.
-
-    padrao       validações + dias em aberto + importância (comportamento original)
-    por_prazo    padrão + peso extra para prazo estourado ou perto de estourar
-    urgencia_ia  padrão + nota de urgência calculada pela IA
-"""
 from abc import ABC, abstractmethod
 from datetime import timedelta
 
